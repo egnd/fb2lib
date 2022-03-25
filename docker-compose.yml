@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  server:
+    image: ${DC_APP_IMG}
+    env_file:
+      - ./.env
+    ports:
+      - ${DC_SERVER_PORT}:${BS_SERVER_PORT}
+    volumes:
+      - ./.data:/app/storage:rw

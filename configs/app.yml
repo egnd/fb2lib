@@ -1,0 +1,9 @@
+debug: false
+server:
+  port: 8080
+logs:
+  debug: false
+  pretty: false
+storage:
+  dir: storage
+  index_file: index.bleve

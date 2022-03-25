@@ -1,0 +1,5 @@
+/.data
+/bin
+/gen
+/.env*
+.DS_Store
