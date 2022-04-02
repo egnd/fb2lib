@@ -34,3 +34,6 @@ ifeq ($(wildcard .env),)
 	cp .env.dist .env
 endif
 	docker-compose down --remove-orphans --volumes
+
+compose-index:
+	docker-compose exec server bin/importer

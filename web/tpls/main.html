@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+
+{% block meta_title %}{{recipe.Name}}{% endblock %}
+
+{% block content %}
+<section id="main" style="padding: 50px 0;">
+    <div class="container">
+        <div class="row">
+            {% for item in books %}
+            <div class="col-12">
+                <div><h4 class="col-12">{{item.Titles}}</h3></div>
+                <div>
+                    {% if item.ISBN %}<span class="book-attr">ISBN: {{item.ISBN}}</span>{% endif %}
+                    {% if item.Authors %}<span class="book-attr">Авторы: {{item.Authors}}</span>{% endif %}
+                    {% if item.Sequences %}<span class="book-attr">Серия: {{item.Sequences}}</span>{% endif %}
+                    {% if item.Genres %}<span class="book-attr">Жанр: {{item.Genres}}</span>{% endif %}
+                    {% if item.Date %}<span class="book-attr">Год: {{item.Date}}</span>{% endif %}
+                    {% if item.Lang %}<span class="book-attr">Язык: {{item.Lang}}</span>{% endif %}
+                    <a href="/download/{{item.ID}}/fb2" class="book-attr icon solid fa-download">.fb2</a>
+                    <a href="#" class="book-attr icon solid fa-download">.epub</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if pager && pager.HasPages() %}
+        <br><br>
+        <div style="text-align: center;">
+            {%if pager.HasPrev() %}
+            <a class="book-attr" href="{{pager.PageLinkFirst()}}">Первая</a>
+            {% endif %}
+            
+            {% for page in pager.Pages%}
+                {%if pager.IsActive(page) %}
+                <span class="book-attr">{{page}}</span>
+                {% else %}
+                <a class="book-attr" href="{{pager.PageLink(page)}}">{{page}}</a>
+                {% endif %}
+            {% endfor %}
+
+            {%if pager.HasNext() %}
+            <a class="book-attr" href="{{pager.PageLinkLast()}}">Последняя</a>
+            {% endif %}
+        </div>
+        {%endif%}
+    </div>
+</section>
+{% endblock %}

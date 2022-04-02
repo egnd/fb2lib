@@ -1,129 +1,99 @@
 package repos
 
-import "gitlab.com/egnd/bookshelf/internal/entities"
+import (
+	"context"
+	"errors"
 
-type BooksBleve struct {
-	bleve entities.IBleveIndex
+	"github.com/astaxie/beego/utils/pagination"
+	"github.com/blevesearch/bleve/v2"
+	"github.com/blevesearch/bleve/v2/search/query"
+	"github.com/rs/zerolog"
+	"gitlab.com/egnd/bookshelf/internal/entities"
+)
+
+type BooksBleveRepo struct {
+	index  bleve.Index
+	logger zerolog.Logger
 }
 
-func NewBooksBleve(bleve entities.IBleveIndex) *BooksBleve {
-	return &BooksBleve{
-		bleve: bleve,
+func NewBooksBleve(index bleve.Index, logger zerolog.Logger) *BooksBleveRepo {
+	return &BooksBleveRepo{
+		index:  index,
+		logger: logger,
 	}
 }
 
-// func (r *RecipesRepo) GetByID(ctx context.Context, id string) (*entities.Recipe, error) {
-// 	res := &entities.Recipe{}
-// 	err := r.db.WithContext(ctx).Preload("Tags").Take(res, id).Error
+func (r *BooksBleveRepo) GetBooks(ctx context.Context, strQuery string, pager *pagination.Paginator) (res []entities.BookIndex, err error) {
+	var q query.Query
 
-// 	return res, err
-// }
+	if strQuery == "" {
+		q = bleve.NewMatchAllQuery()
+	} else {
+		q = bleve.NewMatchQuery(strQuery)
+	}
 
-// func (r *RecipesRepo) GetCount(ctx context.Context, tag *entities.Tag) (cnt int64, err error) {
-// 	db := r.db.WithContext(ctx).
-// 		Table("recipes r")
+	cnt, _ := r.index.DocCount()
+	search := bleve.NewSearchRequestOptions(q, int(cnt), 0, false)
+	search.Fields = []string{"*"}
+	search.Highlight = bleve.NewHighlightWithStyle("html")
 
-// 	if tag != nil {
-// 		db = db.Joins("INNER JOIN recipes2tags rt ON r.id = rt.recipe_id AND rt.tag_id = ?", tag.ID)
-// 	}
+	var searchResults *bleve.SearchResult
+	if searchResults, err = r.index.Search(search); err != nil {
+		return
+	}
 
-// 	err = db.Count(&cnt).Error
+	if searchResults.Total == 0 {
+		return
+	}
 
-// 	return
-// }
+	pager.SetNums(searchResults.Total)
+	totalHits := len(searchResults.Hits)
 
-// func (r *RecipesRepo) GetList(ctx context.Context, tag *entities.Tag, sort entities.SortType, pager *pagination.Paginator) (res []entities.Recipe, err error) {
-// 	var totalRecipes int64
-// 	if totalRecipes, err = r.GetCount(ctx, tag); err != nil || totalRecipes == 0 {
-// 		return
-// 	}
+	for i := pager.Offset(); i < pager.Offset()+pager.PerPageNums; i++ {
+		if totalHits <= i {
+			break
+		}
 
-// 	pager.SetNums(totalRecipes)
+		res = append(res, entities.BookIndex{
+			ID:        searchResults.Hits[i].ID,
+			ISBN:      searchResults.Hits[i].Fields["ISBN"].(string),
+			Titles:    searchResults.Hits[i].Fields["Titles"].(string),
+			Authors:   searchResults.Hits[i].Fields["Authors"].(string),
+			Sequences: searchResults.Hits[i].Fields["Sequences"].(string),
+			Genres:    searchResults.Hits[i].Fields["Genres"].(string),
+			Date:      searchResults.Hits[i].Fields["Date"].(string),
+			Lang:      searchResults.Hits[i].Fields["Lang"].(string),
+		})
+	}
 
-// 	var sortCond string
-// 	switch sort {
-// 	case entities.SortNewest:
-// 		sortCond = "updated_at desc"
-// 	case entities.SortPopular:
-// 		sortCond = "visits desc"
-// 	default:
-// 		err = errors.New("invalid sort type")
+	return
+}
 
-// 		return
-// 	}
+func (r *BooksBleveRepo) GetBook(ctx context.Context, bookID string) (res entities.BookIndex, err error) {
+	search := bleve.NewSearchRequestOptions(bleve.NewDocIDQuery([]string{bookID}), 1, 0, false)
+	search.Fields = []string{"*"}
 
-// 	db := r.db.WithContext(ctx).Order(sortCond).Offset(pager.Offset()).Limit(pager.PerPageNums).Preload("Tags")
+	var searchResults *bleve.SearchResult
+	if searchResults, err = r.index.Search(search); err != nil {
+		return
+	}
 
-// 	if tag != nil {
-// 		db = db.Joins("INNER JOIN recipes2tags rt ON recipes.id = rt.recipe_id AND rt.tag_id = ?", tag.ID)
-// 	}
+	if searchResults.Total == 0 {
+		err = errors.New("book not found")
+		return
+	}
 
-// 	err = db.Find(&res).Error
+	res.ID = searchResults.Hits[0].ID
+	res.ISBN = searchResults.Hits[0].Fields["ISBN"].(string)
+	res.Titles = searchResults.Hits[0].Fields["Titles"].(string)
+	res.Authors = searchResults.Hits[0].Fields["Authors"].(string)
+	res.Sequences = searchResults.Hits[0].Fields["Sequences"].(string)
+	res.Genres = searchResults.Hits[0].Fields["Genres"].(string)
+	res.Date = searchResults.Hits[0].Fields["Date"].(string)
+	res.Lang = searchResults.Hits[0].Fields["Lang"].(string)
+	res.Archive = searchResults.Hits[0].Fields["Archive"].(string)
+	res.Offset = int64(searchResults.Hits[0].Fields["Offset"].(float64))
+	res.SizeCompressed = int64(searchResults.Hits[0].Fields["SizeCompressed"].(float64))
 
-// 	return
-// }
-
-// func (r *RecipesRepo) GetSearchList(ctx context.Context, strQuery string, pager *pagination.Paginator) (res []entities.Recipe, err error) {
-// 	query := bleve.NewMatchQuery(strQuery)
-// 	cnt, _ := r.index.DocCount()
-// 	search := bleve.NewSearchRequestOptions(query, int(cnt), 0, false)
-
-// 	var searchResults *bleve.SearchResult
-// 	if searchResults, err = r.index.Search(search); err != nil {
-// 		return
-// 	}
-
-// 	if searchResults.Total == 0 {
-// 		return
-// 	}
-
-// 	pager.SetNums(searchResults.Total)
-// 	codes := make([]string, 0, pager.PerPageNums)
-
-// 	for i := pager.Offset(); i < pager.Offset()+pager.PerPageNums; i++ {
-// 		if len(searchResults.Hits) <= i {
-// 			break
-// 		}
-
-// 		codes = append(codes, searchResults.Hits[i].ID)
-// 	}
-
-// 	tmpData := make([]entities.Recipe, 0, pager.PerPageNums)
-// 	if err = r.db.WithContext(ctx).Preload("Tags").Find(&tmpData, "code in ?", codes).Error; err != nil {
-// 		return
-// 	}
-
-// 	tmpIndex := map[string]entities.Recipe{}
-// 	for _, item := range tmpData {
-// 		tmpIndex[item.Code] = item
-// 	}
-// 	if len(tmpIndex) == 0 {
-// 		return
-// 	}
-
-// 	for _, code := range codes {
-// 		if item, ok := tmpIndex[code]; ok {
-// 			res = append(res, item)
-// 		}
-// 	}
-
-// 	return
-// }
-
-// func (r *RecipesRepo) GetSimilar(ctx context.Context, recipe entities.Recipe, limit int) (res []entities.Recipe, err error) {
-// 	if len(recipe.Tags) == 0 {
-// 		return
-// 	}
-
-// 	tagsID := make([]int, 0, len(recipe.Tags))
-// 	for _, tag := range recipe.Tags {
-// 		tagsID = append(tagsID, int(tag.ID))
-// 	}
-
-// 	err = r.db.WithContext(ctx).Order("updated_at desc").Limit(limit).
-// 		Preload("Tags").
-// 		Joins("INNER JOIN recipes2tags rt ON recipes.id = rt.recipe_id AND rt.tag_id IN ?", tagsID).
-// 		Find(&res).Error
-
-// 	return
-// }
+	return
+}

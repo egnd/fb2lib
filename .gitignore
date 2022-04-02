@@ -4,3 +4,6 @@
 /.env
 /docker-compose.override.yml
 .DS_Store
+/web/library
+/var
+/internal/src

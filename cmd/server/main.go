@@ -14,6 +14,8 @@ import (
 
 var appVersion = "debug"
 
+// @TODO: https://github.com/rupor-github/fb2converter
+
 func main() {
 	showVersion := flag.Bool("version", false, "Show app version.")
 	cfgPath := flag.String("config", "configs/app.yml", "Configuration file path.")
@@ -32,13 +34,13 @@ func main() {
 
 	logger := factories.NewZerologLogger(cfg, os.Stderr)
 
-	db, err := factories.NewBleveDB(cfg)
+	booksIndex, err := factories.NewBooksIndex(cfg)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("init db")
 	}
 
 	server := factories.NewEchoServer(cfg, logger,
-		repos.NewBooksBleve(db),
+		repos.NewBooksBleve(booksIndex, logger),
 	)
 	logger.Info().Int("port", cfg.GetInt("server.port")).Msg("server is starting...")
 

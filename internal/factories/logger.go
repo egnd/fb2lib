@@ -9,6 +9,7 @@ import (
 )
 
 func NewZerologLogger(cfg *viper.Viper, writer io.Writer) zerolog.Logger {
+	zerolog.DurationFieldUnit = cfg.GetDuration("logs.duration_unit")
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
 	zerolog.TimestampFunc = func() time.Time {
 		return time.Now().In(time.Local)

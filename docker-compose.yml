@@ -7,4 +7,6 @@ services:
     ports:
       - ${DC_SERVER_PORT}:${BS_SERVER_PORT}
     volumes:
-      - ./.data:/app/storage:rw
+      - ./var:/app/var:rw
+      - ./web/library:/app/web/library:rw
+    # entrypoint: ["bin/importer"]

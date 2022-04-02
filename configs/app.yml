@@ -4,6 +4,12 @@ server:
 logs:
   debug: false
   pretty: false
-storage:
-  dir: storage
-  index_file: index.bleve
+  duration_unit: 1s
+web:
+  library_dir: web/library
+  static_dir: web/static
+  markup_dir: web/markup
+bleve:
+  path: var/books_index
+indexing:
+  books_index: var/index_books
