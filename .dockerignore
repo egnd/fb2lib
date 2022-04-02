@@ -3,5 +3,6 @@
 /gen
 /.env*
 .DS_Store
-/web/library
+
 /var
+/web/library

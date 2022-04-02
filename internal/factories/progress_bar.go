@@ -6,13 +6,13 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
-func NewFileProgressBar(filePath, description string) (pb *progressbar.ProgressBar, err error) {
+func NewFileProgressBar(filePath, description string) (bar *progressbar.ProgressBar, err error) {
 	var fi os.FileInfo
 	if fi, err = os.Stat(filePath); err != nil {
 		return
 	}
 
-	pb = progressbar.DefaultBytes(fi.Size(), description)
+	bar = progressbar.DefaultBytes(fi.Size(), description)
 
 	return
 }

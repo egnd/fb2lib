@@ -55,13 +55,13 @@ func main() {
 		return
 	}
 
+	var bar *progressbar.ProgressBar
 	debug := cfg.GetBool("debug")
 	totalArchives := len(archives)
 	for archiveNum, archive := range archives {
 		logger := logger.With().Str("archive", archive.Name()).Logger()
 		switch filepath.Ext(archive.Name()) {
 		case ".zip":
-			var bar *progressbar.ProgressBar
 			if debug {
 				if bar, err = factories.NewFileProgressBar(
 					filepath.Join(cfg.GetString("web.library_dir"), archive.Name()),
