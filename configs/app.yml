@@ -10,6 +10,4 @@ web:
   static_dir: web/static
   markup_dir: web/markup
 bleve:
-  path: var/books_index
-indexing:
-  books_index: var/index_books
+  books_dir: var/books_index

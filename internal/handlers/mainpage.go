@@ -16,7 +16,6 @@ func MainPageHandler(repo *repos.BooksBleveRepo, logger zerolog.Logger) echo.Han
 
 	return func(c echo.Context) (err error) {
 		searchQuery := c.QueryParam("q")
-		// curPage := c.QueryParam("p")
 		pager := pagination.NewPaginator(c.Request(), pageSize, 0)
 
 		var books []entities.BookIndex

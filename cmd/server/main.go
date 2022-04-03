@@ -34,7 +34,7 @@ func main() {
 
 	logger := factories.NewZerologLogger(cfg, os.Stderr)
 
-	booksIndex, err := factories.NewBooksIndex(cfg)
+	booksIndex, err := factories.OpenBooksIndex(cfg.GetString("bleve.books_dir"))
 	if err != nil {
 		logger.Fatal().Err(err).Msg("init db")
 	}

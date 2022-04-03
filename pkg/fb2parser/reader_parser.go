@@ -1,17 +1,15 @@
-package library
+package fb2parser
 
 import (
 	"encoding/xml"
 	"io"
-
-	"gitlab.com/egnd/bookshelf/internal/entities"
 )
 
-func NewFB2FileFromReader(data io.Reader) (*entities.FB2File, error) {
+func FB2FromReader(data io.Reader) (*FB2File, error) {
 	decoder := xml.NewDecoder(data)
 	decoder.CharsetReader = CharsetReader
 
-	var res entities.FB2File
+	var res FB2File
 	if err := decoder.Decode(&res); err != nil {
 		return nil, err
 	}

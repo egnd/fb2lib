@@ -9,4 +9,4 @@ services:
     volumes:
       - ./var:/app/var:rw
       - ./web/library:/app/web/library:rw
-    # entrypoint: ["bin/importer"]
+    # entrypoint: ["bin/indexer"]
