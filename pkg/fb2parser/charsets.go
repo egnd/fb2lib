@@ -1,7 +1,7 @@
-package library
+package fb2parser
 
 import (
-	"errors"
+	"fmt"
 	"io"
 	"strings"
 
@@ -27,10 +27,10 @@ var charsetsMap = map[string]encoding.Encoding{
 
 // CharsetReader returns a new charset-conversion reader, converting from the provided charset into UTF-8.
 func CharsetReader(label string, input io.Reader) (io.Reader, error) {
-	charset := strings.ToLower(strings.TrimSpace(label))
-	e := charsetsMap[charset]
-	if e == nil {
-		return nil, errors.New("unsupported charset")
+	encoder := charsetsMap[strings.ToLower(strings.TrimSpace(label))]
+	if encoder == nil {
+		return nil, fmt.Errorf("fb2 charset error: unsupported charset %s", label)
 	}
-	return transform.NewReader(input, e.NewDecoder()), nil
+
+	return transform.NewReader(input, encoder.NewDecoder()), nil
 }

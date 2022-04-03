@@ -60,9 +60,8 @@ func (r *BooksBleveRepo) GetBooks(ctx context.Context, strQuery string, pager *p
 			Titles:    searchResults.Hits[i].Fields["Titles"].(string),
 			Authors:   searchResults.Hits[i].Fields["Authors"].(string),
 			Sequences: searchResults.Hits[i].Fields["Sequences"].(string),
-			Genres:    searchResults.Hits[i].Fields["Genres"].(string),
 			Date:      searchResults.Hits[i].Fields["Date"].(string),
-			Lang:      searchResults.Hits[i].Fields["Lang"].(string),
+			Publisher: searchResults.Hits[i].Fields["Publisher"].(string),
 		})
 	}
 
@@ -88,12 +87,11 @@ func (r *BooksBleveRepo) GetBook(ctx context.Context, bookID string) (res entiti
 	res.Titles = searchResults.Hits[0].Fields["Titles"].(string)
 	res.Authors = searchResults.Hits[0].Fields["Authors"].(string)
 	res.Sequences = searchResults.Hits[0].Fields["Sequences"].(string)
-	res.Genres = searchResults.Hits[0].Fields["Genres"].(string)
 	res.Date = searchResults.Hits[0].Fields["Date"].(string)
-	res.Lang = searchResults.Hits[0].Fields["Lang"].(string)
-	res.Archive = searchResults.Hits[0].Fields["Archive"].(string)
-	res.Offset = int64(searchResults.Hits[0].Fields["Offset"].(float64))
-	res.SizeCompressed = int64(searchResults.Hits[0].Fields["SizeCompressed"].(float64))
+	res.Publisher = searchResults.Hits[0].Fields["Publisher"].(string)
+	res.Src = searchResults.Hits[0].Fields["Src"].(string)
+	res.Offset = uint64(searchResults.Hits[0].Fields["Offset"].(float64))
+	res.Size = uint64(searchResults.Hits[0].Fields["Size"].(float64))
 
 	return
 }

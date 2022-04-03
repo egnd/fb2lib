@@ -20,8 +20,8 @@ owner: ## Reset folder owner
 build: ## Build app
 	@mkdir -p bin
 	CGO_ENABLED=0 go build -mod=vendor -ldflags "-X 'main.appVersion=$(BUILD_VERSION)-$(GOOS)-$(GOARCH)'" -o bin/server cmd/server/*
-	CGO_ENABLED=0 go build -mod=vendor -ldflags "-X 'main.appVersion=$(BUILD_VERSION)-$(GOOS)-$(GOARCH)'" -o bin/importer cmd/importer/*
-	@chmod +x bin/server bin/importer && ls -lah bin/server bin/importer
+	CGO_ENABLED=0 go build -mod=vendor -ldflags "-X 'main.appVersion=$(BUILD_VERSION)-$(GOOS)-$(GOARCH)'" -o bin/indexer cmd/indexer/*
+	@chmod +x bin/server bin/indexer && ls -lah bin/server bin/indexer
 
 compose: compose-stop ## Run app
 ifeq ($(wildcard docker-compose.override.yml),)
@@ -36,4 +36,4 @@ endif
 	docker-compose down --remove-orphans --volumes
 
 compose-index:
-	docker-compose exec server bin/importer
+	docker-compose exec server bin/indexer

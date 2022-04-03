@@ -7,7 +7,7 @@
             "request": "launch",
             "mode": "debug",
             "cwd": "${workspaceFolder}",
-            "program": "${workspaceFolder}/cmd/importer",
+            "program": "${workspaceFolder}/cmd/indexer",
         }
     ]
 }
