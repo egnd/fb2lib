@@ -18,6 +18,23 @@ func NewIndexMappingBook() *mapping.IndexMappingImpl {
 	return bleve.NewIndexMapping() // @TODO:
 }
 
+// func NewIndexMappingBook() *mapping.IndexMappingImpl {
+// 	mapping := bleve.NewIndexMapping() // @TODO:
+
+// 	bookMapping := bleve.NewDocumentMapping()
+// 	mapping.AddDocumentMapping("book", bookMapping)
+
+// 	titlesField := bleve.NewTextFieldMapping()
+// 	titlesField.Analyzer = "ru"
+// 	bookMapping.AddFieldMappingsAt("Titles", titlesField)
+
+// 	authorsField := bleve.NewTextFieldMapping()
+// 	authorsField.Analyzer = "ru"
+// 	bookMapping.AddFieldMappingsAt("Authors", authorsField)
+
+// 	return mapping
+// }
+
 func NewBooksIndex(name string, dir string) (bleve.Index, error) {
 	indexPath := filepath.Join(dir,
 		fmt.Sprintf("%x", md5.Sum([]byte(name))),

@@ -34,7 +34,7 @@ func NewEchoServer(cfg *viper.Viper, logger zerolog.Logger,
 	server.GET("/live", handlers.EchoLiveHandler())
 	server.GET("/", handlers.MainPageHandler(booksRepo, logger))
 	server.GET("/download/:book_id/fb2", handlers.DownloadFB2Handler(booksRepo, logger, cfg))
-	// server.GET("/download/:book_id/epub", handlers.MainPageHandler()) // @TODO:
+	// server.GET("/download/:book_id/epub", handlers.MainPageHandler()) // @TODO: https://github.com/rupor-github/fb2converter
 	// server.GET("/authors/", handlers.MainPageHandler()) // @TODO:
 	// server.GET("/authors/:id", handlers.MainPageHandler()) // @TODO:
 	// server.GET("/sequences/", handlers.MainPageHandler()) // @TODO:

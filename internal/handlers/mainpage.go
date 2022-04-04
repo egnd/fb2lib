@@ -27,14 +27,15 @@ func MainPageHandler(repo *repos.BooksBleveRepo, logger zerolog.Logger) echo.Han
 			return
 		}
 
-		return c.Render(http.StatusOK, "web/tpls/main.html", pongo2.Context{
+		return c.Render(http.StatusOK, "web/tpls/books-list.html", pongo2.Context{
 			"h1":                 "Домашняя библиотека",
 			"search_action":      "/",
 			"search_query":       searchQuery,
 			"search_placeholder": "Автор, название книги, серии, ISBN и т.д.",
 
-			"books": books,
-			"pager": pager,
+			"books":  books,
+			"pager":  pager,
+			"offset": pager.Offset(),
 		})
 	}
 }

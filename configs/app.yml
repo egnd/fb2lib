@@ -11,3 +11,4 @@ web:
   markup_dir: web/markup
 bleve:
   books_dir: var/books_index
+  highlight: true

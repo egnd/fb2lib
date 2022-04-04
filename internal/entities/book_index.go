@@ -21,6 +21,37 @@ type BookIndex struct {
 	Size      uint64
 }
 
+func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
+	res := BookIndex{
+		Titles: fb2.Description.TitleInfo.BookTitle,
+	}
+
+	res.appendAuthors(fb2.Description.TitleInfo.Author)
+	res.appendSequences(fb2.Description.TitleInfo.Sequence)
+
+	if fb2.Description.PublishInfo != nil {
+		res.ISBN = fb2.Description.PublishInfo.ISBN
+		res.Publisher = fb2.Description.PublishInfo.Publisher
+		res.appendStr(fb2.Description.PublishInfo.BookName, &res.Titles)
+
+		if fb2.Description.PublishInfo.Year > 0 {
+			res.Date = fmt.Sprint(fb2.Description.PublishInfo.Year)
+		}
+	}
+
+	if fb2.Description.SrcTitleInfo != nil {
+		res.appendStr(fb2.Description.SrcTitleInfo.BookTitle, &res.Titles)
+		res.appendAuthors(fb2.Description.SrcTitleInfo.Author)
+		res.appendSequences(fb2.Description.SrcTitleInfo.Sequence)
+
+		if res.Date == "" {
+			res.Date = fb2.Description.SrcTitleInfo.Date
+		}
+	}
+
+	return res
+}
+
 func (bi *BookIndex) appendAuthors(items []fb2parser.FB2Author) {
 	if len(items) == 0 {
 		return
@@ -76,35 +107,4 @@ func (bi *BookIndex) appendStr(val string, orig *string) {
 		*orig += ", " + val
 	}
 
-}
-
-func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
-	res := BookIndex{
-		Titles: fb2.Description.TitleInfo.BookTitle,
-	}
-
-	res.appendAuthors(fb2.Description.TitleInfo.Author)
-	res.appendSequences(fb2.Description.TitleInfo.Sequence)
-
-	if fb2.Description.PublishInfo != nil {
-		res.ISBN = fb2.Description.PublishInfo.ISBN
-		res.Publisher = fb2.Description.PublishInfo.Publisher
-		res.appendStr(fb2.Description.PublishInfo.BookName, &res.Titles)
-
-		if fb2.Description.PublishInfo.Year > 0 {
-			res.Date = fmt.Sprint(fb2.Description.PublishInfo.Year)
-		}
-	}
-
-	if fb2.Description.SrcTitleInfo != nil {
-		res.appendStr(fb2.Description.SrcTitleInfo.BookTitle, &res.Titles)
-		res.appendAuthors(fb2.Description.SrcTitleInfo.Author)
-		res.appendSequences(fb2.Description.SrcTitleInfo.Sequence)
-
-		if res.Date == "" {
-			res.Date = fb2.Description.SrcTitleInfo.Date
-		}
-	}
-
-	return res
 }

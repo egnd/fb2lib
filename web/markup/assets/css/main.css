@@ -2729,3 +2729,17 @@ input, select, textarea {
 	.book-attr:hover {
 		color: #fff;
 	}
+
+	h4 mark,a mark{
+		background-color: #ffff3a;
+    	color: black;
+	}
+
+	.list-group.search-result {
+		padding-left: 0;
+	}
+
+	.list-group.search-result .list-group-item {
+		list-style-type: none;
+		padding-left: 0;
+	}

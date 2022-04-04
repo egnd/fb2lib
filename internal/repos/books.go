@@ -3,33 +3,39 @@ package repos
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/astaxie/beego/utils/pagination"
 	"github.com/blevesearch/bleve/v2"
+	"github.com/blevesearch/bleve/v2/search"
 	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/rs/zerolog"
 	"gitlab.com/egnd/bookshelf/internal/entities"
 )
 
 type BooksBleveRepo struct {
-	index  bleve.Index
-	logger zerolog.Logger
+	highlight bool
+	index     bleve.Index
+	logger    zerolog.Logger
 }
 
-func NewBooksBleve(index bleve.Index, logger zerolog.Logger) *BooksBleveRepo {
+func NewBooksBleve(highlight bool, index bleve.Index, logger zerolog.Logger) *BooksBleveRepo {
 	return &BooksBleveRepo{
-		index:  index,
-		logger: logger,
+		highlight: highlight,
+		index:     index,
+		logger:    logger,
 	}
 }
 
 func (r *BooksBleveRepo) GetBooks(ctx context.Context, strQuery string, pager *pagination.Paginator) (res []entities.BookIndex, err error) {
-	var q query.Query
+	strQuery = strings.TrimSpace(strings.ToLower(strQuery))
 
-	if strQuery == "" {
+	var q query.Query
+	if strQuery == "" || strQuery == "*" {
 		q = bleve.NewMatchAllQuery()
 	} else {
-		q = bleve.NewMatchQuery(strQuery)
+		q = r.getCompositeQuery(strQuery)
+		// q = bleve.NewMatchQuery(strQuery) // @TODO: remove
 	}
 
 	cnt, _ := r.index.DocCount()
@@ -54,7 +60,7 @@ func (r *BooksBleveRepo) GetBooks(ctx context.Context, strQuery string, pager *p
 			break
 		}
 
-		res = append(res, entities.BookIndex{
+		book := entities.BookIndex{
 			ID:        searchResults.Hits[i].ID,
 			ISBN:      searchResults.Hits[i].Fields["ISBN"].(string),
 			Titles:    searchResults.Hits[i].Fields["Titles"].(string),
@@ -62,10 +68,54 @@ func (r *BooksBleveRepo) GetBooks(ctx context.Context, strQuery string, pager *p
 			Sequences: searchResults.Hits[i].Fields["Sequences"].(string),
 			Date:      searchResults.Hits[i].Fields["Date"].(string),
 			Publisher: searchResults.Hits[i].Fields["Publisher"].(string),
-		})
+		}
+
+		if r.highlight {
+			book = r.highlightItem(searchResults.Hits[i].Fragments, book)
+		}
+
+		res = append(res, book)
 	}
 
 	return
+}
+
+func (r *BooksBleveRepo) getCompositeQuery(strQuery string) query.Query {
+	queries := make([]query.Query, 0, 4)
+
+	if strings.Contains(strQuery, " ") {
+		queries = append(queries, bleve.NewMatchPhraseQuery(strQuery)) // phrase match
+	} else {
+		queries = append(queries, bleve.NewTermQuery(strQuery)) // exact word match
+	}
+
+	if strings.Contains(strQuery, "*") {
+		queries = append(queries, bleve.NewWildcardQuery(strQuery)) // wildcard search syntax (*)
+	} else {
+		queries = append(queries, bleve.NewQueryStringQuery(strQuery)) // extended search syntax https://blevesearch.com/docs/Query-String-Query/
+	}
+
+	return bleve.NewDisjunctionQuery(queries...)
+}
+
+func (r *BooksBleveRepo) highlightItem(fragments search.FieldFragmentMap, book entities.BookIndex) entities.BookIndex {
+	if vals, ok := fragments["Titles"]; ok && len(vals) > 0 {
+		book.Titles = vals[0]
+	}
+
+	if vals, ok := fragments["Authors"]; ok && len(vals) > 0 {
+		book.Authors = vals[0]
+	}
+
+	if vals, ok := fragments["Sequences"]; ok && len(vals) > 0 {
+		book.Sequences = vals[0]
+	}
+
+	if vals, ok := fragments["Publisher"]; ok && len(vals) > 0 {
+		book.Publisher = vals[0]
+	}
+
+	return book
 }
 
 func (r *BooksBleveRepo) GetBook(ctx context.Context, bookID string) (res entities.BookIndex, err error) {

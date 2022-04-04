@@ -51,17 +51,34 @@ func main() {
 
 	debug := cfg.GetBool("debug")
 	startTS := time.Now()
-
 	booksIndexDir := cfg.GetString("bleve.books_dir")
+
 	sepBooksIndex, err := factories.NewBooksIndex("notzip", booksIndexDir)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("init notzip index")
 	}
 	defer sepBooksIndex.Close()
 
-	if err = library.NewLocalFSItems(cfg.GetString("web.library_dir"), []string{".zip", ".fb2"}, logger).IterateItems(func(
-		libItemPath string, libItem os.FileInfo, num, total int, logger zerolog.Logger,
-	) (err error) {
+	lib := library.NewLocalFSItems(cfg.GetString("web.library_dir"), []string{".zip", ".fb2"}, logger)
+
+	if err = lib.IterateItems(
+		LibItemHandler(debug, bar, &booksTotal, &booksIndexed, booksIndexDir, sepBooksIndex),
+	); err != nil {
+		logger.Error().Err(err).Msg("handle library items")
+	}
+
+	logger.Info().
+		Uint32("total", booksTotal).
+		Uint32("indexed", booksIndexed).
+		Dur("dur", time.Now().Sub(startTS)).
+		Msg("indexing finished")
+}
+
+func LibItemHandler(
+	debug bool, bar *progressbar.ProgressBar, booksTotal *uint32, booksIndexed *uint32,
+	booksIndexDir string, sepBooksIndex bleve.Index,
+) library.ILibItemHandler {
+	return func(libItemPath string, libItem os.FileInfo, num, total int, logger zerolog.Logger) error {
 		switch filepath.Ext(libItem.Name()) {
 		case ".zip":
 			if debug {
@@ -73,8 +90,8 @@ func main() {
 
 			var zipItemsTotal, zipItemsIndexed uint32
 			defer func() {
-				booksTotal += zipItemsTotal
-				booksIndexed += zipItemsIndexed
+				*booksTotal += zipItemsTotal
+				*booksIndexed += zipItemsIndexed
 			}()
 
 			itemTS := time.Now()
@@ -86,27 +103,11 @@ func main() {
 			}
 			defer booksIndex.Close()
 
-			library.NewZipItemIterator(libItemPath, logger).
-				IterateItems(func(zipItem *zip.File, data io.Reader, offset, num int64, logger zerolog.Logger) error {
-					if debug {
-						defer bar.Add64(int64(zipItem.CompressedSize64))
-					}
-
-					switch path.Ext(zipItem.Name) {
-					case ".fb2":
-						zipItemsTotal++
-
-						if !IndexFB2File(data, libItemPath, offset, zipItem.CompressedSize64, logger, booksIndex) {
-							return nil
-						}
-
-						zipItemsIndexed++
-					default:
-						logger.Warn().Msg("invalid archive item")
-					}
-
-					return nil
-				})
+			if err := library.NewZipItemIterator(libItemPath, logger).IterateItems(ZipItemHandler(
+				debug, bar, &zipItemsTotal, &zipItemsIndexed, libItemPath, booksIndex,
+			)); err != nil {
+				return err
+			}
 
 			if debug {
 				bar.Finish()
@@ -114,6 +115,8 @@ func main() {
 
 			logger.Info().Uint32("total", zipItemsTotal).Uint32("indexed", zipItemsIndexed).
 				Dur("dur", time.Now().Sub(itemTS)).Msg("lib item indexed")
+
+			return nil
 		case ".fb2":
 			fb2Data, err := os.Open(libItemPath)
 			if err != nil {
@@ -122,24 +125,45 @@ func main() {
 			}
 			defer fb2Data.Close()
 
-			booksTotal++
+			*booksTotal++
 
 			if !IndexFB2File(fb2Data, libItemPath, 0, uint64(libItem.Size()), logger, sepBooksIndex) {
 				return nil
 			}
 
-			booksIndexed++
+			*booksIndexed++
+
+			return nil
 		default:
-			err = fmt.Errorf("lib item error: invalid item %s", libItem.Name())
+			return fmt.Errorf("lib item error: invalid item %s", libItem.Name())
+		}
+	}
+}
+
+func ZipItemHandler(
+	debug bool, bar *progressbar.ProgressBar, zipItemsTotal *uint32, zipItemsIndexed *uint32,
+	libItemPath string, booksIndex bleve.Index,
+) library.IZipItemHandler {
+	return func(zipItem *zip.File, data io.Reader, offset, num int64, logger zerolog.Logger) error {
+		if debug {
+			defer bar.Add64(int64(zipItem.CompressedSize64))
 		}
 
-		return
-	}); err != nil {
-		logger.Error().Err(err).Msg("handle library items")
-	}
+		switch path.Ext(zipItem.Name) {
+		case ".fb2":
+			*zipItemsTotal++
 
-	logger.Info().Uint32("total", booksTotal).Uint32("indexed", booksIndexed).
-		Dur("dur", time.Now().Sub(startTS)).Msg("indexing finished")
+			if !IndexFB2File(data, libItemPath, offset, zipItem.CompressedSize64, logger, booksIndex) {
+				return nil
+			}
+
+			*zipItemsIndexed++
+		default:
+			logger.Warn().Msg("invalid archive item")
+		}
+
+		return nil
+	}
 }
 
 func IndexFB2File(data io.Reader, srcPath string, offset int64, size uint64, logger zerolog.Logger, index bleve.Index) bool {
