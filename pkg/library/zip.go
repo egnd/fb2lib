@@ -40,9 +40,7 @@ func (z *ZipItemReader) IterateItems(handler IZipItemHandler) (err error) {
 		logger := z.logger.With().Str("zip_item", zipFile.Name).Logger()
 
 		if zipFile.Method != zip.Deflate {
-			logger.Warn().Uint16("compression", zipFile.Method).
-				Msg("check item compression type")
-
+			logger.Warn().Uint16("compression", zipFile.Method).Msg("check item compression type")
 			continue
 		}
 
@@ -52,10 +50,7 @@ func (z *ZipItemReader) IterateItems(handler IZipItemHandler) (err error) {
 			continue
 		}
 
-		flateReader := flate.NewReader(
-			io.NewSectionReader(archiveFile, offset, int64(zipFile.CompressedSize64)),
-		)
-
+		flateReader := flate.NewReader(io.NewSectionReader(archiveFile, offset, int64(zipFile.CompressedSize64)))
 		if err = handler(zipFile, flateReader, offset, i, logger); err != nil {
 			logger.Error().Err(err).Msg("handling zip item")
 		}

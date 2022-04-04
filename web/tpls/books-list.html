@@ -5,22 +5,21 @@
 {% block content %}
 <section id="main" style="padding: 50px 0;">
     <div class="container">
-        <div class="row">
+        <ul class="list-group search-result">
             {% for item in books %}
-            <div class="col-12">
-                <div><h4 class="col-12">{{item.Titles}}</h3></div>
+            <li class="list-group-item">
+                <div><h4><a href="?q={{item.Titles|safe|striptags}}">{{pager.Offset+forloop.Counter}}. {{item.Titles|safe}}</a></h4></div>
                 <div>
-                    {% if item.ISBN %}<a class="book-attr" href="?q={{item.ISBN}}">ISBN: {{item.ISBN}}</a>{% endif %}
-                    {% if item.Authors %}<a class="book-attr" href="?q={{item.Authors}}">Авторы: {{item.Authors}}</a>{% endif %}
-                    {% if item.Sequences %}<a class="book-attr" href="?q={{item.Sequences}}">Серия: {{item.Sequences}}</a>{% endif %}
-                    {% if item.Date %}<a class="book-attr" href="?q={{item.Date}}">Дата: {{item.Date}}</a>{% endif %}
-                    {% if item.Publisher %}<a class="book-attr" href="?q={{item.Publisher}}">Издатель: {{item.Publisher}}</a>{% endif %}                    
+                    {% if item.ISBN %}<a class="book-attr" href="?q={{item.ISBN|safe|striptags}}">ISBN: {{item.ISBN|safe}}</a>{% endif %}
+                    {% if item.Authors %}<a class="book-attr" href="?q={{item.Authors|safe|striptags}}">Авторы: {{item.Authors|safe}}</a>{% endif %}
+                    {% if item.Sequences %}<a class="book-attr" href="?q={{item.Sequences|safe|striptags}}">Серия: {{item.Sequences|safe}}</a>{% endif %}
+                    {% if item.Date %}<a class="book-attr" href="?q={{item.Date|safe|striptags}}">Дата: {{item.Date}}</a>{% endif %}
+                    {% if item.Publisher %}<a class="book-attr" href="?q={{item.Publisher|safe|striptags}}">Издатель: {{item.Publisher|safe}}</a>{% endif %}
                     <a href="/download/{{item.ID}}/fb2" class="book-attr icon solid fa-download">.fb2</a>
-                    <a href="#" class="book-attr icon solid fa-download">.epub</a>
                 </div>
-            </div>
+            </li>
             {% endfor %}
-        </div>
+        </ul>
         {% if pager && pager.HasPages() %}
         <br><br>
         <div style="text-align: center;">
