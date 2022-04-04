@@ -59,7 +59,7 @@ func main() {
 	}
 	defer sepBooksIndex.Close()
 
-	lib := library.NewLocalFSItems(cfg.GetString("web.library_dir"), []string{".zip", ".fb2"}, logger)
+	lib := library.NewLocalFSItems(cfg.GetString("extractor.dir"), []string{".zip", ".fb2"}, logger)
 
 	if err = lib.IterateItems(
 		LibItemHandler(debug, bar, &booksTotal, &booksIndexed, booksIndexDir, sepBooksIndex),
@@ -127,7 +127,7 @@ func LibItemHandler(
 
 			*booksTotal++
 
-			if !IndexFB2File(fb2Data, libItemPath, 0, uint64(libItem.Size()), logger, sepBooksIndex) {
+			if !IndexFB2File(fb2Data, libItemPath, 0, 0, uint64(libItem.Size()), logger, sepBooksIndex) {
 				return nil
 			}
 
@@ -153,7 +153,7 @@ func ZipItemHandler(
 		case ".fb2":
 			*zipItemsTotal++
 
-			if !IndexFB2File(data, libItemPath, offset, zipItem.CompressedSize64, logger, booksIndex) {
+			if !IndexFB2File(data, libItemPath, offset, zipItem.CompressedSize64, zipItem.UncompressedSize64, logger, booksIndex) {
 				return nil
 			}
 
@@ -166,7 +166,7 @@ func ZipItemHandler(
 	}
 }
 
-func IndexFB2File(data io.Reader, srcPath string, offset int64, size uint64, logger zerolog.Logger, index bleve.Index) bool {
+func IndexFB2File(data io.Reader, srcPath string, offset int64, sizeCompress uint64, sizeUncompress uint64, logger zerolog.Logger, index bleve.Index) bool {
 	fb2File, err := fb2parser.FB2FromReader(data)
 	if err != nil {
 		logger.Error().Err(err).Msg("parsing fb2 file")
@@ -179,7 +179,7 @@ func IndexFB2File(data io.Reader, srcPath string, offset int64, size uint64, log
 	doc.ID = uuid.NewString()
 	doc.Src = srcPath
 	doc.Offset = uint64(offset)
-	doc.Size = size
+	doc.Size = sizeCompress
 
 	if err := index.Index(doc.ID, doc); err != nil {
 		logger.Error().Err(err).Msg("indexing fb2")

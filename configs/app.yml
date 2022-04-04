@@ -5,10 +5,13 @@ logs:
   debug: false
   pretty: false
   duration_unit: 1s
-web:
-  library_dir: web/library
-  static_dir: web/static
-  markup_dir: web/markup
+markup:
+  theme_dir: web/markup
+  html_dir: web/html
 bleve:
   books_dir: var/books_index
   highlight: true
+extractor:
+  type: html
+  dir: web/library
+  uri_prefix: /library

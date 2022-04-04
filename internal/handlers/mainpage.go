@@ -23,8 +23,7 @@ func MainPageHandler(repo *repos.BooksBleveRepo, logger zerolog.Logger) echo.Han
 
 		if err != nil {
 			logger.Error().Err(err).Str("query", searchQuery).Str("page", "main").Msg("get books")
-			c.NoContent(http.StatusBadRequest)
-			return
+			return c.NoContent(http.StatusBadRequest)
 		}
 
 		return c.Render(http.StatusOK, "web/tpls/books-list.html", pongo2.Context{

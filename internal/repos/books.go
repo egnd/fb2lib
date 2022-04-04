@@ -35,7 +35,6 @@ func (r *BooksBleveRepo) GetBooks(ctx context.Context, strQuery string, pager *p
 		q = bleve.NewMatchAllQuery()
 	} else {
 		q = r.getCompositeQuery(strQuery)
-		// q = bleve.NewMatchQuery(strQuery) // @TODO: remove
 	}
 
 	cnt, _ := r.index.DocCount()
