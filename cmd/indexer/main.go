@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/blevesearch/bleve/v2"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -53,13 +52,13 @@ func main() {
 	startTS := time.Now()
 	booksIndexDir := cfg.GetString("bleve.books_dir")
 
-	sepBooksIndex, err := factories.NewBooksIndex("notzip", booksIndexDir)
+	sepBooksIndex, err := factories.NewIndex("notzip", booksIndexDir, factories.NewIndexMappingBook())
 	if err != nil {
 		logger.Fatal().Err(err).Msg("init notzip index")
 	}
 	defer sepBooksIndex.Close()
 
-	lib := library.NewLocalFSItems(cfg.GetString("web.library_dir"), []string{".zip", ".fb2"}, logger)
+	lib := library.NewLocalFSItems(cfg.GetString("extractor.dir"), []string{".zip", ".fb2"}, logger)
 
 	if err = lib.IterateItems(
 		LibItemHandler(debug, bar, &booksTotal, &booksIndexed, booksIndexDir, sepBooksIndex),
@@ -76,7 +75,7 @@ func main() {
 
 func LibItemHandler(
 	debug bool, bar *progressbar.ProgressBar, booksTotal *uint32, booksIndexed *uint32,
-	booksIndexDir string, sepBooksIndex bleve.Index,
+	booksIndexDir string, sepBooksIndex entities.ISearchIndex,
 ) library.ILibItemHandler {
 	return func(libItemPath string, libItem os.FileInfo, num, total int, logger zerolog.Logger) error {
 		switch filepath.Ext(libItem.Name()) {
@@ -96,7 +95,7 @@ func LibItemHandler(
 
 			itemTS := time.Now()
 
-			booksIndex, err := factories.NewBooksIndex(libItemPath, booksIndexDir)
+			booksIndex, err := factories.NewIndex(libItemPath, booksIndexDir, factories.NewIndexMappingBook())
 			if err != nil {
 				logger.Error().Err(err).Msg("init index")
 				return nil
@@ -127,7 +126,7 @@ func LibItemHandler(
 
 			*booksTotal++
 
-			if !IndexFB2File(fb2Data, libItemPath, 0, uint64(libItem.Size()), logger, sepBooksIndex) {
+			if !IndexFB2File(fb2Data, libItemPath, 0, 0, float64(libItem.Size()), logger, sepBooksIndex) {
 				return nil
 			}
 
@@ -142,7 +141,7 @@ func LibItemHandler(
 
 func ZipItemHandler(
 	debug bool, bar *progressbar.ProgressBar, zipItemsTotal *uint32, zipItemsIndexed *uint32,
-	libItemPath string, booksIndex bleve.Index,
+	libItemPath string, booksIndex entities.ISearchIndex,
 ) library.IZipItemHandler {
 	return func(zipItem *zip.File, data io.Reader, offset, num int64, logger zerolog.Logger) error {
 		if debug {
@@ -153,7 +152,7 @@ func ZipItemHandler(
 		case ".fb2":
 			*zipItemsTotal++
 
-			if !IndexFB2File(data, libItemPath, offset, zipItem.CompressedSize64, logger, booksIndex) {
+			if !IndexFB2File(data, libItemPath, float64(offset), float64(zipItem.CompressedSize64), float64(zipItem.UncompressedSize64), logger, booksIndex) {
 				return nil
 			}
 
@@ -166,7 +165,10 @@ func ZipItemHandler(
 	}
 }
 
-func IndexFB2File(data io.Reader, srcPath string, offset int64, size uint64, logger zerolog.Logger, index bleve.Index) bool {
+func IndexFB2File(
+	data io.Reader, srcPath string, offset float64, sizeCompress float64, sizeUncompress float64,
+	logger zerolog.Logger, index entities.ISearchIndex,
+) bool {
 	fb2File, err := fb2parser.FB2FromReader(data)
 	if err != nil {
 		logger.Error().Err(err).Msg("parsing fb2 file")
@@ -178,8 +180,9 @@ func IndexFB2File(data io.Reader, srcPath string, offset int64, size uint64, log
 	doc := entities.NewBookIndex(fb2File)
 	doc.ID = uuid.NewString()
 	doc.Src = srcPath
-	doc.Offset = uint64(offset)
-	doc.Size = size
+	doc.Offset = offset
+	doc.SizeCompressed = sizeCompress
+	doc.SizeUncompressed = sizeUncompress
 
 	if err := index.Index(doc.ID, doc); err != nil {
 		logger.Error().Err(err).Msg("indexing fb2")

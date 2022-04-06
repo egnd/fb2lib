@@ -9,16 +9,17 @@ import (
 )
 
 type BookIndex struct {
-	ID        string
-	ISBN      string
-	Titles    string
-	Authors   string
-	Sequences string
-	Date      string
-	Publisher string
-	Src       string
-	Offset    uint64
-	Size      uint64
+	ID               string
+	ISBN             string
+	Titles           string
+	Authors          string
+	Sequences        string
+	Date             string
+	Publisher        string
+	Src              string
+	Offset           float64
+	SizeCompressed   float64
+	SizeUncompressed float64
 }
 
 func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {

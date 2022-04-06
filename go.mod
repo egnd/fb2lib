@@ -5,13 +5,13 @@ go 1.18
 require (
 	github.com/astaxie/beego v1.12.3
 	github.com/blevesearch/bleve/v2 v2.3.2
-	github.com/flosch/pongo2 v0.0.0-20200913210552-0d938eb266f3
+	github.com/dustin/go-humanize v1.0.0
+	github.com/flosch/pongo2/v5 v5.0.0
 	github.com/google/uuid v1.3.0
 	github.com/labstack/echo/v4 v4.7.2
 	github.com/rs/zerolog v1.26.1
 	github.com/schollz/progressbar/v3 v3.8.6
 	github.com/spf13/viper v1.10.1
-	github.com/stnc/pongo2echo v0.0.0-20210806135131-1f90ccb52eba
 	golang.org/x/text v0.3.7
 )
 

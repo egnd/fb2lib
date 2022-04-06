@@ -8,5 +8,4 @@ services:
       - ${DC_SERVER_PORT}:${BS_SERVER_PORT}
     volumes:
       - ./var:/app/var:rw
-      - ./web/library:/app/web/library:rw
     # entrypoint: ["bin/indexer"]

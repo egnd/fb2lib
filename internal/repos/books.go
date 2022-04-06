@@ -15,11 +15,13 @@ import (
 
 type BooksBleveRepo struct {
 	highlight bool
-	index     bleve.Index
+	index     entities.ISearchIndex
 	logger    zerolog.Logger
 }
 
-func NewBooksBleve(highlight bool, index bleve.Index, logger zerolog.Logger) *BooksBleveRepo {
+func NewBooksBleve(
+	highlight bool, index entities.ISearchIndex, logger zerolog.Logger,
+) *BooksBleveRepo {
 	return &BooksBleveRepo{
 		highlight: highlight,
 		index:     index,
@@ -27,7 +29,9 @@ func NewBooksBleve(highlight bool, index bleve.Index, logger zerolog.Logger) *Bo
 	}
 }
 
-func (r *BooksBleveRepo) GetBooks(ctx context.Context, strQuery string, pager *pagination.Paginator) (res []entities.BookIndex, err error) {
+func (r *BooksBleveRepo) GetBooks(
+	ctx context.Context, strQuery string, pager *pagination.Paginator,
+) (res []entities.BookIndex, err error) {
 	strQuery = strings.TrimSpace(strings.ToLower(strQuery))
 
 	var q query.Query
@@ -35,7 +39,6 @@ func (r *BooksBleveRepo) GetBooks(ctx context.Context, strQuery string, pager *p
 		q = bleve.NewMatchAllQuery()
 	} else {
 		q = r.getCompositeQuery(strQuery)
-		// q = bleve.NewMatchQuery(strQuery) // @TODO: remove
 	}
 
 	cnt, _ := r.index.DocCount()
@@ -61,13 +64,15 @@ func (r *BooksBleveRepo) GetBooks(ctx context.Context, strQuery string, pager *p
 		}
 
 		book := entities.BookIndex{
-			ID:        searchResults.Hits[i].ID,
-			ISBN:      searchResults.Hits[i].Fields["ISBN"].(string),
-			Titles:    searchResults.Hits[i].Fields["Titles"].(string),
-			Authors:   searchResults.Hits[i].Fields["Authors"].(string),
-			Sequences: searchResults.Hits[i].Fields["Sequences"].(string),
-			Date:      searchResults.Hits[i].Fields["Date"].(string),
-			Publisher: searchResults.Hits[i].Fields["Publisher"].(string),
+			ID:               searchResults.Hits[i].ID,
+			ISBN:             searchResults.Hits[i].Fields["ISBN"].(string),
+			Titles:           searchResults.Hits[i].Fields["Titles"].(string),
+			Authors:          searchResults.Hits[i].Fields["Authors"].(string),
+			Sequences:        searchResults.Hits[i].Fields["Sequences"].(string),
+			Date:             searchResults.Hits[i].Fields["Date"].(string),
+			Publisher:        searchResults.Hits[i].Fields["Publisher"].(string),
+			SizeCompressed:   searchResults.Hits[i].Fields["SizeCompressed"].(float64),
+			SizeUncompressed: searchResults.Hits[i].Fields["SizeUncompressed"].(float64),
 		}
 
 		if r.highlight {
@@ -140,8 +145,9 @@ func (r *BooksBleveRepo) GetBook(ctx context.Context, bookID string) (res entiti
 	res.Date = searchResults.Hits[0].Fields["Date"].(string)
 	res.Publisher = searchResults.Hits[0].Fields["Publisher"].(string)
 	res.Src = searchResults.Hits[0].Fields["Src"].(string)
-	res.Offset = uint64(searchResults.Hits[0].Fields["Offset"].(float64))
-	res.Size = uint64(searchResults.Hits[0].Fields["Size"].(float64))
+	res.Offset = searchResults.Hits[0].Fields["Offset"].(float64)
+	res.SizeCompressed = searchResults.Hits[0].Fields["SizeCompressed"].(float64)
+	res.SizeUncompressed = searchResults.Hits[0].Fields["SizeUncompressed"].(float64)
 
 	return
 }

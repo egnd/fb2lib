@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Библиотека</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <link type="image/png" sizes="16x16" rel="icon" href="/assets/images/icons8-book-16.png">
+    <link type="image/png" sizes="32x32" rel="icon" href="/assets/images/icons8-book-32.png">
+    <link type="image/png" sizes="96x96" rel="icon" href="/assets/images/icons8-book-96.png">
+		<link rel="stylesheet" href="/assets/css/main.css">
+		<noscript><link rel="stylesheet" href="/assets/css/noscript.css"></noscript>
+    <link rel="stylesheet" href="/assets/styles.css">
+	</head>
+	<body class="">
+    <div id="wrapper" class="fade-in">
+      <div id="intro">
+        <h1>Библиотека</h1>
+      </div>
+      <nav id="nav">
+        <ul class="links">
+          <li class="active"><a href="/">Главная</a></li>
+          <li><a href="#">Поиск по авторам</a></li>
+          <li><a href="#">Поиск по сериям</a></li>
+        </ul>
+      </nav>
+      <div id="main">
+        <form method="get">
+          <div class="row gtr-uniform">
+            <div class="col-10 col-12-xsmall">
+              <input type="text" name="q" placeholder="{{search_placeholder}}" value="{{search_query}}">
+            </div>
+            <div class="col-2 col-12-xsmall">
+              <input type="submit" value="Найти" class="primary" style="width: 100%;">
+            </div>
+          </div>
+        </form>
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/jquery.scrollex.min.js"></script>
+    <script src="/assets/js/jquery.scrolly.min.js"></script>
+    <script src="/assets/js/browser.min.js"></script>
+    <script src="/assets/js/breakpoints.min.js"></script>
+    <script src="/assets/js/util.js"></script>
+    <script src="/assets/js/main.js"></script>
+	</body>
+</html>

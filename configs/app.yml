@@ -5,10 +5,12 @@ logs:
   debug: false
   pretty: false
   duration_unit: 1s
-web:
-  library_dir: web/library
-  static_dir: web/static
-  markup_dir: web/markup
+markup:
+  theme_dir: web/themes/massively
 bleve:
   books_dir: var/books_index
   highlight: true
+extractor:
+  type: html # @TODO: switch to "local"
+  dir: var/library
+  uri_prefix: /library

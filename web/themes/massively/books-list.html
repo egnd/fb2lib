@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<section>
+    <article><header><h4>Всего найдено: {{pager.Nums}}</h4></header></article>
+    {% for item in books %}
+    <article class="book-list-item">
+        <header>
+            <h4><a href="?q={{item.Titles|safe|striptags}}">{{pager.Offset+forloop.Counter}}. {{item.Titles|safe}}</a></h4>
+        </header>
+        <p style="text-align: left;">
+        {% if item.ISBN %}<a class="button small" href="?q={{item.ISBN|safe|striptags}}">ISBN: {{item.ISBN|safe}}</a>{% endif %}
+        {% if item.Authors %}<a class="button small" href="?q={{item.Authors|safe|striptags}}">Авторы: {{item.Authors|safe}}</a>{% endif %}
+        {% if item.Sequences %}<a class="button small" href="?q={{item.Sequences|safe|striptags}}">Серия: {{item.Sequences|safe}}</a>{% endif %}
+        {% if item.Date %}<a class="button small" href="?q={{item.Date|safe|striptags}}">Дата: {{item.Date}}</a>{% endif %}
+        {% if item.Publisher %}<a class="button small" href="?q={{item.Publisher|safe|striptags}}">Издатель: {{item.Publisher|safe}}</a>{% endif %}
+        <a href="/download/{{item.ID}}/fb2" class="button primary small"><span class="fa fa-download"></span>&nbsp;.fb2 ({{item.SizeUncompressed|filesize}})</a>
+        </p>
+    </article>
+    {% endfor %}
+</section>
+{% if pager && pager.HasPages() %}
+<footer>
+    <div class="pagination">
+        {%if pager.HasPrev() %}
+        <a href="{{pager.PageLinkFirst()}}" class="page first">Начало</a>
+        <a href="{{pager.PageLinkPrev()}}" class="previous">Назад</a>
+        {% endif %}
+        {% for page in pager.Pages%}
+            {%if pager.IsActive(page) %}
+            <span class="page active">{{page}}</span>
+            {% else %}
+            <a href="{{pager.PageLink(page)}}" class="page">{{page}}</a>
+            {% endif %}
+        {% endfor %}
+        {%if pager.HasNext() %}
+        <a href="{{pager.PageLinkNext()}}" class="next">Вперед</a>
+        <a href="{{pager.PageLinkLast()}}" class="page last">Конец</a>
+        {% endif %}
+    </div>
+</footer>
+{%endif%}
+{% endblock %}

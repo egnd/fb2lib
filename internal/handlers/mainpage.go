@@ -2,16 +2,16 @@ package handlers
 
 import (
 	"net/http"
+	"path"
 
 	"github.com/astaxie/beego/utils/pagination"
-	"github.com/flosch/pongo2"
+	"github.com/flosch/pongo2/v5"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
 	"gitlab.com/egnd/bookshelf/internal/entities"
-	"gitlab.com/egnd/bookshelf/internal/repos"
 )
 
-func MainPageHandler(repo *repos.BooksBleveRepo, logger zerolog.Logger) echo.HandlerFunc {
+func MainPageHandler(tplsDir string, repo entities.IBooksRepo, logger zerolog.Logger) echo.HandlerFunc {
 	pageSize := 20
 
 	return func(c echo.Context) (err error) {
@@ -23,19 +23,15 @@ func MainPageHandler(repo *repos.BooksBleveRepo, logger zerolog.Logger) echo.Han
 
 		if err != nil {
 			logger.Error().Err(err).Str("query", searchQuery).Str("page", "main").Msg("get books")
-			c.NoContent(http.StatusBadRequest)
-			return
+			return c.NoContent(http.StatusBadRequest)
 		}
 
-		return c.Render(http.StatusOK, "web/tpls/books-list.html", pongo2.Context{
-			"h1":                 "Домашняя библиотека",
-			"search_action":      "/",
+		return c.Render(http.StatusOK, path.Join(tplsDir, "books-list.html"), pongo2.Context{
 			"search_query":       searchQuery,
 			"search_placeholder": "Автор, название книги, серии, ISBN и т.д.",
 
-			"books":  books,
-			"pager":  pager,
-			"offset": pager.Offset(),
+			"books": books,
+			"pager": pager,
 		})
 	}
 }
