@@ -1,8 +1,5 @@
-/.data
 /bin
-/gen
+/var
+/web/html
 /.env*
 .DS_Store
-
-/var
-/web/library

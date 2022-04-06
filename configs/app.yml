@@ -6,12 +6,11 @@ logs:
   pretty: false
   duration_unit: 1s
 markup:
-  theme_dir: web/markup
-  html_dir: web/html
+  theme_dir: web/themes/massively
 bleve:
   books_dir: var/books_index
   highlight: true
 extractor:
-  type: html
-  dir: web/library
+  type: html # @TODO: switch to "local"
+  dir: var/library
   uri_prefix: /library

@@ -15,11 +15,13 @@ import (
 
 type BooksBleveRepo struct {
 	highlight bool
-	index     bleve.Index
+	index     entities.ISearchIndex
 	logger    zerolog.Logger
 }
 
-func NewBooksBleve(highlight bool, index bleve.Index, logger zerolog.Logger) *BooksBleveRepo {
+func NewBooksBleve(
+	highlight bool, index entities.ISearchIndex, logger zerolog.Logger,
+) *BooksBleveRepo {
 	return &BooksBleveRepo{
 		highlight: highlight,
 		index:     index,
@@ -27,7 +29,9 @@ func NewBooksBleve(highlight bool, index bleve.Index, logger zerolog.Logger) *Bo
 	}
 }
 
-func (r *BooksBleveRepo) GetBooks(ctx context.Context, strQuery string, pager *pagination.Paginator) (res []entities.BookIndex, err error) {
+func (r *BooksBleveRepo) GetBooks(
+	ctx context.Context, strQuery string, pager *pagination.Paginator,
+) (res []entities.BookIndex, err error) {
 	strQuery = strings.TrimSpace(strings.ToLower(strQuery))
 
 	var q query.Query

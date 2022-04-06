@@ -19,5 +19,5 @@ COPY --from=build /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=build /src/bin bin
 COPY configs configs
 COPY web web
-VOLUME ["/app/var", "/app/web/library"]
+VOLUME ["/app/var"]
 ENTRYPOINT ["bin/server"]

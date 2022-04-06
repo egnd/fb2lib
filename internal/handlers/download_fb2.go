@@ -8,12 +8,12 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
-	"gitlab.com/egnd/bookshelf/internal/repos"
+	"gitlab.com/egnd/bookshelf/internal/entities"
 	"gitlab.com/egnd/bookshelf/pkg/library"
 )
 
 func DownloadFB2Handler(
-	repo *repos.BooksBleveRepo, logger zerolog.Logger, cfg *viper.Viper, extractor library.IExtractorFactory,
+	repo entities.IBooksRepo, logger zerolog.Logger, cfg *viper.Viper, extractor library.IExtractorFactory,
 ) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		bookID := c.Param("book_id")

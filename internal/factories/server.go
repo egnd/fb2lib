@@ -1,10 +1,12 @@
 package factories
 
 import (
+	"path"
+
 	"github.com/labstack/echo/v4"
+	"gitlab.com/egnd/bookshelf/internal/entities"
 	"gitlab.com/egnd/bookshelf/internal/handlers"
 	"gitlab.com/egnd/bookshelf/internal/middleware"
-	"gitlab.com/egnd/bookshelf/internal/repos"
 	"gitlab.com/egnd/bookshelf/pkg/library"
 
 	echomiddleware "github.com/labstack/echo/v4/middleware"
@@ -14,7 +16,7 @@ import (
 )
 
 func NewEchoServer(cfg *viper.Viper, logger zerolog.Logger,
-	booksRepo *repos.BooksBleveRepo, extractor library.IExtractorFactory,
+	booksRepo entities.IBooksRepo, extractor library.IExtractorFactory,
 ) *echo.Echo {
 	server := echo.New()
 	server.Debug = cfg.GetBool("debug")
@@ -27,27 +29,16 @@ func NewEchoServer(cfg *viper.Viper, logger zerolog.Logger,
 		server.Use(echomiddleware.Recover())
 	}
 
-	server.File("/favicon.ico", cfg.GetString("markup.theme_dir")+"/favicon.ico")
-	server.Static("/markup", cfg.GetString("markup.theme_dir"))
+	server.File("/favicon.ico", path.Join(cfg.GetString("markup.theme_dir"), "assets/favicon.ico"))
+	server.Static("/assets", path.Join(cfg.GetString("markup.theme_dir"), "assets"))
 
 	if cfg.GetString("extractor.uri_prefix") != "" {
 		server.Static(cfg.GetString("extractor.uri_prefix"), cfg.GetString("extractor.dir"))
 	}
 
-	server.GET("/live", handlers.EchoLiveHandler())
-	server.GET("/", handlers.MainPageHandler(booksRepo, logger))
+	server.GET("/", handlers.MainPageHandler(cfg.GetString("markup.theme_dir"), booksRepo, logger))
 	server.GET("/download/:book_id/fb2", handlers.DownloadFB2Handler(booksRepo, logger, cfg, extractor))
 	// server.GET("/download/:book_id/epub", handlers.MainPageHandler()) // @TODO: https://github.com/rupor-github/fb2converter
-	// server.GET("/authors/", handlers.MainPageHandler()) // @TODO:
-	// server.GET("/authors/:id", handlers.MainPageHandler()) // @TODO:
-	// server.GET("/sequences/", handlers.MainPageHandler()) // @TODO:
-	// server.GET("/sequences/:id", handlers.MainPageHandler()) // @TODO:
-	// server.GET("/genres/", handlers.MainPageHandler()) // @TODO:
-	// server.GET("/genres/:id", handlers.MainPageHandler()) // @TODO:
-
-	if server.Debug {
-		server.Static("/html", cfg.GetString("markup.html_dir"))
-	}
 
 	return server
 }

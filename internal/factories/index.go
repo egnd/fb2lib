@@ -16,38 +16,34 @@ import (
 
 func NewIndexMappingBook() *mapping.IndexMappingImpl {
 	return bleve.NewIndexMapping() // @TODO:
+
+	// 	mapping := bleve.NewIndexMapping() // @TODO:
+
+	// 	bookMapping := bleve.NewDocumentMapping()
+	// 	mapping.AddDocumentMapping("book", bookMapping)
+
+	// 	titlesField := bleve.NewTextFieldMapping()
+	// 	titlesField.Analyzer = "ru"
+	// 	bookMapping.AddFieldMappingsAt("Titles", titlesField)
+
+	// 	authorsField := bleve.NewTextFieldMapping()
+	// 	authorsField.Analyzer = "ru"
+	// 	bookMapping.AddFieldMappingsAt("Authors", authorsField)
+
+	// 	return mapping
 }
 
-// func NewIndexMappingBook() *mapping.IndexMappingImpl {
-// 	mapping := bleve.NewIndexMapping() // @TODO:
-
-// 	bookMapping := bleve.NewDocumentMapping()
-// 	mapping.AddDocumentMapping("book", bookMapping)
-
-// 	titlesField := bleve.NewTextFieldMapping()
-// 	titlesField.Analyzer = "ru"
-// 	bookMapping.AddFieldMappingsAt("Titles", titlesField)
-
-// 	authorsField := bleve.NewTextFieldMapping()
-// 	authorsField.Analyzer = "ru"
-// 	bookMapping.AddFieldMappingsAt("Authors", authorsField)
-
-// 	return mapping
-// }
-
-func NewBooksIndex(name string, dir string) (bleve.Index, error) {
-	indexPath := filepath.Join(dir,
-		fmt.Sprintf("%x", md5.Sum([]byte(name))),
-	)
+func NewIndex(name string, dir string, fieldsMapping mapping.IndexMapping) (bleve.Index, error) {
+	indexPath := filepath.Join(dir, fmt.Sprintf("%x", md5.Sum([]byte(name))))
 
 	if err := os.RemoveAll(indexPath); err != nil && os.IsNotExist(err) {
 		return nil, err
 	}
 
-	return bleve.New(indexPath, NewIndexMappingBook())
+	return bleve.New(indexPath, fieldsMapping)
 }
 
-func OpenBooksIndex(dir string) (index bleve.Index, err error) {
+func OpenIndex(dir string) (index bleve.Index, err error) {
 	var indexes []bleve.Index
 
 	items, err := os.ReadDir(dir)
@@ -56,9 +52,7 @@ func OpenBooksIndex(dir string) (index bleve.Index, err error) {
 			continue
 		}
 
-		if index, err = bleve.Open(
-			filepath.Join(dir, item.Name()),
-		); err != nil {
+		if index, err = bleve.Open(filepath.Join(dir, item.Name())); err != nil {
 			return nil, err
 		}
 
