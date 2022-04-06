@@ -3,9 +3,9 @@ stages:
   - release
 
 .dind:
-  image: docker:stable
+  image: egnd/docker:latest
   services:
-    - docker:stable-dind
+    - docker:dind
   variables:
     DOCKER_DRIVER: overlay2
     DOCKER_HOST: tcp://docker:2375
@@ -17,7 +17,7 @@ build latest:
   extends: .dind
   stage: build
   script:
-    # - docker buildx create --driver=docker-container --use
+    - docker buildx create --driver=docker-container --use
     - docker buildx build --push --progress=plain
         --build-arg BUILD_VERSION=latest
         --platform linux/arm64,linux/amd64
