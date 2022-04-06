@@ -126,7 +126,7 @@ func LibItemHandler(
 
 			*booksTotal++
 
-			if !IndexFB2File(fb2Data, libItemPath, 0, 0, uint64(libItem.Size()), logger, sepBooksIndex) {
+			if !IndexFB2File(fb2Data, libItemPath, 0, 0, float64(libItem.Size()), logger, sepBooksIndex) {
 				return nil
 			}
 
@@ -152,7 +152,7 @@ func ZipItemHandler(
 		case ".fb2":
 			*zipItemsTotal++
 
-			if !IndexFB2File(data, libItemPath, offset, zipItem.CompressedSize64, zipItem.UncompressedSize64, logger, booksIndex) {
+			if !IndexFB2File(data, libItemPath, float64(offset), float64(zipItem.CompressedSize64), float64(zipItem.UncompressedSize64), logger, booksIndex) {
 				return nil
 			}
 
@@ -166,7 +166,7 @@ func ZipItemHandler(
 }
 
 func IndexFB2File(
-	data io.Reader, srcPath string, offset int64, sizeCompress uint64, sizeUncompress uint64,
+	data io.Reader, srcPath string, offset float64, sizeCompress float64, sizeUncompress float64,
 	logger zerolog.Logger, index entities.ISearchIndex,
 ) bool {
 	fb2File, err := fb2parser.FB2FromReader(data)
@@ -180,8 +180,9 @@ func IndexFB2File(
 	doc := entities.NewBookIndex(fb2File)
 	doc.ID = uuid.NewString()
 	doc.Src = srcPath
-	doc.Offset = uint64(offset)
-	doc.Size = sizeCompress
+	doc.Offset = offset
+	doc.SizeCompressed = sizeCompress
+	doc.SizeUncompressed = sizeUncompress
 
 	if err := index.Index(doc.ID, doc); err != nil {
 		logger.Error().Err(err).Msg("indexing fb2")

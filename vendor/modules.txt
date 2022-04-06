@@ -93,9 +93,12 @@ github.com/blevesearch/zapx/v14
 # github.com/blevesearch/zapx/v15 v15.3.3
 ## explicit; go 1.13
 github.com/blevesearch/zapx/v15
-# github.com/flosch/pongo2 v0.0.0-20200913210552-0d938eb266f3
-## explicit; go 1.14
-github.com/flosch/pongo2
+# github.com/dustin/go-humanize v1.0.0
+## explicit
+github.com/dustin/go-humanize
+# github.com/flosch/pongo2/v5 v5.0.0
+## explicit; go 1.16
+github.com/flosch/pongo2/v5
 # github.com/fsnotify/fsnotify v1.5.1
 ## explicit; go 1.13
 github.com/fsnotify/fsnotify
@@ -190,9 +193,6 @@ github.com/spf13/viper/internal/encoding/hcl
 github.com/spf13/viper/internal/encoding/json
 github.com/spf13/viper/internal/encoding/toml
 github.com/spf13/viper/internal/encoding/yaml
-# github.com/stnc/pongo2echo v0.0.0-20210806135131-1f90ccb52eba
-## explicit
-github.com/stnc/pongo2echo
 # github.com/subosito/gotenv v1.2.0
 ## explicit
 github.com/subosito/gotenv

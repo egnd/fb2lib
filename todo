@@ -1,5 +1,5 @@
-- progress bar in goroutines
 - pipeline
+- indexer with append feature
 - extractor echo response
 - local extractor debugging
 - theme editorial

@@ -257,6 +257,10 @@ func (expr *simpleExpression) Evaluate(ctx *ExecutionContext) (*Value, *Error) {
 		}
 		switch expr.opToken.Val {
 		case "+":
+			if result.IsString() || t2.IsString() {
+				// Result will be a string
+				return AsValue(result.String() + t2.String()), nil
+			}
 			if result.IsFloat() || t2.IsFloat() {
 				// Result will be a float
 				return AsValue(result.Float() + t2.Float()), nil
@@ -445,7 +449,7 @@ func (p *Parser) parseSimpleExpression() (IEvaluator, *Error) {
 		expr.opToken = op
 	}
 
-	if expr.negate == false && expr.negativeSign == false && expr.term2 == nil {
+	if !expr.negate && !expr.negativeSign && expr.term2 == nil {
 		// Shortcut for faster evaluation
 		return expr.term1, nil
 	}

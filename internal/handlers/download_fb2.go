@@ -35,7 +35,7 @@ func DownloadFB2Handler(
 
 			defer extr.Close()
 
-			stream, err := extr.GetSection(int64(book.Offset), int64(book.Size))
+			stream, err := extr.GetSection(int64(book.Offset), int64(book.SizeCompressed))
 			if err != nil {
 				logger.Error().Err(err).Msg("extract book")
 				return c.NoContent(http.StatusNotFound)
