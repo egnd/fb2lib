@@ -214,11 +214,11 @@ github.com/vbauerster/mpb/v7/internal
 # go.etcd.io/bbolt v1.3.5
 ## explicit; go 1.12
 go.etcd.io/bbolt
-# golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838
+# golang.org/x/crypto v0.0.0-20211215165025-cf75a172585e
 ## explicit; go 1.17
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
-# golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
+# golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f
 ## explicit; go 1.17
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
