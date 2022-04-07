@@ -2,6 +2,7 @@ package entities
 
 import (
 	"context"
+	"io"
 
 	"github.com/astaxie/beego/utils/pagination"
 	"github.com/blevesearch/bleve/v2"
@@ -15,7 +16,9 @@ type IBooksRepo interface {
 }
 
 type ISearchIndex interface {
+	io.Closer
 	DocCount() (uint64, error)
 	Search(req *bleve.SearchRequest) (*bleve.SearchResult, error)
 	Index(id string, data interface{}) error
+	Name() string
 }

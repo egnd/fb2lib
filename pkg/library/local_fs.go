@@ -68,7 +68,7 @@ func (l *LocalFSItems) IterateItems(handler ILibItemHandler) (err error) {
 			logger.Error().Err(err).Msg("lib item stat")
 		}
 
-		if err := handler(file, finfo, fileNum+1, total, logger); err != nil {
+		if err := handler(finfo, filepath.Dir(file), fileNum+1, total, logger); err != nil {
 			logger.Error().Err(err).Msg("lib item handler")
 		}
 	}

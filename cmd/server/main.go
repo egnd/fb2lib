@@ -11,16 +11,20 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/egnd/bookshelf/internal/factories"
+	"gitlab.com/egnd/bookshelf/internal/indexing"
 	"gitlab.com/egnd/bookshelf/internal/repos"
 	"gitlab.com/egnd/bookshelf/pkg/library"
 )
 
-var appVersion = "debug"
+var (
+	appVersion = "debug"
+
+	showVersion = flag.Bool("version", false, "Show app version.")
+	cfgPath     = flag.String("config", "configs/app.yml", "Configuration file path.")
+	cfgPrefix   = flag.String("env-prefix", "BS", "Prefix for env variables.")
+)
 
 func main() {
-	showVersion := flag.Bool("version", false, "Show app version.")
-	cfgPath := flag.String("config", "configs/app.yml", "Configuration file path.")
-	cfgPrefix := flag.String("env-prefix", "BS", "Prefix for env variables.")
 	flag.Parse()
 
 	if *showVersion {
@@ -35,9 +39,9 @@ func main() {
 
 	logger := factories.NewZerologLogger(cfg, os.Stderr)
 
-	booksIndex, err := factories.OpenIndex(cfg.GetString("bleve.books_dir"))
+	booksIndex, err := indexing.OpenIndex(cfg.GetString("bleve.books_dir"))
 	if err != nil {
-		logger.Fatal().Err(err).Msg("init db")
+		logger.Fatal().Err(err).Msg("init index")
 	}
 
 	var extractor library.IExtractorFactory

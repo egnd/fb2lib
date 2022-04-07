@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/blevesearch/bleve/v2"
+	"github.com/blevesearch/bleve/v2/mapping"
 	"gitlab.com/egnd/bookshelf/pkg/fb2parser"
 )
 
@@ -108,4 +110,8 @@ func (bi *BookIndex) appendStr(val string, orig *string) {
 		*orig += ", " + val
 	}
 
+}
+
+func NewBookIndexMapping() *mapping.IndexMappingImpl {
+	return bleve.NewIndexMapping() // @TODO:
 }

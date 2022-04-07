@@ -20,7 +20,7 @@ func NewEchoServer(cfg *viper.Viper, logger zerolog.Logger,
 	booksRepo entities.IBooksRepo, extractor library.IExtractorFactory,
 ) *echo.Echo {
 	server := echo.New()
-	server.Debug = cfg.GetBool("debug")
+	server.Debug = cfg.GetBool("server.debug")
 	server.HideBanner = true
 	server.HidePort = true
 	server.Renderer = echorender.NewPongoRenderer(server.Debug, nil, map[string]pongo2.FilterFunction{

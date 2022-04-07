@@ -1,6 +1,6 @@
-debug: false
 server:
   port: 8080
+  debug: false
 logs:
   debug: false
   pretty: false

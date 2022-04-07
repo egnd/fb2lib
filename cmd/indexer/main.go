@@ -1,32 +1,37 @@
 package main
 
 import (
-	"archive/zip"
+	"context"
 	"flag"
 	"fmt"
-	"io"
 	"os"
-	"path"
-	"path/filepath"
+	"sync"
 	"time"
 
-	"github.com/google/uuid"
+	wpool "github.com/egnd/go-wpool"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/schollz/progressbar/v3"
 
+	"github.com/vbauerster/mpb/v7"
 	"gitlab.com/egnd/bookshelf/internal/entities"
 	"gitlab.com/egnd/bookshelf/internal/factories"
-	"gitlab.com/egnd/bookshelf/pkg/fb2parser"
+	"gitlab.com/egnd/bookshelf/internal/tasks"
 	"gitlab.com/egnd/bookshelf/pkg/library"
 )
 
-var appVersion = "debug"
+var (
+	appVersion = "debug"
+
+	showVersion = flag.Bool("version", false, "Show app version.")
+	cfgPath     = flag.String("config", "configs/app.yml", "Configuration file path.")
+	cfgPrefix   = flag.String("env-prefix", "BS", "Prefix for env variables.")
+
+	rewriteIndex = flag.Bool("rewrite", false, "Rewrite existing indexes.")
+	workersCnt   = flag.Int("workers", 1, "Index workers count.")
+	bufSize      = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
+)
 
 func main() {
-	showVersion := flag.Bool("version", false, "Show app version.")
-	cfgPath := flag.String("config", "configs/app.yml", "Configuration file path.")
-	cfgPrefix := flag.String("env-prefix", "BS", "Prefix for env variables.")
 	flag.Parse()
 
 	if *showVersion {
@@ -40,154 +45,44 @@ func main() {
 	}
 
 	logger := factories.NewZerologLogger(cfg, os.Stderr)
+	ctx := context.Background()
 
-	if err = os.RemoveAll(cfg.GetString("bleve.path")); err != nil && !os.IsNotExist(err) {
-		logger.Fatal().Err(err).Msg("remove index")
-	}
+	pool := wpool.NewPool(wpool.PoolCfg{
+		WorkersCnt:   uint(*workersCnt),
+		TasksBufSize: uint(*bufSize),
+	}, func(num uint, pipeline chan wpool.IWorker) wpool.IWorker {
+		return wpool.NewWorker(ctx, wpool.WorkerCfg{Pipeline: pipeline})
+	})
+	defer pool.Close()
 
-	var bar *progressbar.ProgressBar
-	var booksTotal, booksIndexed uint32
+	var wg sync.WaitGroup
+	var cntTotal entities.CntAtomic32
+	var cntIndexed entities.CntAtomic32
 
-	debug := cfg.GetBool("debug")
 	startTS := time.Now()
-	booksIndexDir := cfg.GetString("bleve.books_dir")
+	bar := mpb.New(
+		mpb.WithOutput(os.Stderr),
+	)
 
-	sepBooksIndex, err := factories.NewIndex("notzip", booksIndexDir, factories.NewIndexMappingBook())
-	if err != nil {
-		logger.Fatal().Err(err).Msg("init notzip index")
-	}
-	defer sepBooksIndex.Close()
-
-	lib := library.NewLocalFSItems(cfg.GetString("extractor.dir"), []string{".zip", ".fb2"}, logger)
-
-	if err = lib.IterateItems(
-		LibItemHandler(debug, bar, &booksTotal, &booksIndexed, booksIndexDir, sepBooksIndex),
-	); err != nil {
+	if err = library.NewLocalFSItems(
+		cfg.GetString("extractor.dir"), []string{".zip"}, logger,
+	).IterateItems(func(libFile os.FileInfo, libDir string, num, total int, logger zerolog.Logger) error {
+		wg.Add(1)
+		return pool.Add(tasks.NewBooksArchiveIndexTask(
+			libFile, libDir, cfg.GetString("bleve.books_dir"),
+			*rewriteIndex, &cntTotal, &cntIndexed,
+			logger, &wg, bar,
+		))
+	}); err != nil {
 		logger.Error().Err(err).Msg("handle library items")
 	}
 
+	wg.Wait()
+	time.Sleep(time.Second)
+
 	logger.Info().
-		Uint32("total", booksTotal).
-		Uint32("indexed", booksIndexed).
+		Uint32("total", cntIndexed.Total()).
+		Uint32("indexed", cntIndexed.Total()).
 		Dur("dur", time.Now().Sub(startTS)).
 		Msg("indexing finished")
-}
-
-func LibItemHandler(
-	debug bool, bar *progressbar.ProgressBar, booksTotal *uint32, booksIndexed *uint32,
-	booksIndexDir string, sepBooksIndex entities.ISearchIndex,
-) library.ILibItemHandler {
-	return func(libItemPath string, libItem os.FileInfo, num, total int, logger zerolog.Logger) error {
-		switch filepath.Ext(libItem.Name()) {
-		case ".zip":
-			if debug {
-				bar = progressbar.DefaultBytes(libItem.Size(),
-					fmt.Sprintf("[%d/%d] indexing %s...", num, total, libItem.Name()),
-				)
-				defer bar.Close()
-			}
-
-			var zipItemsTotal, zipItemsIndexed uint32
-			defer func() {
-				*booksTotal += zipItemsTotal
-				*booksIndexed += zipItemsIndexed
-			}()
-
-			itemTS := time.Now()
-
-			booksIndex, err := factories.NewIndex(libItemPath, booksIndexDir, factories.NewIndexMappingBook())
-			if err != nil {
-				logger.Error().Err(err).Msg("init index")
-				return nil
-			}
-			defer booksIndex.Close()
-
-			if err := library.NewZipItemIterator(libItemPath, logger).IterateItems(ZipItemHandler(
-				debug, bar, &zipItemsTotal, &zipItemsIndexed, libItemPath, booksIndex,
-			)); err != nil {
-				return err
-			}
-
-			if debug {
-				bar.Finish()
-			}
-
-			logger.Info().Uint32("total", zipItemsTotal).Uint32("indexed", zipItemsIndexed).
-				Dur("dur", time.Now().Sub(itemTS)).Msg("lib item indexed")
-
-			return nil
-		case ".fb2":
-			fb2Data, err := os.Open(libItemPath)
-			if err != nil {
-				logger.Error().Err(err).Msg("open fb2 item")
-				return nil
-			}
-			defer fb2Data.Close()
-
-			*booksTotal++
-
-			if !IndexFB2File(fb2Data, libItemPath, 0, 0, float64(libItem.Size()), logger, sepBooksIndex) {
-				return nil
-			}
-
-			*booksIndexed++
-
-			return nil
-		default:
-			return fmt.Errorf("lib item error: invalid item %s", libItem.Name())
-		}
-	}
-}
-
-func ZipItemHandler(
-	debug bool, bar *progressbar.ProgressBar, zipItemsTotal *uint32, zipItemsIndexed *uint32,
-	libItemPath string, booksIndex entities.ISearchIndex,
-) library.IZipItemHandler {
-	return func(zipItem *zip.File, data io.Reader, offset, num int64, logger zerolog.Logger) error {
-		if debug {
-			defer bar.Add64(int64(zipItem.CompressedSize64))
-		}
-
-		switch path.Ext(zipItem.Name) {
-		case ".fb2":
-			*zipItemsTotal++
-
-			if !IndexFB2File(data, libItemPath, float64(offset), float64(zipItem.CompressedSize64), float64(zipItem.UncompressedSize64), logger, booksIndex) {
-				return nil
-			}
-
-			*zipItemsIndexed++
-		default:
-			logger.Warn().Msg("invalid archive item")
-		}
-
-		return nil
-	}
-}
-
-func IndexFB2File(
-	data io.Reader, srcPath string, offset float64, sizeCompress float64, sizeUncompress float64,
-	logger zerolog.Logger, index entities.ISearchIndex,
-) bool {
-	fb2File, err := fb2parser.FB2FromReader(data)
-	if err != nil {
-		logger.Error().Err(err).Msg("parsing fb2 file")
-		return false
-	}
-
-	logger = logger.With().Str("fb2-title", fb2File.Description.TitleInfo.BookTitle).Logger()
-
-	doc := entities.NewBookIndex(fb2File)
-	doc.ID = uuid.NewString()
-	doc.Src = srcPath
-	doc.Offset = offset
-	doc.SizeCompressed = sizeCompress
-	doc.SizeUncompressed = sizeUncompress
-
-	if err := index.Index(doc.ID, doc); err != nil {
-		logger.Error().Err(err).Msg("indexing fb2")
-		return false
-	}
-
-	return true
 }
