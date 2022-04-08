@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/vbauerster/mpb/v7"
+	"github.com/vbauerster/mpb/v7/decor"
 
 	"gitlab.com/egnd/bookshelf/internal/entities"
 	"gitlab.com/egnd/bookshelf/internal/factories"
@@ -30,6 +31,15 @@ var (
 	hideBar      = flag.Bool("hidebar", false, "Hide progress bar.")
 	workersCnt   = flag.Int("workers", 1, "Index workers count.")
 	bufSize      = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
+
+	wg         sync.WaitGroup
+	cntTotal   entities.CntAtomic32
+	cntIndexed entities.CntAtomic32
+	bar        *mpb.Progress
+	totalBar   *mpb.Bar
+
+	targetLibFormats = []string{".zip"}
+	ctx              = context.Background()
 )
 
 func main() {
@@ -46,7 +56,7 @@ func main() {
 	}
 
 	logger := factories.NewZerologLogger(cfg, os.Stderr)
-	ctx := context.Background()
+	startTS := time.Now()
 
 	pool := wpool.NewPool(wpool.PoolCfg{
 		WorkersCnt:   uint(*workersCnt),
@@ -56,12 +66,6 @@ func main() {
 	})
 	defer pool.Close()
 
-	var wg sync.WaitGroup
-	var cntTotal entities.CntAtomic32
-	var cntIndexed entities.CntAtomic32
-
-	startTS := time.Now()
-	var bar *mpb.Progress
 	if !*hideBar {
 		bar = mpb.New(
 			mpb.WithOutput(os.Stdout),
@@ -75,27 +79,55 @@ func main() {
 		defer logOutput.Close()
 
 		logger = logger.Output(zerolog.ConsoleWriter{Out: logOutput, NoColor: true})
+
+		if totalBar = getTotalBar(targetLibFormats, cfg.GetString("extractor.dir"), bar); totalBar == nil {
+			logger.Fatal().Msg("unable to init total bar")
+		}
 	}
 
 	if err = library.NewLocalFSItems(
-		cfg.GetString("extractor.dir"), []string{".zip"}, logger,
+		cfg.GetString("extractor.dir"), targetLibFormats, logger,
 	).IterateItems(func(libFile os.FileInfo, libDir string, num, total int, logger zerolog.Logger) error {
 		wg.Add(1)
 		return pool.Add(tasks.NewBooksArchiveIndexTask(
 			libFile, libDir, cfg.GetString("bleve.books_dir"),
 			*rewriteIndex, &cntTotal, &cntIndexed,
-			logger, &wg, bar,
+			logger, &wg, bar, totalBar,
 		))
 	}); err != nil {
 		logger.Error().Err(err).Msg("handle library items")
 	}
 
 	wg.Wait()
-	time.Sleep(time.Second)
+	time.Sleep(2 * time.Second)
 
 	logger.Info().
 		Uint32("total", cntIndexed.Total()).
 		Uint32("indexed", cntIndexed.Total()).
 		Dur("dur", time.Now().Sub(startTS)).
 		Msg("indexing finished")
+}
+
+func getTotalBar(targetFormats []string, libDir string, bar *mpb.Progress) *mpb.Bar {
+	var totalSize int64
+	library.NewLocalFSItems(libDir, targetFormats, zerolog.Nop()).
+		IterateItems(func(libFile os.FileInfo, libDir string, num, total int, logger zerolog.Logger) error {
+			totalSize += libFile.Size()
+			return nil
+		})
+
+	if totalSize == 0 {
+		return nil
+	}
+
+	return bar.AddBar(totalSize,
+		mpb.PrependDecorators(
+			decor.Name("total"),
+		),
+		mpb.AppendDecorators(
+			decor.Elapsed(decor.ET_STYLE_GO),
+			decor.Name(" - "),
+			decor.CountersKiloByte("% .2f/% .2f"),
+		),
+	)
 }
