@@ -11,8 +11,8 @@ import (
 	wpool "github.com/egnd/go-wpool"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-
 	"github.com/vbauerster/mpb/v7"
+
 	"gitlab.com/egnd/bookshelf/internal/entities"
 	"gitlab.com/egnd/bookshelf/internal/factories"
 	"gitlab.com/egnd/bookshelf/internal/tasks"
@@ -27,6 +27,7 @@ var (
 	cfgPrefix   = flag.String("env-prefix", "BS", "Prefix for env variables.")
 
 	rewriteIndex = flag.Bool("rewrite", false, "Rewrite existing indexes.")
+	hideBar      = flag.Bool("hidebar", false, "Hide progress bar.")
 	workersCnt   = flag.Int("workers", 1, "Index workers count.")
 	bufSize      = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
 )
@@ -60,9 +61,21 @@ func main() {
 	var cntIndexed entities.CntAtomic32
 
 	startTS := time.Now()
-	bar := mpb.New(
-		mpb.WithOutput(os.Stderr),
-	)
+	var bar *mpb.Progress
+	if !*hideBar {
+		bar = mpb.New(
+			mpb.WithOutput(os.Stdout),
+		)
+
+		os.Remove("var/indexing.log")
+		logOutput, err := os.OpenFile("var/indexing.log", os.O_RDWR|os.O_CREATE, 0644)
+		if err != nil {
+			logger.Fatal().Err(err).Msg("init log file output")
+		}
+		defer logOutput.Close()
+
+		logger = logger.Output(zerolog.ConsoleWriter{Out: logOutput, NoColor: true})
+	}
 
 	if err = library.NewLocalFSItems(
 		cfg.GetString("extractor.dir"), []string{".zip"}, logger,

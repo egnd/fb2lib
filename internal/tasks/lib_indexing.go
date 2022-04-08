@@ -77,18 +77,20 @@ func (t *BooksArchiveIndexTask) Do(context.Context) {
 	}
 	defer t.index.Close()
 
-	t.bar = t.barContainer.AddBar(t.archiveFile.Size(),
-		mpb.PrependDecorators(
-			decor.Name(t.archiveFile.Name()),
-		),
-		mpb.AppendDecorators(
-			decor.EwmaETA(decor.ET_STYLE_GO, 90),
-			decor.Name(" - "),
-			decor.EwmaSpeed(decor.UnitKB, "% .2f", 60),
-			decor.Name(" - "),
-			decor.CountersKibiByte("% .2f/% .2f"),
-		),
-	)
+	if t.barContainer != nil {
+		t.bar = t.barContainer.AddBar(t.archiveFile.Size(),
+			mpb.PrependDecorators(
+				decor.Name(t.archiveFile.Name()),
+			),
+			mpb.AppendDecorators(
+				decor.EwmaETA(decor.ET_STYLE_GO, 90),
+				decor.Name(" - "),
+				decor.EwmaSpeed(decor.UnitKB, "% .2f", 60),
+				decor.Name(" - "),
+				decor.CountersKibiByte("% .2f/% .2f"),
+			),
+		)
+	}
 
 	if err := library.NewZipItemIterator(path.Join(t.archiveDir, t.archiveFile.Name()), t.logger).
 		IterateItems(t.handleArchiveItem); err != nil {
@@ -100,13 +102,22 @@ func (t *BooksArchiveIndexTask) Do(context.Context) {
 		t.logger.Error().Err(err).Msg("save index")
 		return
 	}
+
+	t.logger.Info().
+		Uint32("total", t.itemsTotal).
+		Uint32("indexed", t.itemsIndexed).
+		Dur("dur", time.Since(t.startTS)).
+		Msg("indexed")
+
 }
 
 func (t *BooksArchiveIndexTask) handleArchiveItem(zipItem *zip.File, data io.Reader, offset, num int64, logger zerolog.Logger) (err error) {
-	defer func() {
-		t.bar.IncrInt64(int64(zipItem.CompressedSize64))
-		t.bar.DecoratorEwmaUpdate(time.Since(t.startTS))
-	}()
+	if t.bar != nil {
+		defer func() {
+			t.bar.IncrInt64(int64(zipItem.CompressedSize64))
+			t.bar.DecoratorEwmaUpdate(time.Since(t.startTS))
+		}()
+	}
 
 	switch path.Ext(zipItem.Name) {
 	case ".fb2":
