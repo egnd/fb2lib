@@ -1,6 +1,7 @@
 - xml streaming parser
 - server profiling
 - indexer profiling
+- items sorting by date
 - extractor echo response
 - switch http extractor to local
 - theme editorial

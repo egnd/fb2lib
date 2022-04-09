@@ -25,6 +25,7 @@
         {% if item.Sequences %}<a class="button small" href="?q={{item.Sequences|safe|striptags}}">Серия: {{item.Sequences|safe}}</a>{% endif %}
         {% if item.Date %}<a class="button small" href="?q={{item.Date|safe|striptags}}">Дата: {{item.Date}}</a>{% endif %}
         {% if item.Publisher %}<a class="button small" href="?q={{item.Publisher|safe|striptags}}">Издатель: {{item.Publisher|safe}}</a>{% endif %}
+        {% if item.Genres %}<a class="button small" href="?q={{item.Genres|safe|striptags}}">Жанр: {{item.Genres|safe}}</a>{% endif %}
         <a href="/download/{{item.ID}}/fb2" class="button primary small"><span class="fa fa-download"></span>&nbsp;.fb2 ({{item.SizeUncompressed|filesize}})</a>
         </p>
     </article>

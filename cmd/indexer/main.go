@@ -27,10 +27,11 @@ var (
 	cfgPath     = flag.String("config", "configs/app.yml", "Configuration file path.")
 	cfgPrefix   = flag.String("env-prefix", "BS", "Prefix for env variables.")
 
-	rewriteIndex = flag.Bool("rewrite", false, "Rewrite existing indexes.")
-	hideBar      = flag.Bool("hidebar", false, "Hide progress bar.")
-	workersCnt   = flag.Int("workers", 1, "Index workers count.")
-	bufSize      = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
+	rewriteIndex    = flag.Bool("rewrite", false, "Rewrite existing indexes.")
+	extendedMapping = flag.Bool("extmapping", false, "Use extended index mapping.")
+	hideBar         = flag.Bool("hidebar", false, "Hide progress bar.")
+	workersCnt      = flag.Int("workers", 1, "Index workers count.")
+	bufSize         = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
 
 	wg         sync.WaitGroup
 	cntTotal   entities.CntAtomic32
@@ -91,7 +92,7 @@ func main() {
 		wg.Add(1)
 		return pool.Add(tasks.NewBooksArchiveIndexTask(
 			libFile, libDir, cfg.GetString("bleve.books_dir"),
-			*rewriteIndex, &cntTotal, &cntIndexed,
+			*rewriteIndex, *extendedMapping, &cntTotal, &cntIndexed,
 			logger, &wg, bar, totalBar,
 		))
 	}); err != nil {

@@ -54,15 +54,20 @@ func (r *BooksBleveRepo) GetBooks(
 
 	for _, item := range searchResults.Hits {
 		book := entities.BookIndex{
-			ID:               item.ID,
-			ISBN:             item.Fields["ISBN"].(string),
-			Titles:           item.Fields["Titles"].(string),
-			Authors:          item.Fields["Authors"].(string),
-			Sequences:        item.Fields["Sequences"].(string),
-			Date:             item.Fields["Date"].(string),
-			Publisher:        item.Fields["Publisher"].(string),
+			ID:        item.ID,
+			ISBN:      item.Fields["ISBN"].(string),
+			Titles:    item.Fields["Titles"].(string),
+			Authors:   item.Fields["Authors"].(string),
+			Sequences: item.Fields["Sequences"].(string),
+			Date:      item.Fields["Date"].(string),
+			Publisher: item.Fields["Publisher"].(string),
+			// Genres:           item.Fields["Genres"].(string), //@TODO: uncomment
 			SizeCompressed:   item.Fields["SizeCompressed"].(float64),
 			SizeUncompressed: item.Fields["SizeUncompressed"].(float64),
+		}
+
+		if item.Fields["Genres"] != nil { //@TODO: remove
+			book.Genres = item.Fields["Genres"].(string)
 		}
 
 		if r.highlight {
@@ -134,6 +139,11 @@ func (r *BooksBleveRepo) GetBook(ctx context.Context, bookID string) (res entiti
 	res.Sequences = searchResults.Hits[0].Fields["Sequences"].(string)
 	res.Date = searchResults.Hits[0].Fields["Date"].(string)
 	res.Publisher = searchResults.Hits[0].Fields["Publisher"].(string)
+
+	if searchResults.Hits[0].Fields["Genres"] != nil { //@TODO: remove
+		res.Genres = searchResults.Hits[0].Fields["Genres"].(string)
+	}
+
 	res.Src = searchResults.Hits[0].Fields["Src"].(string)
 	res.Offset = searchResults.Hits[0].Fields["Offset"].(float64)
 	res.SizeCompressed = searchResults.Hits[0].Fields["SizeCompressed"].(float64)
