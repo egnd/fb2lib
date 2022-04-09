@@ -8,12 +8,6 @@ github.com/VividCortex/ewma
 # github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 ## explicit
 github.com/acarl005/stripansi
-# github.com/astaxie/beego v1.12.3
-## explicit; go 1.13
-github.com/astaxie/beego/context
-github.com/astaxie/beego/session
-github.com/astaxie/beego/utils
-github.com/astaxie/beego/utils/pagination
 # github.com/bits-and-blooms/bitset v1.2.0
 ## explicit; go 1.14
 github.com/bits-and-blooms/bitset

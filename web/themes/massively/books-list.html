@@ -2,11 +2,22 @@
 
 {% block content %}
 <section>
-    <article><header><h4>Всего найдено: {{pager.Nums}}</h4></header></article>
+    <div class="row">
+        <div class="col-10 col-12-xsmall">
+            <h4>Книги {{pager.GetOffset()+1}}-{{pager.GetOffset()+pager.GetPageSize()}} из {{pager.GetTotal()}}</h4>
+        </div>
+        <div class="col-2 col-12-xsmall">
+            <select id="demo-category" onchange="if (this.value) window.location.href=this.value" style="text-align: center;">
+                <option value="{{pager.GetLink(1,20)}}"{% if pager.GetPageSize() == 20 %} selected{%endif%}>20</option>
+                <option value="{{pager.GetLink(1,60)}}"{% if pager.GetPageSize() == 60 %} selected{%endif%}>60</option>
+                <option value="{{pager.GetLink(1,180)}}"{% if pager.GetPageSize() == 180 %} selected{%endif%}>180</option>
+            </select>
+        </div>
+    </div>
     {% for item in books %}
     <article class="book-list-item">
         <header>
-            <h4><a href="?q={{item.Titles|safe|striptags}}">{{pager.Offset+forloop.Counter}}. {{item.Titles|safe}}</a></h4>
+            <h4><a href="?q={{item.Titles|safe|striptags}}">{{pager.GetOffset()+forloop.Counter}}. {{item.Titles|safe}}</a></h4>
         </header>
         <p style="text-align: left;">
         {% if item.ISBN %}<a class="button small" href="?q={{item.ISBN|safe|striptags}}">ISBN: {{item.ISBN|safe}}</a>{% endif %}
@@ -23,19 +34,19 @@
 <footer>
     <div class="pagination">
         {%if pager.HasPrev() %}
-        <a href="{{pager.PageLinkFirst()}}" class="page first">Начало</a>
-        <a href="{{pager.PageLinkPrev()}}" class="previous">Назад</a>
+        <a href="{{pager.GetLinkFirst()}}" class="page first">Начало</a>
+        <a href="{{pager.GetLinkPrev()}}" class="previous">Назад</a>
         {% endif %}
-        {% for page in pager.Pages%}
-            {%if pager.IsActive(page) %}
+        {% for page in pager.GetPages()%}
+            {%if pager.IsCurPage(page) %}
             <span class="page active">{{page}}</span>
             {% else %}
-            <a href="{{pager.PageLink(page)}}" class="page">{{page}}</a>
+            <a href="{{pager.GetLink(page,0)}}" class="page">{{page}}</a>
             {% endif %}
         {% endfor %}
         {%if pager.HasNext() %}
-        <a href="{{pager.PageLinkNext()}}" class="next">Вперед</a>
-        <a href="{{pager.PageLinkLast()}}" class="page last">Конец</a>
+        <a href="{{pager.GetLinkNext()}}" class="next">Вперед</a>
+        <a href="{{pager.GetLinkLast()}}" class="page last">Конец</a>
         {% endif %}
     </div>
 </footer>

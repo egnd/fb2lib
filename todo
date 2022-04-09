@@ -1,3 +1,6 @@
+- xml streaming parser
+- server profiling
+- indexer profiling
 - extractor echo response
-- local extractor debugging
+- switch http extractor to local
 - theme editorial

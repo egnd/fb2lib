@@ -4,14 +4,14 @@ import (
 	"context"
 	"io"
 
-	"github.com/astaxie/beego/utils/pagination"
 	"github.com/blevesearch/bleve/v2"
+	"gitlab.com/egnd/bookshelf/pkg/pagination"
 )
 
 type IIndexFactory func(string) (bleve.Index, error)
 
 type IBooksRepo interface {
-	GetBooks(context.Context, string, *pagination.Paginator) ([]BookIndex, error)
+	GetBooks(context.Context, string, pagination.IPager) ([]BookIndex, error)
 	GetBook(context.Context, string) (BookIndex, error)
 }
 

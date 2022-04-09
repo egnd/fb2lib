@@ -3,7 +3,6 @@ module gitlab.com/egnd/bookshelf
 go 1.18
 
 require (
-	github.com/astaxie/beego v1.12.3
 	github.com/blevesearch/bleve/v2 v2.3.2
 	github.com/dustin/go-humanize v1.0.0
 	github.com/egnd/go-wpool v1.4.0

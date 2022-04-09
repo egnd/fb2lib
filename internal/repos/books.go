@@ -5,12 +5,12 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/astaxie/beego/utils/pagination"
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/search"
 	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/rs/zerolog"
 	"gitlab.com/egnd/bookshelf/internal/entities"
+	"gitlab.com/egnd/bookshelf/pkg/pagination"
 )
 
 type BooksBleveRepo struct {
@@ -30,7 +30,7 @@ func NewBooksBleve(
 }
 
 func (r *BooksBleveRepo) GetBooks(
-	ctx context.Context, strQuery string, pager *pagination.Paginator,
+	ctx context.Context, strQuery string, pager pagination.IPager,
 ) (res []entities.BookIndex, err error) {
 	strQuery = strings.TrimSpace(strings.ToLower(strQuery))
 
@@ -41,8 +41,7 @@ func (r *BooksBleveRepo) GetBooks(
 		q = r.getCompositeQuery(strQuery)
 	}
 
-	cnt, _ := r.index.DocCount()
-	search := bleve.NewSearchRequestOptions(q, int(cnt), 0, false)
+	search := bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
 	search.Fields = []string{"*"}
 	search.Highlight = bleve.NewHighlightWithStyle("html")
 
@@ -51,32 +50,23 @@ func (r *BooksBleveRepo) GetBooks(
 		return
 	}
 
-	if searchResults.Total == 0 {
-		return
-	}
+	pager.SetTotal(searchResults.Total)
 
-	pager.SetNums(searchResults.Total)
-	totalHits := len(searchResults.Hits)
-
-	for i := pager.Offset(); i < pager.Offset()+pager.PerPageNums; i++ {
-		if totalHits <= i {
-			break
-		}
-
+	for _, item := range searchResults.Hits {
 		book := entities.BookIndex{
-			ID:               searchResults.Hits[i].ID,
-			ISBN:             searchResults.Hits[i].Fields["ISBN"].(string),
-			Titles:           searchResults.Hits[i].Fields["Titles"].(string),
-			Authors:          searchResults.Hits[i].Fields["Authors"].(string),
-			Sequences:        searchResults.Hits[i].Fields["Sequences"].(string),
-			Date:             searchResults.Hits[i].Fields["Date"].(string),
-			Publisher:        searchResults.Hits[i].Fields["Publisher"].(string),
-			SizeCompressed:   searchResults.Hits[i].Fields["SizeCompressed"].(float64),
-			SizeUncompressed: searchResults.Hits[i].Fields["SizeUncompressed"].(float64),
+			ID:               item.ID,
+			ISBN:             item.Fields["ISBN"].(string),
+			Titles:           item.Fields["Titles"].(string),
+			Authors:          item.Fields["Authors"].(string),
+			Sequences:        item.Fields["Sequences"].(string),
+			Date:             item.Fields["Date"].(string),
+			Publisher:        item.Fields["Publisher"].(string),
+			SizeCompressed:   item.Fields["SizeCompressed"].(float64),
+			SizeUncompressed: item.Fields["SizeUncompressed"].(float64),
 		}
 
 		if r.highlight {
-			book = r.highlightItem(searchResults.Hits[i].Fragments, book)
+			book = r.highlightItem(item.Fragments, book)
 		}
 
 		res = append(res, book)

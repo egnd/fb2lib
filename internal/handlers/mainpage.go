@@ -4,19 +4,19 @@ import (
 	"net/http"
 	"path"
 
-	"github.com/astaxie/beego/utils/pagination"
 	"github.com/flosch/pongo2/v5"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
 	"gitlab.com/egnd/bookshelf/internal/entities"
+	"gitlab.com/egnd/bookshelf/pkg/pagination"
 )
 
 func MainPageHandler(tplsDir string, repo entities.IBooksRepo, logger zerolog.Logger) echo.HandlerFunc {
-	pageSize := 20
-
 	return func(c echo.Context) (err error) {
 		searchQuery := c.QueryParam("q")
-		pager := pagination.NewPaginator(c.Request(), pageSize, 0)
+
+		pager := pagination.NewPager(c.Request()).SetPageSize(20).
+			ReadPageSize().ReadCurPage()
 
 		var books []entities.BookIndex
 		books, err = repo.GetBooks(c.Request().Context(), searchQuery, pager)
