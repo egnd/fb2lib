@@ -30,6 +30,7 @@ var (
 	rewriteIndex    = flag.Bool("rewrite", false, "Rewrite existing indexes.")
 	extendedMapping = flag.Bool("extmapping", false, "Use extended index mapping.")
 	hideBar         = flag.Bool("hidebar", false, "Hide progress bar.")
+	parsefb2        = flag.Bool("fb2parse", false, "Parse fb2 stream instead of unmarshal.")
 	workersCnt      = flag.Int("workers", 1, "Index workers count.")
 	bufSize         = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
 
@@ -92,7 +93,7 @@ func main() {
 		wg.Add(1)
 		return pool.Add(tasks.NewBooksArchiveIndexTask(
 			libFile, libDir, cfg.GetString("bleve.books_dir"),
-			*rewriteIndex, *extendedMapping, &cntTotal, &cntIndexed,
+			*rewriteIndex, *extendedMapping, *parsefb2, &cntTotal, &cntIndexed,
 			logger, &wg, bar, totalBar,
 		))
 	}); err != nil {

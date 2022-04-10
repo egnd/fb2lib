@@ -8,6 +8,7 @@
             "mode": "debug",
             "cwd": "${workspaceFolder}",
             "program": "${workspaceFolder}/cmd/indexer",
+            "args": ["-rewrite", "-hidebar"]
         }
     ]
 }

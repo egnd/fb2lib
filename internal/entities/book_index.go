@@ -18,7 +18,7 @@ type BookIndex struct {
 	Authors   string
 	Sequences string
 	Publisher string
-	Date      string // @TODO:
+	Date      string
 	Genres    string
 
 	Src              string
@@ -30,6 +30,7 @@ type BookIndex struct {
 func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 	res := BookIndex{
 		Titles: fb2.Description.TitleInfo.BookTitle,
+		Date:   fb2.Description.TitleInfo.Date,
 		Genres: strings.Join(fb2.Description.TitleInfo.Genre, ", "),
 	}
 
@@ -41,8 +42,8 @@ func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 		res.Publisher = fb2.Description.PublishInfo.Publisher
 		res.appendStr(fb2.Description.PublishInfo.BookName, &res.Titles)
 
-		if fb2.Description.PublishInfo.Year > 0 {
-			res.Date = fmt.Sprint(fb2.Description.PublishInfo.Year)
+		if res.Date == "" && fb2.Description.PublishInfo.Year != "" {
+			res.Date = fb2.Description.PublishInfo.Year
 		}
 	}
 
@@ -93,9 +94,9 @@ func (bi *BookIndex) appendSequences(items []fb2parser.FB2Sequence) {
 			buf.WriteString(", ")
 			buf.WriteString(item.Name)
 
-			if item.Number > 0 {
+			if item.Number != "" {
 				buf.WriteString(" (")
-				buf.WriteString(fmt.Sprint(item.Number))
+				buf.WriteString(item.Number)
 				buf.WriteString(")")
 			}
 		}

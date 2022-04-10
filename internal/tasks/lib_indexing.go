@@ -22,6 +22,7 @@ import (
 type BooksArchiveIndexTask struct {
 	rewriteIndex    bool
 	extendedMapping bool
+	parsefb2        bool
 	archiveDir      string
 	indexDir        string
 	archiveFile     os.FileInfo
@@ -43,6 +44,7 @@ func NewBooksArchiveIndexTask(
 	indexDir string,
 	rewriteIndex bool,
 	extendedMapping bool,
+	parsefb2 bool,
 	cntTotal *entities.CntAtomic32,
 	cntIndexed *entities.CntAtomic32,
 	logger zerolog.Logger,
@@ -62,6 +64,7 @@ func NewBooksArchiveIndexTask(
 		cntIndexed:      cntIndexed,
 		barContainer:    barContainer,
 		totalBar:        totalBar,
+		parsefb2:        parsefb2,
 	}
 }
 
@@ -153,7 +156,15 @@ func (t *BooksArchiveIndexTask) handleArchiveItem(zipItem *zip.File, data io.Rea
 func (t *BooksArchiveIndexTask) indexFB2File(
 	data io.Reader, offset float64, sizeCompress float64, sizeUncompress float64, logger zerolog.Logger,
 ) bool {
-	fb2File, err := fb2parser.FB2FromReader(data)
+	var err error
+	var fb2File *fb2parser.FB2File
+
+	if t.parsefb2 {
+		fb2File, err = fb2parser.ParseFB2Stream(data)
+	} else {
+		fb2File, err = fb2parser.UnmarshalFB2Stream(data)
+	}
+
 	if err != nil {
 		logger.Error().Err(err).Msg("parsing fb2 file")
 		return false

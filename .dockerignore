@@ -3,3 +3,4 @@
 /web/html
 /.env*
 .DS_Store
+*.log
