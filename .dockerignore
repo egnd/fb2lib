@@ -1,6 +1,17 @@
+/.git
+/.devcontainer
+/.vscode
 /bin
 /var
 /web/html
+
 /.env*
+/.gitignore
+/.gitlab-ci.yml
+/docker-compose.*
+/Makefile
+/README.md
+/todo
+
 .DS_Store
 *.log
