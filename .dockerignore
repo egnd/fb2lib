@@ -9,7 +9,6 @@
 /.gitignore
 /.gitlab-ci.yml
 /docker-compose.*
-/Makefile
 /README.md
 /todo
 
