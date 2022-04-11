@@ -3,11 +3,16 @@ package entities
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"
 	"gitlab.com/egnd/bookshelf/pkg/fb2parser"
+)
+
+var (
+	bookIdxDatePattern = regexp.MustCompile("[^0-9-.–]+")
 )
 
 type BookIndex struct {
@@ -56,6 +61,10 @@ func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 		if res.Date == "" {
 			res.Date = fb2.Description.SrcTitleInfo.Date
 		}
+	}
+
+	if res.Date != "" {
+		res.Date = bookIdxDatePattern.ReplaceAllString(res.Date, "")
 	}
 
 	return res

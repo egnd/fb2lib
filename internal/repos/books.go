@@ -41,12 +41,18 @@ func (r *BooksBleveRepo) GetBooks(
 		q = r.getCompositeQuery(strQuery)
 	}
 
-	search := bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
-	search.Fields = []string{"*"}
-	search.Highlight = bleve.NewHighlightWithStyle("html")
+	searchReq := bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
+	searchReq.Fields = []string{"*"}
+	searchReq.Highlight = bleve.NewHighlightWithStyle("html")
+	searchReq.Sort = append(searchReq.Sort, &search.SortField{
+		Field:   "Date",
+		Desc:    true,
+		Type:    search.SortFieldAsString,
+		Missing: search.SortFieldMissingLast,
+	})
 
 	var searchResults *bleve.SearchResult
-	if searchResults, err = r.index.Search(search); err != nil {
+	if searchResults, err = r.index.Search(searchReq); err != nil {
 		return
 	}
 
@@ -119,11 +125,11 @@ func (r *BooksBleveRepo) highlightItem(fragments search.FieldFragmentMap, book e
 }
 
 func (r *BooksBleveRepo) GetBook(ctx context.Context, bookID string) (res entities.BookIndex, err error) {
-	search := bleve.NewSearchRequestOptions(bleve.NewDocIDQuery([]string{bookID}), 1, 0, false)
-	search.Fields = []string{"*"}
+	searchReq := bleve.NewSearchRequestOptions(bleve.NewDocIDQuery([]string{bookID}), 1, 0, false)
+	searchReq.Fields = []string{"*"}
 
 	var searchResults *bleve.SearchResult
-	if searchResults, err = r.index.Search(search); err != nil {
+	if searchResults, err = r.index.Search(searchReq); err != nil {
 		return
 	}
 
