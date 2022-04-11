@@ -1,4 +1,4 @@
-package echorender
+package render2echo
 
 import (
 	"github.com/dustin/go-humanize"

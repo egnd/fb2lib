@@ -38,6 +38,17 @@ endif
 compose-index:
 	docker-compose exec server bin/indexer
 
-profile:
+_pprof:
 	@mkdir -p var/pprof
+
+pprof-for: _pprof
 	go tool pprof -svg $(filter-out $@,$(MAKECMDGOALS)) > var/pprof/graph.svg
+
+pprof-http: _pprof
+	go tool pprof -svg http://localhost:8080/debug/pprof/profile > var/pprof/cpu.svg
+	go tool pprof -svg http://localhost:8080/debug/pprof/allocs > var/pprof/allocs.svg
+	go tool pprof -svg http://localhost:8080/debug/pprof/block > var/pprof/block.svg
+	go tool pprof -svg http://localhost:8080/debug/pprof/goroutine > var/pprof/goroutine.svg
+	go tool pprof -svg http://localhost:8080/debug/pprof/heap > var/pprof/heap.svg
+	go tool pprof -svg http://localhost:8080/debug/pprof/mutex > var/pprof/mutex.svg	
+	go tool pprof -svg http://localhost:8080/debug/pprof/threadcreate > var/pprof/threadcreate.svg

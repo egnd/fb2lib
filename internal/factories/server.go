@@ -7,8 +7,9 @@ import (
 	"gitlab.com/egnd/bookshelf/internal/entities"
 	"gitlab.com/egnd/bookshelf/internal/handlers"
 	"gitlab.com/egnd/bookshelf/internal/middleware"
-	"gitlab.com/egnd/bookshelf/pkg/echorender"
 	"gitlab.com/egnd/bookshelf/pkg/library"
+	"gitlab.com/egnd/bookshelf/pkg/pprof2echo"
+	"gitlab.com/egnd/bookshelf/pkg/render2echo"
 
 	"github.com/flosch/pongo2/v5"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
@@ -23,12 +24,14 @@ func NewEchoServer(cfg *viper.Viper, logger zerolog.Logger,
 	server.Debug = cfg.GetBool("server.debug")
 	server.HideBanner = true
 	server.HidePort = true
-	server.Renderer = echorender.NewPongoRenderer(server.Debug, nil, map[string]pongo2.FilterFunction{
-		"filesize": echorender.FilterFileSize,
+	server.Renderer = render2echo.NewPongoRenderer(server.Debug, nil, map[string]pongo2.FilterFunction{
+		"filesize": render2echo.FilterFileSize,
 	})
 
 	server.Use(middleware.EchoLogger(cfg, logger))
-	if !server.Debug {
+	if server.Debug {
+		pprof2echo.AddHandlersTo(server)
+	} else {
 		server.Use(echomiddleware.Recover())
 	}
 
