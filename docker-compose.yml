@@ -7,5 +7,9 @@ services:
     ports:
       - ${DC_SERVER_PORT}:${BS_SERVER_PORT}
     volumes:
-      - ./var:/app/var:rw
+      - ./var/index:/app/var/index:rw
+      - ./var/library:/app/var/library:rw
+      - ./var/pprof:/app/var/pprof:rw
+      - ./var/logs:/app/var/logs:rw
     # entrypoint: ["bin/indexer"]
+    # command: ["-hidebar","-rewrite"]

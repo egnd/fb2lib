@@ -37,3 +37,7 @@ endif
 
 compose-index:
 	docker-compose exec server bin/indexer
+
+profile:
+	@mkdir -p var/pprof
+	go tool pprof -svg $(filter-out $@,$(MAKECMDGOALS)) > var/pprof/graph.svg

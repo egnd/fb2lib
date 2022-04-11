@@ -9,8 +9,10 @@ import (
 	"time"
 
 	wpool "github.com/egnd/go-wpool"
+	"github.com/pkg/profile"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/viper"
 	"github.com/vbauerster/mpb/v7"
 	"github.com/vbauerster/mpb/v7/decor"
 
@@ -33,6 +35,7 @@ var (
 	parsefb2        = flag.Bool("fb2parse", false, "Parse fb2 stream instead of unmarshal.")
 	workersCnt      = flag.Int("workers", 1, "Index workers count.")
 	bufSize         = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
+	profiler        = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
 
 	wg         sync.WaitGroup
 	cntTotal   entities.CntAtomic32
@@ -47,6 +50,10 @@ var (
 func main() {
 	flag.Parse()
 
+	if *profiler != "" {
+		defer profilerStart(*profiler).Stop()
+	}
+
 	if *showVersion {
 		fmt.Println(appVersion)
 		return
@@ -60,12 +67,7 @@ func main() {
 	logger := factories.NewZerologLogger(cfg, os.Stderr)
 	startTS := time.Now()
 
-	pool := wpool.NewPool(wpool.PoolCfg{
-		WorkersCnt:   uint(*workersCnt),
-		TasksBufSize: uint(*bufSize),
-	}, func(num uint, pipeline chan wpool.IWorker) wpool.IWorker {
-		return wpool.NewWorker(ctx, wpool.WorkerCfg{Pipeline: pipeline})
-	})
+	pool := newPool(*workersCnt, *bufSize)
 	defer pool.Close()
 
 	if !*hideBar {
@@ -73,8 +75,7 @@ func main() {
 			mpb.WithOutput(os.Stdout),
 		)
 
-		os.Remove("var/indexing.log")
-		logOutput, err := os.OpenFile("var/indexing.log", os.O_RDWR|os.O_CREATE, 0644)
+		logOutput, err := newLogFileOutput(cfg)
 		if err != nil {
 			logger.Fatal().Err(err).Msg("init log file output")
 		}
@@ -91,8 +92,7 @@ func main() {
 		cfg.GetString("extractor.dir"), targetLibFormats, logger,
 	).IterateItems(func(libFile os.FileInfo, libDir string, num, total int, logger zerolog.Logger) error {
 		wg.Add(1)
-		return pool.Add(tasks.NewBooksArchiveIndexTask(
-			libFile, libDir, cfg.GetString("bleve.books_dir"),
+		return pool.Add(tasks.NewBooksArchiveIndexTask(libFile, libDir, cfg.GetString("bleve.index_dir"),
 			*rewriteIndex, *extendedMapping, *parsefb2, &cntTotal, &cntIndexed,
 			logger, &wg, bar, totalBar,
 		))
@@ -101,12 +101,11 @@ func main() {
 	}
 
 	wg.Wait()
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second)
 
-	logger.Info().
+	logger.Info().Dur("dur", time.Now().Sub(startTS)).
 		Uint32("total", cntIndexed.Total()).
 		Uint32("indexed", cntIndexed.Total()).
-		Dur("dur", time.Now().Sub(startTS)).
 		Msg("indexing finished")
 }
 
@@ -129,7 +128,61 @@ func getTotalBar(targetFormats []string, libDir string, bar *mpb.Progress) *mpb.
 		mpb.AppendDecorators(
 			decor.Elapsed(decor.ET_STYLE_GO),
 			decor.Name(" - "),
-			decor.CountersKiloByte("% .2f/% .2f"),
+			decor.CountersKibiByte("% .2f/% .2f"),
 		),
+	)
+}
+
+func profilerStart(profType string) interface{ Stop() } {
+	_ = os.MkdirAll("var/pprof", 0755)
+
+	pprofopts := []func(*profile.Profile){
+		profile.ProfilePath("var/pprof"),
+		profile.NoShutdownHook,
+	}
+
+	switch profType {
+	case "mem":
+		pprofopts = append(pprofopts, profile.MemProfile)
+	case "allocs":
+		pprofopts = append(pprofopts, profile.MemProfileAllocs)
+	case "heap":
+		pprofopts = append(pprofopts, profile.MemProfileHeap)
+	case "cpu":
+		pprofopts = append(pprofopts, profile.CPUProfile)
+	case "trace":
+		pprofopts = append(pprofopts, profile.TraceProfile)
+	case "goroutine":
+		pprofopts = append(pprofopts, profile.GoroutineProfile)
+	case "mutex":
+		pprofopts = append(pprofopts, profile.MutexProfile)
+	case "block":
+		pprofopts = append(pprofopts, profile.BlockProfile)
+	case "thread":
+		pprofopts = append(pprofopts, profile.ThreadcreationProfile)
+	default:
+		log.Fatal().Str("type", profType).Msg("invalid profiling type")
+	}
+
+	return profile.Start(pprofopts...)
+}
+
+func newPool(workersCnt, bufsize int) *wpool.Pool {
+	return wpool.NewPool(wpool.PoolCfg{
+		WorkersCnt:   uint(workersCnt),
+		TasksBufSize: uint(bufsize),
+	}, func(num uint, pipeline chan wpool.IWorker) wpool.IWorker {
+		return wpool.NewWorker(ctx, wpool.WorkerCfg{Pipeline: pipeline})
+	})
+}
+
+func newLogFileOutput(cfg *viper.Viper) (out *os.File, err error) {
+	if err = os.MkdirAll(cfg.GetString("logs.dir"), 0755); err != nil {
+		return
+	}
+
+	return os.OpenFile(
+		fmt.Sprintf("%s/indexing.%d.log", cfg.GetString("logs.dir"), time.Now().Unix()),
+		os.O_RDWR|os.O_CREATE, 0644,
 	)
 }

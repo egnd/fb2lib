@@ -47,6 +47,7 @@ require (
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
+	github.com/pkg/profile v1.6.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect

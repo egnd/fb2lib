@@ -19,7 +19,8 @@ func NewZerologLogger(cfg *viper.Viper, writer io.Writer) zerolog.Logger {
 		Logger().Level(zerolog.InfoLevel)
 
 	if cfg.GetBool("logs.debug") {
-		logger = logger.Level(zerolog.DebugLevel)
+		logger = logger.Level(zerolog.DebugLevel).
+			With().Caller().Logger()
 	}
 
 	if cfg.GetBool("logs.pretty") {

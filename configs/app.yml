@@ -5,10 +5,11 @@ logs:
   debug: false
   pretty: false
   duration_unit: 1s
+  dir: var/logs
 markup:
   theme_dir: web/themes/massively
 bleve:
-  books_dir: var/books_index
+  index_dir: var/index
   highlight: true
 extractor:
   type: html # @TODO: switch to "local"

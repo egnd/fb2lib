@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	bleve "github.com/blevesearch/bleve/v2"
+	"github.com/rs/zerolog"
 	"gitlab.com/egnd/bookshelf/internal/entities"
 )
 
@@ -14,7 +15,7 @@ import (
 // https://habr.com/ru/post/333714/
 // https://blevesearch.com
 
-func OpenIndex(dir string) (entities.ISearchIndex, error) {
+func OpenIndex(dir string, logger zerolog.Logger) (entities.ISearchIndex, error) {
 	_, err := os.Stat(dir)
 	if os.IsNotExist(err) {
 		if err = os.MkdirAll(dir, 0755); err != nil {
@@ -48,6 +49,8 @@ func OpenIndex(dir string) (entities.ISearchIndex, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		logger.Debug().Str("dir", dir).Str("name", item.Name()).Msg("index opened")
 
 		indexes = append(indexes, index)
 	}

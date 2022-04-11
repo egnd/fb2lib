@@ -39,7 +39,7 @@ func main() {
 
 	logger := factories.NewZerologLogger(cfg, os.Stderr)
 
-	booksIndex, err := indexing.OpenIndex(cfg.GetString("bleve.books_dir"))
+	booksIndex, err := indexing.OpenIndex(cfg.GetString("bleve.index_dir"), logger)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("init index")
 	}
