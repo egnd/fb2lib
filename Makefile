@@ -18,10 +18,11 @@ owner: ## Reset folder owner
 	@echo "Success"
 
 build: ## Build app
-	@mkdir -p bin
+	@rm -rf bin && mkdir bin
 	CGO_ENABLED=0 go build -mod=vendor -ldflags "-X 'main.appVersion=$(BUILD_VERSION)-$(GOOS)-$(GOARCH)'" -o bin/server cmd/server/*
 	CGO_ENABLED=0 go build -mod=vendor -ldflags "-X 'main.appVersion=$(BUILD_VERSION)-$(GOOS)-$(GOARCH)'" -o bin/indexer cmd/indexer/*
-	@chmod +x bin/server bin/indexer && ls -lah bin/server bin/indexer
+	cp fb2c/$(GOOS)-$(GOARCH) bin/fb2c
+	@chmod +x bin/server bin/indexer bin/fb2c && ls -lah bin/server bin/indexer bin/fb2c
 
 compose: compose-stop ## Run app
 ifeq ($(wildcard docker-compose.override.yml),)

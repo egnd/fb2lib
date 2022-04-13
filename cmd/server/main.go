@@ -44,7 +44,10 @@ func main() {
 	server := factories.NewEchoServer(cfg, logger,
 		repos.NewBooksBleve(cfg.GetBool("bleve.highlight"), booksIndex, logger),
 	)
-	logger.Info().Int("port", cfg.GetInt("server.port")).Msg("server is starting...")
+	logger.Info().
+		Int("port", cfg.GetInt("server.port")).
+		Str("version", appVersion).
+		Msg("server is starting...")
 
 	if err = server.Start(fmt.Sprintf(":%d", cfg.GetInt("server.port"))); err != nil {
 		logger.Fatal().Err(err).Msg("server error")

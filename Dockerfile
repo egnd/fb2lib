@@ -9,7 +9,6 @@ ENV GOSUMDB off
 WORKDIR /src
 COPY . .
 RUN make build BUILD_VERSION=$BUILD_VERSION
-RUN mv fb2c/$GOOS-$GOARCH bin/fb2c && ls -lah bin/fb2c
 RUN mkdir tmp_dir
 
 FROM scratch
