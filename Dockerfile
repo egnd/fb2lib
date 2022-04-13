@@ -1,4 +1,5 @@
-FROM golang:1.18 as build
+ARG BUILDPLATFORM=linux/amd64
+FROM --platform=$BUILDPLATFORM golang:1.18 as build
 ARG BUILD_VERSION=docker
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
