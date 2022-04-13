@@ -1,4 +1,8 @@
 version: "3.8"
 services:
   server:
-    build: .
+    build:
+      context: .
+      args:
+        TARGETOS: ${DC_TARGETOS}
+        TARGETARCH: ${DC_TARGETARCH}
