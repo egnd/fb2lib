@@ -1,8 +1,9 @@
 ARG VARIANT="1.18-bullseye"
 FROM mcr.microsoft.com/vscode/devcontainers/go:0-${VARIANT}
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends make grep graphviz
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends \
+    make cmake grep graphviz gopass git libsodium-dev pkg-config gcc
+
 # RUN go get \
 #         github.com/swaggo/swag/cmd/swag \
 #         github.com/matryer/moq \

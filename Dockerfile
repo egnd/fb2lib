@@ -1,5 +1,6 @@
 FROM golang:1.18 as build
 ARG BUILD_VERSION=docker
+ARG FB2C_VERSION=v1.60.2
 ARG TARGETOS
 ARG TARGETARCH
 ENV GOOS=$TARGETOS
@@ -8,15 +9,17 @@ ENV GOPROXY https://proxy.golang.org,direct
 ENV GOSUMDB off
 WORKDIR /src
 COPY . .
-RUN make build BUILD_VERSION=$BUILD_VERSION
+RUN make build-indexer BUILD_VERSION=$BUILD_VERSION
+RUN make build-server BUILD_VERSION=$BUILD_VERSION
+RUN make build-converter FB2C_VERSION=$FB2C_VERSION
 RUN mkdir tmp_dir
 
 FROM scratch
-WORKDIR /app
+WORKDIR /
 COPY --from=build /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=build /src/tmp_dir /tmp
 COPY --from=build /src/bin bin
 COPY configs configs
 COPY web web
-VOLUME ["/app/var/index"]
-ENTRYPOINT ["bin/server"]
+VOLUME ["/var/index"]
+ENTRYPOINT ["server"]

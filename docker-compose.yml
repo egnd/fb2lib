@@ -7,10 +7,10 @@ services:
     ports:
       - ${DC_SERVER_PORT}:${BS_SERVER_PORT}
     volumes:
-      - ./var/index:/app/var/index:rw
-      - ./var/library:/app/var/library:rw
-      - ./var/pprof:/app/var/pprof:rw
-      - ./var/logs:/app/var/logs:rw
-      - ./var/converter:/app/var/converter:rw
-    # entrypoint: ["bin/indexer"]
+      - ./var/index:/var/index:rw
+      - ./var/library:/var/library:rw
+      - ./var/pprof:/var/pprof:rw
+      - ./var/logs:/var/logs:rw
+      - ./var/converter:/var/converter:rw
+    # entrypoint: ["indexer"]
     # command: ["-hidebar","-rewrite"]
