@@ -125,6 +125,12 @@ func (r *BooksBleveRepo) highlightItem(fragments search.FieldFragmentMap, book e
 }
 
 func (r *BooksBleveRepo) GetBook(ctx context.Context, bookID string) (res entities.BookIndex, err error) {
+	if bookID == "" {
+		err = errors.New("repo get book error: empty book id")
+
+		return
+	}
+
 	searchReq := bleve.NewSearchRequestOptions(bleve.NewDocIDQuery([]string{bookID}), 1, 0, false)
 	searchReq.Fields = []string{"*"}
 

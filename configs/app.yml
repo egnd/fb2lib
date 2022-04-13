@@ -11,7 +11,6 @@ markup:
 bleve:
   index_dir: var/index
   highlight: true
-extractor:
-  type: html # @TODO: switch to "local"
+library:
   dir: var/library
-  uri_prefix: /library
+  converter_dir: var/converter

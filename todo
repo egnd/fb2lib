@@ -1,4 +1,3 @@
-- extractor echo response
-- switch http extractor to local
+- add rest api
 - theme editorial
 - bleve .Index() with batching

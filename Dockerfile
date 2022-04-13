@@ -1,7 +1,7 @@
 FROM golang:1.18 as build
 ARG BUILD_VERSION=docker
-ARG TARGETOS
-ARG TARGETARCH
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
 ENV GOOS=$TARGETOS
 ENV GOARCH=$TARGETARCH
 ENV GOPROXY https://proxy.golang.org,direct
@@ -9,10 +9,13 @@ ENV GOSUMDB off
 WORKDIR /src
 COPY . .
 RUN make build BUILD_VERSION=$BUILD_VERSION
+RUN mv fb2c/$GOOS-$GOARCH bin/fb2c && ls -lah bin/fb2c
+RUN mkdir tmp_dir
 
 FROM scratch
 WORKDIR /app
 COPY --from=build /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=build /src/tmp_dir /tmp
 COPY --from=build /src/bin bin
 COPY configs configs
 COPY web web

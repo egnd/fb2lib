@@ -3,8 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net/http"
-	"path"
 
 	"os"
 
@@ -13,7 +11,6 @@ import (
 	"gitlab.com/egnd/bookshelf/internal/factories"
 	"gitlab.com/egnd/bookshelf/internal/indexing"
 	"gitlab.com/egnd/bookshelf/internal/repos"
-	"gitlab.com/egnd/bookshelf/pkg/library"
 )
 
 var (
@@ -44,19 +41,8 @@ func main() {
 		logger.Fatal().Err(err).Msg("init index")
 	}
 
-	var extractor library.IExtractorFactory
-	if cfg.GetString("extractor.type") == "local" {
-		extractor = library.FactoryZipExtractorLocal() // @TODO: make working
-	} else {
-		extractor = library.FactoryZipExtractorHTTP(
-			"http://localhost:"+path.Join(cfg.GetString("server.port"), cfg.GetString("extractor.uri_prefix")),
-			cfg.GetString("extractor.dir"), http.DefaultClient,
-		)
-	}
-
 	server := factories.NewEchoServer(cfg, logger,
 		repos.NewBooksBleve(cfg.GetBool("bleve.highlight"), booksIndex, logger),
-		extractor,
 	)
 	logger.Info().Int("port", cfg.GetInt("server.port")).Msg("server is starting...")
 

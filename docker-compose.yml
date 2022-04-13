@@ -11,5 +11,6 @@ services:
       - ./var/library:/app/var/library:rw
       - ./var/pprof:/app/var/pprof:rw
       - ./var/logs:/app/var/logs:rw
+      - ./var/converter:/app/var/converter:rw
     # entrypoint: ["bin/indexer"]
     # command: ["-hidebar","-rewrite"]

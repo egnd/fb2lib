@@ -83,13 +83,13 @@ func main() {
 
 		logger = logger.Output(zerolog.ConsoleWriter{Out: logOutput, NoColor: true})
 
-		if totalBar = getTotalBar(targetLibFormats, cfg.GetString("extractor.dir"), bar); totalBar == nil {
+		if totalBar = getTotalBar(targetLibFormats, cfg.GetString("library.dir"), bar); totalBar == nil {
 			logger.Fatal().Msg("unable to init total bar")
 		}
 	}
 
 	if err = library.NewLocalFSItems(
-		cfg.GetString("extractor.dir"), targetLibFormats, logger,
+		cfg.GetString("library.dir"), targetLibFormats, logger,
 	).IterateItems(func(libFile os.FileInfo, libDir string, num, total int, logger zerolog.Logger) error {
 		wg.Add(1)
 		return pool.Add(tasks.NewBooksArchiveIndexTask(libFile, libDir, cfg.GetString("bleve.index_dir"),

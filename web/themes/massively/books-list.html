@@ -27,6 +27,7 @@
         {% if item.Publisher %}<a class="button small" href="?q={{item.Publisher|safe|striptags}}">Издатель: {{item.Publisher|safe}}</a>{% endif %}
         {% if item.Genres %}<a class="button small" href="?q={{item.Genres|safe|striptags}}">Жанр: {{item.Genres|safe}}</a>{% endif %}
         <a href="/download/{{item.ID}}/fb2" class="button primary small"><span class="fa fa-download"></span>&nbsp;.fb2 ({{item.SizeUncompressed|filesize}})</a>
+        <a href="/download/{{item.ID}}/epub" class="button primary small"><span class="fa fa-download"></span>&nbsp;.epub</a>
         </p>
     </article>
     {% endfor %}

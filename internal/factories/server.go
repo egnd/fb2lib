@@ -7,7 +7,6 @@ import (
 	"gitlab.com/egnd/bookshelf/internal/entities"
 	"gitlab.com/egnd/bookshelf/internal/handlers"
 	"gitlab.com/egnd/bookshelf/internal/middleware"
-	"gitlab.com/egnd/bookshelf/pkg/library"
 	"gitlab.com/egnd/bookshelf/pkg/pprof2echo"
 	"gitlab.com/egnd/bookshelf/pkg/render2echo"
 
@@ -18,7 +17,7 @@ import (
 )
 
 func NewEchoServer(cfg *viper.Viper, logger zerolog.Logger,
-	booksRepo entities.IBooksRepo, extractor library.IExtractorFactory,
+	booksRepo entities.IBooksRepo,
 ) *echo.Echo {
 	server := echo.New()
 	server.Debug = cfg.GetBool("server.debug")
@@ -37,14 +36,9 @@ func NewEchoServer(cfg *viper.Viper, logger zerolog.Logger,
 
 	server.File("/favicon.ico", path.Join(cfg.GetString("markup.theme_dir"), "assets/favicon.ico"))
 	server.Static("/assets", path.Join(cfg.GetString("markup.theme_dir"), "assets"))
-
-	if cfg.GetString("extractor.uri_prefix") != "" {
-		server.Static(cfg.GetString("extractor.uri_prefix"), cfg.GetString("extractor.dir"))
-	}
-
 	server.GET("/", handlers.MainPageHandler(cfg.GetString("markup.theme_dir"), booksRepo, logger))
-	server.GET("/download/:book_id/fb2", handlers.DownloadFB2Handler(booksRepo, logger, cfg, extractor))
-	// server.GET("/download/:book_id/epub", handlers.MainPageHandler()) // @TODO: https://github.com/rupor-github/fb2converter
+	server.GET("/download/:book_id/fb2", handlers.DownloadFB2Handler(booksRepo, cfg))
+	server.GET("/download/:book_id/epub", handlers.DownloadEpubHandler(booksRepo, cfg, logger))
 
 	return server
 }
