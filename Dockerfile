@@ -6,11 +6,14 @@ ENV GOOS=$TARGETOS
 ENV GOARCH=$TARGETARCH
 ENV GOPROXY https://proxy.golang.org,direct
 ENV GOSUMDB off
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends \
+        unzip
 WORKDIR /src
 COPY . .
+RUN make build-converter
 RUN make build-indexer BUILD_VERSION=$BUILD_VERSION
 RUN make build-server BUILD_VERSION=$BUILD_VERSION
-RUN make build-converter
 RUN mkdir tmp_dir
 
 FROM scratch
