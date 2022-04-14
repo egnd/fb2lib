@@ -18,23 +18,25 @@ owner: ## Reset folder owner
 	sudo chown --changes -R $$(whoami) ./
 	@echo "Success"
 
+build: build-indexer build-server build-converter ## Build
+
 build-indexer: ## Build indexer
-	@mkdir -p bin && rm -f bin/indexer
-	CGO_ENABLED=0 go build -mod=vendor -ldflags "-X 'main.appVersion=$(BUILD_VERSION)-$(GOOS)-$(GOARCH)'" -o bin/indexer cmd/indexer/*
-	@chmod +x bin/indexer && ls -lah bin/indexer
+	@mkdir -p bin/$(GOOS)-$(GOARCH) && rm -f bin/$(GOOS)-$(GOARCH)/indexer
+	CGO_ENABLED=0 go build -mod=vendor -ldflags "-X 'main.appVersion=$(BUILD_VERSION)-$(GOOS)-$(GOARCH)'" -o bin/$(GOOS)-$(GOARCH)/indexer cmd/indexer/*
+	@chmod +x bin/$(GOOS)-$(GOARCH)/indexer && ls -lah bin/$(GOOS)-$(GOARCH)/indexer
 
 build-server: ## Build server
-	@mkdir -p bin && rm -f bin/server
-	CGO_ENABLED=0 go build -mod=vendor -ldflags "-X 'main.appVersion=$(BUILD_VERSION)-$(GOOS)-$(GOARCH)'" -o bin/server cmd/server/*
-	@chmod +x bin/server && ls -lah bin/server
+	@mkdir -p bin/$(GOOS)-$(GOARCH) && rm -f bin/$(GOOS)-$(GOARCH)/server
+	CGO_ENABLED=0 go build -mod=vendor -ldflags "-X 'main.appVersion=$(BUILD_VERSION)-$(GOOS)-$(GOARCH)'" -o bin/$(GOOS)-$(GOARCH)/server cmd/server/*
+	@chmod +x bin/$(GOOS)-$(GOARCH)/server && ls -lah bin/$(GOOS)-$(GOARCH)/server
 
 build-converter: ## Build server
-	@mkdir -p bin && rm -f bin/fb2c
+	@mkdir -p bin/$(GOOS)-$(GOARCH) && rm -f bin/$(GOOS)-$(GOARCH)/fb2c
 ifeq ($(wildcard fb2c-$(GOOS)-$(GOARCH)-$(FB2C_VERSION).zip),)
 	wget https://github.com/egnd/fb2converter/releases/download/$(FB2C_VERSION)/fb2c-$(GOOS)-$(GOARCH)-$(FB2C_VERSION).zip
 endif
 	unzip fb2c-$(GOOS)-$(GOARCH)-$(FB2C_VERSION).zip
-	mv fb2c bin/fb2c && ls -lah bin/fb2c
+	mv fb2c bin/$(GOOS)-$(GOARCH)/fb2c && ls -lah bin/$(GOOS)-$(GOARCH)/fb2c
 
 compose: compose-stop ## Run app
 ifeq ($(wildcard docker-compose.override.yml),)

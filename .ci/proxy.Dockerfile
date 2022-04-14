@@ -1,0 +1,2 @@
+ARG SRC_IMG
+FROM ${SRC_IMG}
