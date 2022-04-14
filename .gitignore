@@ -1,5 +1,5 @@
 /bin
-/fb2c
+/fb2c-*.zip
 /var
 /.env
 /docker-compose.override.yml

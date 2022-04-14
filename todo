@@ -1,3 +1,4 @@
+- ci improvements
 - add rest api
 - theme editorial
 - bleve .Index() with batching

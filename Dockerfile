@@ -1,6 +1,5 @@
 FROM golang:1.18 as build
 ARG BUILD_VERSION=docker
-ARG FB2C_VERSION=v1.60.2
 ARG TARGETOS
 ARG TARGETARCH
 ENV GOOS=$TARGETOS
@@ -11,7 +10,7 @@ WORKDIR /src
 COPY . .
 RUN make build-indexer BUILD_VERSION=$BUILD_VERSION
 RUN make build-server BUILD_VERSION=$BUILD_VERSION
-RUN make build-converter FB2C_VERSION=$FB2C_VERSION
+RUN make build-converter
 RUN mkdir tmp_dir
 
 FROM scratch
