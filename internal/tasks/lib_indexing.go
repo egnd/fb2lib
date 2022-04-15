@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/vbauerster/mpb/v7"
 	"github.com/vbauerster/mpb/v7/decor"
@@ -170,7 +169,6 @@ func (t *BooksArchiveIndexTask) indexFB2File(
 	logger = logger.With().Str("fb2-title", fb2File.Description.TitleInfo.BookTitle).Logger()
 
 	doc := entities.NewBookIndex(fb2File)
-	doc.ID = uuid.NewString()
 	doc.Src = path.Join(t.archiveDir, t.archiveFile.Name())
 	doc.Offset = offset
 	doc.SizeCompressed = sizeCompress

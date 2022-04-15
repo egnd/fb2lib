@@ -167,18 +167,23 @@ func (r *BooksBleveRepo) getBooks(
 
 	for _, item := range searchResults.Hits {
 		book := entities.BookIndex{
-			ID:               item.ID,
-			ISBN:             item.Fields["ISBN"].(string),
-			Titles:           item.Fields["Titles"].(string),
-			Authors:          item.Fields["Authors"].(string),
-			Sequences:        item.Fields["Sequences"].(string),
-			Date:             item.Fields["Date"].(string),
-			Publisher:        item.Fields["Publisher"].(string),
-			Genres:           item.Fields["Genres"].(string),
+			ISBN:      item.Fields["ISBN"].(string),
+			Titles:    item.Fields["Titles"].(string),
+			Authors:   item.Fields["Authors"].(string),
+			Sequences: item.Fields["Sequences"].(string),
+			Date:      item.Fields["Date"].(string),
+			Publisher: item.Fields["Publisher"].(string),
+			Genres:    item.Fields["Genres"].(string),
+			ID:        item.ID,
+			// Lang:             item.Fields["Lang"].(string), // @TODO: uncomment
 			Src:              item.Fields["Src"].(string),
 			Offset:           item.Fields["Offset"].(float64),
 			SizeCompressed:   item.Fields["SizeCompressed"].(float64),
 			SizeUncompressed: item.Fields["SizeUncompressed"].(float64),
+		}
+
+		if item.Fields["Lang"] != nil { // @TODO: remove
+			book.Lang = item.Fields["Lang"].(string)
 		}
 
 		if r.highlight && searchReq.Highlight != nil {

@@ -126,11 +126,9 @@ func ParseFB2TitleInfo(curTag string, reader xml.TokenReader) (res FB2TitleInfo,
 }
 
 type FB2Author struct {
-	ID         string `xml:"id"`
 	FirstName  string `xml:"first-name"`
 	MiddleName string `xml:"middle-name"`
 	LastName   string `xml:"last-name"`
-	NickName   string `xml:"nickname"`
 }
 
 func ParseFB2Author(curTag string, reader xml.TokenReader) (res FB2Author, err error) {
@@ -147,16 +145,12 @@ func ParseFB2Author(curTag string, reader xml.TokenReader) (res FB2Author, err e
 		switch tokType := token.(type) {
 		case xml.StartElement:
 			switch tokType.Name.Local {
-			case "id":
-				res.ID = GetTokenValue(tokType.Name.Local, reader)
 			case "first-name":
 				res.FirstName = GetTokenValue(tokType.Name.Local, reader)
 			case "middle-name":
 				res.MiddleName = GetTokenValue(tokType.Name.Local, reader)
 			case "last-name":
 				res.LastName = GetTokenValue(tokType.Name.Local, reader)
-			case "nickname":
-				res.NickName = GetTokenValue(tokType.Name.Local, reader)
 			}
 		case xml.EndElement:
 			if tokType.Name.Local == curTag {

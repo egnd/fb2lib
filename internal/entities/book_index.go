@@ -2,6 +2,8 @@ package entities
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -24,6 +26,7 @@ type BookIndex struct {
 	Genres    string
 
 	ID               string
+	Lang             string
 	Src              string
 	Offset           float64
 	SizeCompressed   float64
@@ -35,14 +38,20 @@ func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 		Titles: fb2.Description.TitleInfo.BookTitle,
 		Date:   parseYear(fb2.Description.TitleInfo.Date),
 		Genres: strings.Join(fb2.Description.TitleInfo.Genre, IndexFieldSep),
+		Lang:   fb2.Description.TitleInfo.Lang,
 	}
 
 	res.appendAuthors(fb2.Description.TitleInfo.Author)
+	res.appendAuthors(fb2.Description.TitleInfo.Translator)
 	res.appendSequences(fb2.Description.TitleInfo.Sequence)
 
 	if fb2.Description.PublishInfo != nil {
-		res.ISBN = fb2.Description.PublishInfo.ISBN
 		res.Publisher = fb2.Description.PublishInfo.Publisher
+		if res.Publisher != "" && fb2.Description.PublishInfo.City != "" {
+			res.Publisher += fmt.Sprintf("(%s)", fb2.Description.PublishInfo.City)
+		}
+
+		res.ISBN = fb2.Description.PublishInfo.ISBN
 		res.appendStr(fb2.Description.PublishInfo.BookName, &res.Titles)
 		res.appendStr(parseYear(fb2.Description.PublishInfo.Year), &res.Date)
 	}
@@ -54,6 +63,13 @@ func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 		res.appendGenres(fb2.Description.SrcTitleInfo.Genre)
 		res.appendStr(parseYear(fb2.Description.SrcTitleInfo.Date), &res.Date)
 	}
+
+	hasher := md5.New()
+	hasher.Write([]byte(res.ISBN))
+	hasher.Write([]byte(res.Titles))
+	hasher.Write([]byte(res.Authors))
+
+	res.ID = hex.EncodeToString(hasher.Sum(nil))
 
 	return res
 }
