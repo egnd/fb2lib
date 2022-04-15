@@ -34,6 +34,7 @@ require (
 	github.com/blevesearch/zapx/v13 v13.3.3 // indirect
 	github.com/blevesearch/zapx/v14 v14.3.3 // indirect
 	github.com/blevesearch/zapx/v15 v15.3.3 // indirect
+	github.com/essentialkaos/translit/v2 v2.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/protobuf v1.5.2 // indirect

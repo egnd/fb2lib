@@ -26,7 +26,7 @@ func DownloadFB2Handler(repo entities.IBooksRepo, cfg *viper.Viper) echo.Handler
 		case path.Ext(book.Src) == ".zip" || strings.Contains(book.Src, ".zip"+string(os.PathSeparator)):
 			err = response.FB2FromLocalZip(book, c)
 		case path.Ext(book.Src) == ".fb2":
-			err = c.Attachment(book.Src, book.ID+".fb2")
+			err = response.LocalFile(".fb2", book, c)
 		default:
 			err = fmt.Errorf("download fb2 book error: invalid book src %s", book.Src)
 		}

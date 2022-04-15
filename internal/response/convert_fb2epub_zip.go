@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -65,5 +64,5 @@ func ConvertZipFB2Epub(converterDir string, book entities.BookIndex, server echo
 		return err
 	}
 
-	return server.Attachment(epubPath, filepath.Base(epubPath))
+	return server.Attachment(epubPath, BuildBookName(book)+".epub")
 }

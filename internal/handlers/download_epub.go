@@ -32,7 +32,7 @@ func DownloadEpubHandler(repo entities.IBooksRepo, cfg *viper.Viper, logger zero
 		case path.Ext(book.Src) == ".zip" || (path.Ext(book.Src) == ".fb2" && strings.Contains(book.Src, ".zip")):
 			err = response.ConvertZipFB2Epub(converterDir, book, c, logger)
 		case path.Ext(book.Src) == ".epub":
-			err = c.Attachment(book.Src, book.ID+".epub")
+			err = response.LocalFile(".epub", book, c)
 		default:
 			err = fmt.Errorf("download epub book error: invalid book src %s", book.Src)
 		}

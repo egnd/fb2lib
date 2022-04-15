@@ -1,4 +1,5 @@
-- transliteration for books downloads
+- change , separator to ;
+- improve book uuid generation
 - lang at index string fields mapping
 - date field parsing improvements
 - readme quick start info

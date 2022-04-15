@@ -34,7 +34,7 @@ func FB2FromRemoteZip(urlPrefix, libDir string, book entities.BookIndex,
 
 	server.Response().Header().Set(echo.HeaderContentEncoding, "deflate")
 	server.Response().Header().Set(echo.HeaderContentDisposition,
-		fmt.Sprintf(`attachment; filename="%s.fb2"`, book.ID),
+		fmt.Sprintf(`attachment; filename="%s.fb2"`, BuildBookName(book)),
 	)
 
 	return server.Stream(http.StatusOK, "application/fb2", resp.Body)
