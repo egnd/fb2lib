@@ -20,22 +20,21 @@ import (
 )
 
 type BooksArchiveIndexTask struct {
-	rewriteIndex    bool
-	extendedMapping bool
-	parsefb2        bool
-	archiveDir      string
-	indexDir        string
-	archiveFile     os.FileInfo
-	logger          zerolog.Logger
-	wg              *sync.WaitGroup
-	cntTotal        *entities.CntAtomic32
-	cntIndexed      *entities.CntAtomic32
-	itemsTotal      uint32
-	itemsIndexed    uint32
-	index           entities.ISearchIndex
-	barContainer    *mpb.Progress
-	bar             *mpb.Bar
-	totalBar        *mpb.Bar
+	rewriteIndex bool
+	parsefb2     bool
+	archiveDir   string
+	indexDir     string
+	archiveFile  os.FileInfo
+	logger       zerolog.Logger
+	wg           *sync.WaitGroup
+	cntTotal     *entities.CntAtomic32
+	cntIndexed   *entities.CntAtomic32
+	itemsTotal   uint32
+	itemsIndexed uint32
+	index        entities.ISearchIndex
+	barContainer *mpb.Progress
+	bar          *mpb.Bar
+	totalBar     *mpb.Bar
 }
 
 func NewBooksArchiveIndexTask(
@@ -43,7 +42,6 @@ func NewBooksArchiveIndexTask(
 	archiveDir string,
 	indexDir string,
 	rewriteIndex bool,
-	extendedMapping bool,
 	parsefb2 bool,
 	cntTotal *entities.CntAtomic32,
 	cntIndexed *entities.CntAtomic32,
@@ -53,18 +51,17 @@ func NewBooksArchiveIndexTask(
 	totalBar *mpb.Bar,
 ) *BooksArchiveIndexTask {
 	return &BooksArchiveIndexTask{
-		rewriteIndex:    rewriteIndex,
-		extendedMapping: extendedMapping,
-		archiveDir:      archiveDir,
-		indexDir:        indexDir,
-		archiveFile:     archiveFile,
-		logger:          logger,
-		wg:              wg,
-		cntTotal:        cntTotal,
-		cntIndexed:      cntIndexed,
-		barContainer:    barContainer,
-		totalBar:        totalBar,
-		parsefb2:        parsefb2,
+		rewriteIndex: rewriteIndex,
+		archiveDir:   archiveDir,
+		indexDir:     indexDir,
+		archiveFile:  archiveFile,
+		logger:       logger,
+		wg:           wg,
+		cntTotal:     cntTotal,
+		cntIndexed:   cntIndexed,
+		barContainer: barContainer,
+		totalBar:     totalBar,
+		parsefb2:     parsefb2,
 	}
 }
 
@@ -83,7 +80,7 @@ func (t *BooksArchiveIndexTask) Do(context.Context) {
 
 	var err error
 	t.index, err = indexing.NewTmpIndex(
-		t.archiveFile, t.indexDir, t.rewriteIndex, entities.NewBookIndexMapping(t.extendedMapping),
+		t.archiveFile, t.indexDir, t.rewriteIndex, entities.NewBookIndexMapping(),
 	)
 	if err != nil {
 		t.logger.Warn().Err(err).Msg("init index")

@@ -29,13 +29,12 @@ var (
 	cfgPath     = flag.String("config", "configs/app.yml", "Configuration file path.")
 	cfgPrefix   = flag.String("env-prefix", "BS", "Prefix for env variables.")
 
-	rewriteIndex    = flag.Bool("rewrite", false, "Rewrite existing indexes.")
-	extendedMapping = flag.Bool("extmapping", false, "Use extended index mapping.")
-	hideBar         = flag.Bool("hidebar", false, "Hide progress bar.")
-	parsefb2        = flag.Bool("fb2parse", false, "Parse fb2 stream instead of unmarshal.")
-	workersCnt      = flag.Int("workers", 1, "Index workers count.")
-	bufSize         = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
-	profiler        = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
+	rewriteIndex = flag.Bool("rewrite", false, "Rewrite existing indexes.")
+	hideBar      = flag.Bool("hidebar", false, "Hide progress bar.")
+	useXMLMarsh  = flag.Bool("xmlmarsh", false, "Use xml marshaler.")
+	workersCnt   = flag.Int("workers", 1, "Index workers count.")
+	bufSize      = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
+	profiler     = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
 
 	wg         sync.WaitGroup
 	cntTotal   entities.CntAtomic32
@@ -93,7 +92,7 @@ func main() {
 	).IterateItems(func(libFile os.FileInfo, libDir string, num, total int, logger zerolog.Logger) error {
 		wg.Add(1)
 		return pool.Add(tasks.NewBooksArchiveIndexTask(libFile, libDir, cfg.GetString("bleve.index_dir"),
-			*rewriteIndex, *extendedMapping, *parsefb2, &cntTotal, &cntIndexed,
+			*rewriteIndex, *useXMLMarsh, &cntTotal, &cntIndexed,
 			logger, &wg, bar, totalBar,
 		))
 	}); err != nil {
@@ -103,7 +102,7 @@ func main() {
 	wg.Wait()
 	time.Sleep(1 * time.Second)
 
-	logger.Info().Dur("dur", time.Now().Sub(startTS)).
+	logger.Info().Dur("dur", time.Since(startTS)).
 		Uint32("total", cntIndexed.Total()).
 		Uint32("indexed", cntIndexed.Total()).
 		Msg("indexing finished")

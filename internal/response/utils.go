@@ -24,7 +24,7 @@ func BuildBookURL(path, urlPrefix, pathPrefix string) string {
 func TransformStr(val string) string {
 	val = booksNamePattern.ReplaceAllString(
 		strings.ToLower(
-			translit.EncodeToICAO(strings.Split(val, ",")[0]),
+			translit.EncodeToICAO(strings.Split(val, entities.IndexFieldSep)[0]),
 		),
 		"-",
 	)

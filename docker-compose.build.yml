@@ -6,3 +6,5 @@ services:
       args:
         TARGETOS: ${DC_TARGETOS}
         TARGETARCH: ${DC_TARGETARCH}
+    # entrypoint: ["indexer"]
+    # command: ["-rewrite", "-hidebar"]

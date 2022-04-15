@@ -1,7 +1,5 @@
-- change , separator to ;
 - improve book uuid generation
 - lang at index string fields mapping
-- date field parsing improvements
 - readme quick start info
 - move to github
 - ci jobs for units and linting
@@ -9,3 +7,4 @@
 - theme editorial
 - bleve .Index() with batching
 - hashsum of zip archive at index name
+- add annotation, image and book detail page

@@ -3,7 +3,6 @@ package entities
 import (
 	"bytes"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/blevesearch/bleve/v2"
@@ -12,12 +11,10 @@ import (
 )
 
 var (
-	bookIdxDatePattern = regexp.MustCompile("[^0-9-.–]+")
+	IndexFieldSep = "; "
 )
 
 type BookIndex struct {
-	ID string
-
 	ISBN      string
 	Titles    string
 	Authors   string
@@ -26,6 +23,7 @@ type BookIndex struct {
 	Date      string
 	Genres    string
 
+	ID               string
 	Src              string
 	Offset           float64
 	SizeCompressed   float64
@@ -35,8 +33,8 @@ type BookIndex struct {
 func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 	res := BookIndex{
 		Titles: fb2.Description.TitleInfo.BookTitle,
-		Date:   fb2.Description.TitleInfo.Date,
-		Genres: strings.Join(fb2.Description.TitleInfo.Genre, ", "),
+		Date:   parseYear(fb2.Description.TitleInfo.Date),
+		Genres: strings.Join(fb2.Description.TitleInfo.Genre, IndexFieldSep),
 	}
 
 	res.appendAuthors(fb2.Description.TitleInfo.Author)
@@ -46,10 +44,7 @@ func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 		res.ISBN = fb2.Description.PublishInfo.ISBN
 		res.Publisher = fb2.Description.PublishInfo.Publisher
 		res.appendStr(fb2.Description.PublishInfo.BookName, &res.Titles)
-
-		if res.Date == "" && fb2.Description.PublishInfo.Year != "" {
-			res.Date = fb2.Description.PublishInfo.Year
-		}
+		res.appendStr(parseYear(fb2.Description.PublishInfo.Year), &res.Date)
 	}
 
 	if fb2.Description.SrcTitleInfo != nil {
@@ -57,14 +52,7 @@ func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 		res.appendAuthors(fb2.Description.SrcTitleInfo.Author)
 		res.appendSequences(fb2.Description.SrcTitleInfo.Sequence)
 		res.appendGenres(fb2.Description.SrcTitleInfo.Genre)
-
-		if res.Date == "" {
-			res.Date = fb2.Description.SrcTitleInfo.Date
-		}
-	}
-
-	if res.Date != "" {
-		res.Date = bookIdxDatePattern.ReplaceAllString(res.Date, "")
+		res.appendStr(parseYear(fb2.Description.SrcTitleInfo.Date), &res.Date)
 	}
 
 	return res
@@ -77,6 +65,7 @@ func (bi *BookIndex) appendAuthors(items []fb2parser.FB2Author) {
 
 	var buf bytes.Buffer
 	buf.WriteString(bi.Authors)
+	buf.WriteString(IndexFieldSep)
 
 	for _, item := range items {
 		if itemStr := strings.TrimSpace(fmt.Sprintf("%s %s %s",
@@ -87,7 +76,7 @@ func (bi *BookIndex) appendAuthors(items []fb2parser.FB2Author) {
 		}
 	}
 
-	bi.Authors = strings.TrimPrefix(buf.String(), ", ")
+	bi.Authors = strings.Trim(buf.String(), IndexFieldSep+", ")
 }
 
 func (bi *BookIndex) appendSequences(items []fb2parser.FB2Sequence) {
@@ -97,6 +86,7 @@ func (bi *BookIndex) appendSequences(items []fb2parser.FB2Sequence) {
 
 	var buf bytes.Buffer
 	buf.WriteString(bi.Sequences)
+	buf.WriteString(IndexFieldSep)
 
 	for _, item := range items {
 		if item.Name != "" && !strings.Contains(bi.Sequences, item.Name) {
@@ -111,7 +101,7 @@ func (bi *BookIndex) appendSequences(items []fb2parser.FB2Sequence) {
 		}
 	}
 
-	bi.Sequences = strings.TrimPrefix(buf.String(), ", ")
+	bi.Sequences = strings.Trim(buf.String(), IndexFieldSep+", ")
 }
 
 func (bi *BookIndex) appendGenres(items []string) {
@@ -121,6 +111,7 @@ func (bi *BookIndex) appendGenres(items []string) {
 
 	var buf bytes.Buffer
 	buf.WriteString(bi.Sequences)
+	buf.WriteString(IndexFieldSep)
 
 	for _, item := range items {
 		if item != "" && !strings.Contains(bi.Sequences, item) {
@@ -129,7 +120,7 @@ func (bi *BookIndex) appendGenres(items []string) {
 		}
 	}
 
-	bi.Genres = strings.TrimPrefix(buf.String(), ", ")
+	bi.Genres = strings.Trim(buf.String(), IndexFieldSep+", ")
 }
 
 func (bi *BookIndex) appendStr(val string, orig *string) {
@@ -140,12 +131,12 @@ func (bi *BookIndex) appendStr(val string, orig *string) {
 	if *orig == "" {
 		*orig = val
 	} else {
-		*orig += ", " + val
+		*orig = fmt.Sprintf("%s%s%s", *orig, IndexFieldSep, val)
 	}
 
 }
 
-func NewBookIndexMapping(extended bool) *mapping.IndexMappingImpl {
+func NewBookIndexMapping() *mapping.IndexMappingImpl {
 	strSearchField := bleve.NewTextFieldMapping()
 
 	strField := bleve.NewTextFieldMapping()
@@ -173,12 +164,9 @@ func NewBookIndexMapping(extended bool) *mapping.IndexMappingImpl {
 	books.AddFieldMappingsAt("SizeUncompressed", numField)
 
 	mapping := bleve.NewIndexMapping()
-
-	if extended {
-		mapping.AddDocumentMapping("books", books)
-		mapping.DefaultType = "books"
-		mapping.DefaultMapping = books
-	}
+	mapping.AddDocumentMapping("books", books)
+	mapping.DefaultType = "books"
+	mapping.DefaultMapping = books
 
 	return mapping
 }
