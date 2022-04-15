@@ -12,5 +12,3 @@ services:
       - ./var/pprof:/var/pprof:rw
       - ./var/logs:/var/logs:rw
       - ./var/converter:/var/converter:rw
-    # entrypoint: ["indexer"]
-    # command: ["-hidebar","-rewrite"]

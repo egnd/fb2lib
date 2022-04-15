@@ -18,6 +18,8 @@
     height: 2rem;
     line-height: 2rem;
     padding: 0 1rem;
+    overflow: hidden;
+    max-width: 100%;
 }
 
 @media screen and (max-width: 736px) {

@@ -13,7 +13,7 @@ import (
 func NewTmpIndex(
 	src os.FileInfo, rootDir string, canReplace bool, fieldsMapping mapping.IndexMapping,
 ) (index entities.ISearchIndex, err error) {
-	indexPath := filepath.Join(rootDir, src.Name(), fmt.Sprint(src.Size())) // @TODO: hashsum
+	indexPath := filepath.Join(rootDir, src.Name(), fmt.Sprint(src.Size()))
 
 	if _, err = os.Stat(indexPath); err == nil && !canReplace {
 		return nil, fmt.Errorf("index for %s already exists", src.Name())

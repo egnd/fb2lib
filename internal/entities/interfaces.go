@@ -1,7 +1,6 @@
 package entities
 
 import (
-	"context"
 	"io"
 
 	"github.com/blevesearch/bleve/v2"
@@ -11,8 +10,10 @@ import (
 type IIndexFactory func(string) (bleve.Index, error)
 
 type IBooksRepo interface {
-	GetBooks(context.Context, string, pagination.IPager) ([]BookIndex, error)
-	GetBook(context.Context, string) (BookIndex, error)
+	SearchAll(string, pagination.IPager) ([]BookIndex, error)
+	SearchByAuthor(string, pagination.IPager) ([]BookIndex, error)
+	SearchBySequence(string, pagination.IPager) ([]BookIndex, error)
+	GetBook(string) (BookIndex, error)
 }
 
 type ISearchIndex interface {

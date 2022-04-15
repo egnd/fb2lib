@@ -1,5 +1,4 @@
 stages:
-  # @TODO: units, linter
   - binaries
   - images
 

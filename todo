@@ -1,4 +1,10 @@
-- ci improvements
+- transliteration for books downloads
+- lang at index string fields mapping
+- date field parsing improvements
+- readme quick start info
+- move to github
+- ci jobs for units and linting
 - add rest api
 - theme editorial
 - bleve .Index() with batching
+- hashsum of zip archive at index name

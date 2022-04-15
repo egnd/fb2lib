@@ -1,4 +1,4 @@
-package render2echo
+package echoext
 
 import (
 	"errors"

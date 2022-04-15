@@ -22,7 +22,7 @@ func DownloadEpubHandler(repo entities.IBooksRepo, cfg *viper.Viper, logger zero
 
 	return func(c echo.Context) (err error) {
 		var book entities.BookIndex
-		if book, err = repo.GetBook(c.Request().Context(), c.Param("book_id")); err != nil {
+		if book, err = repo.GetBook(c.Param("book_id")); err != nil {
 			c.NoContent(http.StatusNotFound)
 
 			return

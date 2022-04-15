@@ -10,7 +10,6 @@ import (
 func UnmarshalFB2Stream(data io.Reader) (*FB2File, error) {
 	decoder := xml.NewDecoder(data)
 	decoder.CharsetReader = charset.NewReaderLabel
-	// decoder.CharsetReader = CharsetReader
 
 	var res FB2File
 	if err := decoder.Decode(&res); err != nil {

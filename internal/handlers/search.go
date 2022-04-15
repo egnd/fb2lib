@@ -6,12 +6,11 @@ import (
 
 	"github.com/flosch/pongo2/v5"
 	"github.com/labstack/echo/v4"
-	"github.com/rs/zerolog"
 	"gitlab.com/egnd/bookshelf/internal/entities"
 	"gitlab.com/egnd/bookshelf/pkg/pagination"
 )
 
-func MainPageHandler(tplsDir string, repo entities.IBooksRepo, logger zerolog.Logger) echo.HandlerFunc {
+func SearchHandler(tplsDir string, repo entities.IBooksRepo) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		searchQuery := c.QueryParam("q")
 
@@ -19,16 +18,17 @@ func MainPageHandler(tplsDir string, repo entities.IBooksRepo, logger zerolog.Lo
 			ReadPageSize().ReadCurPage()
 
 		var books []entities.BookIndex
-		books, err = repo.GetBooks(c.Request().Context(), searchQuery, pager)
+		books, err = repo.SearchAll(searchQuery, pager)
 
 		if err != nil {
-			logger.Error().Err(err).Str("query", searchQuery).Str("page", "main").Msg("get books")
-			return c.NoContent(http.StatusBadRequest)
+			c.NoContent(http.StatusBadRequest)
+			return
 		}
 
 		return c.Render(http.StatusOK, path.Join(tplsDir, "books-list.html"), pongo2.Context{
 			"search_query":       searchQuery,
 			"search_placeholder": "Автор, название книги, серии, ISBN и т.д.",
+			"search_type":        "all",
 
 			"books": books,
 			"pager": pager,

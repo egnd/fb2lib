@@ -1,4 +1,4 @@
-package middleware
+package echoext
 
 import (
 	"time"
@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func EchoLogger(cfg *viper.Viper, logger zerolog.Logger) echo.MiddlewareFunc {
+func NewZeroLogger(cfg *viper.Viper, logger zerolog.Logger) echo.MiddlewareFunc {
 	pretty := cfg.GetBool("app.pretty")
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) (err error) {

@@ -1,4 +1,4 @@
-package pprof2echo
+package echoext
 
 import (
 	"net/http"
@@ -7,7 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func AddHandlersTo(server *echo.Echo) {
+func AddPprofHandlers(server *echo.Echo) {
 	server.GET("/debug/pprof/", NewPProfHandler(pprof.Index))
 	server.GET("/debug/pprof/allocs", NewPProfHandler(pprof.Handler("allocs").ServeHTTP))
 	server.GET("/debug/pprof/block", NewPProfHandler(pprof.Handler("block").ServeHTTP))

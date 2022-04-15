@@ -9,9 +9,8 @@ ENV GOSUMDB off
 RUN apk add -q tzdata make unzip
 WORKDIR /src
 COPY . .
-RUN make build-converter
-RUN make build-indexer BUILD_VERSION=$BUILD_VERSION
-RUN make build-server BUILD_VERSION=$BUILD_VERSION && mv bin/${GOOS}-${GOARCH} binaries
+RUN make build BUILD_VERSION=$BUILD_VERSION
+RUN mv bin/${GOOS}-${GOARCH} binaries
 RUN mkdir tmp_dir
 
 FROM scratch
