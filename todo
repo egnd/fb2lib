@@ -1,6 +1,3 @@
-- improve book uuid generation
-- lang at index string fields mapping
-- readme quick start info
 - move to github
 - ci jobs for units and linting
 - add rest api

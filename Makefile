@@ -39,9 +39,6 @@ endif
 	mv fb2c bin/$(GOOS)-$(GOARCH)/fb2c && ls -lah bin/$(GOOS)-$(GOARCH)/fb2c
 
 compose: compose-stop ## Run app
-ifeq ($(wildcard docker-compose.override.yml),)
-	ln -s docker-compose.build.yml docker-compose.override.yml
-endif
 	docker-compose up --build --abort-on-container-exit --renew-anon-volumes
 
 compose-stop: ## Stop app
