@@ -13,14 +13,14 @@ import (
 	"github.com/vbauerster/mpb/v7"
 	"github.com/vbauerster/mpb/v7/decor"
 	"gitlab.com/egnd/bookshelf/internal/entities"
-	"gitlab.com/egnd/bookshelf/internal/indexing"
+	"gitlab.com/egnd/bookshelf/internal/factories"
 	"gitlab.com/egnd/bookshelf/pkg/fb2parser"
 	"gitlab.com/egnd/bookshelf/pkg/library"
 )
 
-type BooksArchiveIndexTask struct {
+type ZIPFB2IndexTask struct {
 	rewriteIndex bool
-	parsefb2     bool
+	useXMLMarsh  bool
 	archiveDir   string
 	indexDir     string
 	archiveFile  os.FileInfo
@@ -36,20 +36,20 @@ type BooksArchiveIndexTask struct {
 	totalBar     *mpb.Bar
 }
 
-func NewBooksArchiveIndexTask(
+func NewZIPFB2IndexTask(
 	archiveFile os.FileInfo,
 	archiveDir string,
 	indexDir string,
 	rewriteIndex bool,
-	parsefb2 bool,
+	useXMLMarsh bool,
 	cntTotal *entities.CntAtomic32,
 	cntIndexed *entities.CntAtomic32,
 	logger zerolog.Logger,
 	wg *sync.WaitGroup,
 	barContainer *mpb.Progress,
 	totalBar *mpb.Bar,
-) *BooksArchiveIndexTask {
-	return &BooksArchiveIndexTask{
+) *ZIPFB2IndexTask {
+	return &ZIPFB2IndexTask{
 		rewriteIndex: rewriteIndex,
 		archiveDir:   archiveDir,
 		indexDir:     indexDir,
@@ -60,11 +60,11 @@ func NewBooksArchiveIndexTask(
 		cntIndexed:   cntIndexed,
 		barContainer: barContainer,
 		totalBar:     totalBar,
-		parsefb2:     parsefb2,
+		useXMLMarsh:  useXMLMarsh,
 	}
 }
 
-func (t *BooksArchiveIndexTask) Do(context.Context) {
+func (t *ZIPFB2IndexTask) Do(context.Context) {
 	defer func() {
 		if t.totalBar != nil {
 			t.totalBar.IncrInt64(t.archiveFile.Size())
@@ -78,7 +78,7 @@ func (t *BooksArchiveIndexTask) Do(context.Context) {
 	startTS := time.Now()
 
 	var err error
-	t.index, err = indexing.NewTmpIndex(
+	t.index, err = factories.NewTmpIndex(
 		t.archiveFile, t.indexDir, t.rewriteIndex, entities.NewBookIndexMapping(),
 	)
 	if err != nil {
@@ -98,7 +98,7 @@ func (t *BooksArchiveIndexTask) Do(context.Context) {
 		return
 	}
 
-	if err = indexing.SaveTmpIndex(t.index); err != nil {
+	if err = factories.SaveTmpIndex(t.index); err != nil {
 		t.logger.Error().Err(err).Msg("save index")
 		return
 	}
@@ -111,7 +111,7 @@ func (t *BooksArchiveIndexTask) Do(context.Context) {
 
 }
 
-func (t *BooksArchiveIndexTask) initBar() *mpb.Bar {
+func (t *ZIPFB2IndexTask) initBar() *mpb.Bar {
 	return t.barContainer.AddBar(t.archiveFile.Size(),
 		mpb.BarRemoveOnComplete(),
 		mpb.PrependDecorators(
@@ -128,7 +128,7 @@ func (t *BooksArchiveIndexTask) initBar() *mpb.Bar {
 	)
 }
 
-func (t *BooksArchiveIndexTask) handleArchiveItem(zipItem *zip.File, data io.Reader, offset, num int64, logger zerolog.Logger) (err error) {
+func (t *ZIPFB2IndexTask) handleArchiveItem(zipItem *zip.File, data io.Reader, offset, num int64, logger zerolog.Logger) error {
 	if t.bar != nil {
 		defer t.bar.IncrInt64(int64(zipItem.CompressedSize64))
 	}
@@ -137,47 +137,39 @@ func (t *BooksArchiveIndexTask) handleArchiveItem(zipItem *zip.File, data io.Rea
 	case ".fb2":
 		t.itemsTotal++
 
-		if !t.indexFB2File(data, float64(offset), float64(zipItem.CompressedSize64), float64(zipItem.UncompressedSize64), logger) {
-			return
+		var err error
+		var fb2File *fb2parser.FB2File
+
+		if t.useXMLMarsh {
+			fb2File, err = fb2parser.UnmarshalFB2Stream(data)
+		} else {
+			fb2File, err = fb2parser.ParseFB2Stream(data)
+		}
+
+		if err != nil {
+			logger.Error().Err(err).Msg("parsing fb2 file")
+			return nil
+		}
+
+		logger = logger.With().Str("fb2-title", fb2File.Description.TitleInfo.BookTitle).Logger()
+
+		doc := entities.NewBookIndex(fb2File)
+		doc.Src = path.Join(t.archiveDir, t.archiveFile.Name(), zipItem.Name)
+		doc.Offset = float64(offset)
+		doc.SizeCompressed = float64(zipItem.CompressedSize64)
+		doc.SizeUncompressed = float64(zipItem.UncompressedSize64)
+
+		if err := t.index.Index(doc.ID, doc); err != nil {
+			logger.Error().Err(err).Msg("indexing fb2")
+			return nil
 		}
 
 		t.itemsIndexed++
+
+		return nil
 	default:
 		logger.Warn().Msg("invalid archive item")
+
+		return nil
 	}
-
-	return
-}
-
-func (t *BooksArchiveIndexTask) indexFB2File(
-	data io.Reader, offset float64, sizeCompress float64, sizeUncompress float64, logger zerolog.Logger,
-) bool {
-	var err error
-	var fb2File *fb2parser.FB2File
-
-	if t.parsefb2 {
-		fb2File, err = fb2parser.ParseFB2Stream(data)
-	} else {
-		fb2File, err = fb2parser.UnmarshalFB2Stream(data)
-	}
-
-	if err != nil {
-		logger.Error().Err(err).Msg("parsing fb2 file")
-		return false
-	}
-
-	logger = logger.With().Str("fb2-title", fb2File.Description.TitleInfo.BookTitle).Logger()
-
-	doc := entities.NewBookIndex(fb2File)
-	doc.Src = path.Join(t.archiveDir, t.archiveFile.Name())
-	doc.Offset = offset
-	doc.SizeCompressed = sizeCompress
-	doc.SizeUncompressed = sizeUncompress
-
-	if err := t.index.Index(doc.ID, doc); err != nil {
-		logger.Error().Err(err).Msg("indexing fb2")
-		return false
-	}
-
-	return true
 }

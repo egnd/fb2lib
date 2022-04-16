@@ -1,8 +1,8 @@
 # bookshelf
 
 This is a full text search server for books in your local library.
-* supports fb2 files inside zip archives
-* can convert fb2 to epub
+* supports both zip archives with fb2 files and regular fb2 files
+* allows to convert fb2 to epub files "on-the-fly"
 
 ### Quick start:
 1. Create ```docker-compose.yml```:
@@ -24,7 +24,7 @@ services:
 docker-compose up
 ```
 
-1. Put archives with books into ```./library```
+1. Put your fb2-books and archives into ```./library```
 
 2. Run indexer (2 parallel threads):
 ```bash

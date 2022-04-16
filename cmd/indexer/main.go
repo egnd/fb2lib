@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path"
 	"sync"
 	"time"
 
@@ -42,7 +43,7 @@ var (
 	bar        *mpb.Progress
 	totalBar   *mpb.Bar
 
-	targetLibFormats = []string{".zip"}
+	targetLibFormats = []string{".zip", ".fb2"}
 	ctx              = context.Background()
 )
 
@@ -87,14 +88,32 @@ func main() {
 		}
 	}
 
+	fb2index, err := factories.NewIndex(
+		"fb2/items", cfg.GetString("bleve.index_dir"), *rewriteIndex, entities.NewBookIndexMapping(),
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("init fb2 index")
+	}
+	defer fb2index.Close()
+
 	if err = library.NewLocalFSItems(
 		cfg.GetString("library.dir"), targetLibFormats, logger,
 	).IterateItems(func(libFile os.FileInfo, libDir string, num, total int, logger zerolog.Logger) error {
-		wg.Add(1)
-		return pool.Add(tasks.NewBooksArchiveIndexTask(libFile, libDir, cfg.GetString("bleve.index_dir"),
-			*rewriteIndex, *useXMLMarsh, &cntTotal, &cntIndexed,
-			logger, &wg, bar, totalBar,
-		))
+		switch path.Ext(libFile.Name()) {
+		case ".zip":
+			wg.Add(1)
+			return pool.Add(tasks.NewZIPFB2IndexTask(libFile, libDir, cfg.GetString("bleve.index_dir"),
+				*rewriteIndex, *useXMLMarsh, &cntTotal, &cntIndexed,
+				logger, &wg, bar, totalBar,
+			))
+		case ".fb2":
+			wg.Add(1)
+			return pool.Add(tasks.NewFB2IndexTask(
+				libFile, libDir, *useXMLMarsh, &cntTotal, &cntIndexed, logger, &wg, totalBar, fb2index,
+			))
+		default:
+			return nil
+		}
 	}); err != nil {
 		logger.Error().Err(err).Msg("handle library items")
 	}

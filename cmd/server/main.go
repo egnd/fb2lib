@@ -9,7 +9,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/egnd/bookshelf/internal/factories"
-	"gitlab.com/egnd/bookshelf/internal/indexing"
 	"gitlab.com/egnd/bookshelf/internal/repos"
 )
 
@@ -36,7 +35,7 @@ func main() {
 
 	logger := factories.NewZerologLogger(cfg, os.Stderr)
 
-	booksIndex, err := indexing.OpenIndex(cfg.GetString("bleve.index_dir"), logger)
+	booksIndex, err := factories.OpenIndex(cfg.GetString("bleve.index_dir"), logger)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("init index")
 	}
