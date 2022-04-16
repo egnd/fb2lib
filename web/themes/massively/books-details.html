@@ -56,6 +56,7 @@
     <a href="/download/{{book_idx.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
 
     {% if book.Description.SrcTitleInfo %}
+    <br><br>
     <h3>Оригинал:</h3>
     {{ book_info(book.Description.SrcTitleInfo, book.Binary) }}
     {% endif %}
