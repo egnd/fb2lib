@@ -2,6 +2,7 @@ package repos
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/blevesearch/bleve/v2"
@@ -123,13 +124,17 @@ func (r *BooksBleveRepo) GetBook(bookID string) (entities.BookIndex, error) {
 	}
 
 	if len(items) == 0 {
-		return entities.BookIndex{}, errors.New("book not found")
+		return entities.BookIndex{}, fmt.Errorf("repo getbook error: %s not found", bookID)
 	}
 
 	return items[0], nil
 }
 
 func (r *BooksBleveRepo) highlightItem(fragments search.FieldFragmentMap, book entities.BookIndex) entities.BookIndex {
+	if vals, ok := fragments["ISBN"]; ok && len(vals) > 0 {
+		book.ISBN = vals[0]
+	}
+
 	if vals, ok := fragments["Titles"]; ok && len(vals) > 0 {
 		book.Titles = vals[0]
 	}
@@ -144,6 +149,14 @@ func (r *BooksBleveRepo) highlightItem(fragments search.FieldFragmentMap, book e
 
 	if vals, ok := fragments["Publisher"]; ok && len(vals) > 0 {
 		book.Publisher = vals[0]
+	}
+
+	if vals, ok := fragments["Date"]; ok && len(vals) > 0 {
+		book.Date = vals[0]
+	}
+
+	if vals, ok := fragments["Genres"]; ok && len(vals) > 0 {
+		book.Genres = vals[0]
 	}
 
 	return book

@@ -48,7 +48,7 @@ func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 	if fb2.Description.PublishInfo != nil {
 		res.Publisher = fb2.Description.PublishInfo.Publisher
 		if res.Publisher != "" && fb2.Description.PublishInfo.City != "" {
-			res.Publisher += fmt.Sprintf("(%s)", fb2.Description.PublishInfo.City)
+			res.Publisher += fmt.Sprintf(" (%s)", fb2.Description.PublishInfo.City)
 		}
 
 		res.ISBN = fb2.Description.PublishInfo.ISBN
@@ -59,6 +59,7 @@ func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 	if fb2.Description.SrcTitleInfo != nil {
 		res.appendStr(fb2.Description.SrcTitleInfo.BookTitle, &res.Titles)
 		res.appendAuthors(fb2.Description.SrcTitleInfo.Author)
+		res.appendAuthors(fb2.Description.SrcTitleInfo.Translator)
 		res.appendSequences(fb2.Description.SrcTitleInfo.Sequence)
 		res.appendGenres(fb2.Description.SrcTitleInfo.Genre)
 		res.appendStr(parseYear(fb2.Description.SrcTitleInfo.Date), &res.Date)
@@ -87,8 +88,8 @@ func (bi *BookIndex) appendAuthors(items []fb2parser.FB2Author) {
 		if itemStr := strings.TrimSpace(fmt.Sprintf("%s %s %s",
 			item.FirstName, item.MiddleName, item.LastName,
 		)); itemStr != "" && !strings.Contains(bi.Authors, itemStr) {
-			buf.WriteString(", ")
 			buf.WriteString(itemStr)
+			buf.WriteString(", ")
 		}
 	}
 
@@ -106,7 +107,6 @@ func (bi *BookIndex) appendSequences(items []fb2parser.FB2Sequence) {
 
 	for _, item := range items {
 		if item.Name != "" && !strings.Contains(bi.Sequences, item.Name) {
-			buf.WriteString(", ")
 			buf.WriteString(item.Name)
 
 			if item.Number != "" {
@@ -114,6 +114,8 @@ func (bi *BookIndex) appendSequences(items []fb2parser.FB2Sequence) {
 				buf.WriteString(item.Number)
 				buf.WriteString(")")
 			}
+
+			buf.WriteString(", ")
 		}
 	}
 
@@ -131,8 +133,8 @@ func (bi *BookIndex) appendGenres(items []string) {
 
 	for _, item := range items {
 		if item != "" && !strings.Contains(bi.Sequences, item) {
-			buf.WriteString(", ")
 			buf.WriteString(item)
+			buf.WriteString(", ")
 		}
 	}
 

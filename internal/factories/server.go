@@ -15,14 +15,15 @@ import (
 )
 
 func NewEchoServer(cfg *viper.Viper, logger zerolog.Logger,
-	booksRepo entities.IBooksRepo,
+	booksRepo entities.IBooksRepo, fb2Repo entities.IFB2Repo,
 ) *echo.Echo {
 	server := echo.New()
 	server.Debug = cfg.GetBool("server.debug")
 	server.HideBanner = true
 	server.HidePort = true
 	server.Renderer = echoext.NewPongoRenderer(server.Debug, nil, map[string]pongo2.FilterFunction{
-		"filesize": echoext.PongoFilterFileSize,
+		"filesize":  echoext.PongoFilterFileSize,
+		"trimspace": echoext.PongoFilterTrimSpace,
 	})
 
 	server.Use(echoext.NewZeroLogger(cfg, logger))
@@ -38,9 +39,8 @@ func NewEchoServer(cfg *viper.Viper, logger zerolog.Logger,
 	server.GET("/", handlers.SearchHandler(cfg.GetString("markup.theme_dir"), booksRepo))
 	server.GET("/authors", handlers.SearchAuthorsHandler(cfg.GetString("markup.theme_dir"), booksRepo))
 	server.GET("/sequences", handlers.SearchSequencesHandler(cfg.GetString("markup.theme_dir"), booksRepo))
-
-	server.GET("/download/:book_id/fb2", handlers.DownloadFB2Handler(booksRepo, cfg))
-	server.GET("/download/:book_id/epub", handlers.DownloadEpubHandler(booksRepo, cfg, logger))
+	server.GET("/download/:book_name", handlers.DownloadBookHandler(booksRepo, cfg, logger))
+	server.GET("/books/:book_id", handlers.BookDetailsHandler(cfg.GetString("markup.theme_dir"), booksRepo, fb2Repo, logger))
 
 	return server
 }

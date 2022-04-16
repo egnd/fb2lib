@@ -23,3 +23,7 @@ type ISearchIndex interface {
 	Index(id string, data interface{}) error
 	Name() string
 }
+
+type IFB2Repo interface {
+	GetFor(BookIndex) (FB2Book, error)
+}

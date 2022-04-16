@@ -22,18 +22,18 @@
     {% for item in books %}
     <article class="book-list-item">
         <header>
-            <h4><a href="?q={{item.Titles|safe|striptags}}">{{pager.GetOffset()+forloop.Counter}}. {{item.Titles|safe}}</a></h4>
+            <h4><a href="/books/{{item.ID}}">{{pager.GetOffset()+forloop.Counter}}. {{item.Titles|safe}}</a></h4>
         </header>
         <p style="text-align: left;">
             {% if item.ISBN %}<a class="button small" href="?q={{item.ISBN|safe|striptags}}">ISBN: {{item.ISBN|safe}}</a>{% endif %}
             {% if item.Authors %}<a class="button small" href="?q={{item.Authors|safe|striptags}}">Авторы: {{item.Authors|safe}}</a>{% endif %}
             {% if item.Sequences %}<a class="button small" href="?q={{item.Sequences|safe|striptags}}">Серия: {{item.Sequences|safe}}</a>{% endif %}
-            {% if item.Date %}<a class="button small" href="?q={{item.Date|safe|striptags}}">Дата: {{item.Date}}</a>{% endif %}
+            {% if item.Date %}<a class="button small" href="?q={{item.Date|safe|striptags}}">Дата: {{item.Date|safe}}</a>{% endif %}
             {% if item.Publisher %}<a class="button small" href="?q={{item.Publisher|safe|striptags}}">Издатель: {{item.Publisher|safe}}</a>{% endif %}
             {% if item.Genres %}<a class="button small" href="?q={{item.Genres|safe|striptags}}">Жанр: {{item.Genres|safe}}</a>{% endif %}
             {% if item.Lang %}<a class="button small">Язык: {{item.Lang|safe}}</a>{% endif %}
-            <a href="/download/{{item.ID}}/fb2" class="button primary small"><span class="fa fa-download"></span>&nbsp;.fb2 ({{item.SizeUncompressed|filesize}})</a>
-            <a href="/download/{{item.ID}}/epub" class="button primary small"><span class="fa fa-download"></span>&nbsp;.epub</a>
+            <a href="/download/{{item.ID}}.fb2" class="button primary small"><span class="fa fa-download"></span>&nbsp;.fb2 ({{item.SizeUncompressed|filesize}})</a>
+            <a href="/download/{{item.ID}}.epub" class="button primary small"><span class="fa fa-download"></span>&nbsp;.epub</a>
         </p>
     </article>
     {% endfor %}

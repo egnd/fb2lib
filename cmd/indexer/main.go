@@ -50,6 +50,8 @@ var (
 func main() {
 	flag.Parse()
 
+	*useXMLMarsh = true // @TODO: disable stream parsing
+
 	if *profiler != "" {
 		defer profilerStart(*profiler).Stop()
 	}

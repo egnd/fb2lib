@@ -40,9 +40,10 @@ func main() {
 		logger.Fatal().Err(err).Msg("init index")
 	}
 
-	server := factories.NewEchoServer(cfg, logger,
-		repos.NewBooksBleve(cfg.GetBool("bleve.highlight"), booksIndex, logger),
-	)
+	repoIndex := repos.NewBooksBleve(cfg.GetBool("bleve.highlight"), booksIndex, logger)
+	repoFB2 := repos.NewFB2FilesRepo()
+	server := factories.NewEchoServer(cfg, logger, repoIndex, repoFB2)
+
 	logger.Info().
 		Int("port", cfg.GetInt("server.port")).
 		Str("version", appVersion).
