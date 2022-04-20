@@ -1,5 +1,5 @@
 - move to github
-- ci jobs for units and linting
-- add rest api
 - theme editorial
 - hashsum of zip archive at index name
+- ci jobs for units and linting
+- add rest api
