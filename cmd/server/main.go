@@ -8,8 +8,8 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"gitlab.com/egnd/bookshelf/internal/factories"
-	"gitlab.com/egnd/bookshelf/internal/repos"
+	"github.com/egnd/fb2lib/internal/factories"
+	"github.com/egnd/fb2lib/internal/repos"
 )
 
 var (

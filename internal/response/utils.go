@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/egnd/fb2lib/internal/entities"
 	translit "github.com/essentialkaos/translit/v2"
-	"gitlab.com/egnd/bookshelf/internal/entities"
 )
 
 var (

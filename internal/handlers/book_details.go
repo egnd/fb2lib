@@ -3,10 +3,10 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/flosch/pongo2/v5"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
-	"gitlab.com/egnd/bookshelf/internal/entities"
 )
 
 func BookDetailsHandler(

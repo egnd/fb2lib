@@ -9,13 +9,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/egnd/fb2lib/internal/entities"
+	"github.com/egnd/fb2lib/internal/factories"
+	"github.com/egnd/fb2lib/pkg/fb2parser"
+	"github.com/egnd/fb2lib/pkg/library"
 	"github.com/rs/zerolog"
 	"github.com/vbauerster/mpb/v7"
 	"github.com/vbauerster/mpb/v7/decor"
-	"gitlab.com/egnd/bookshelf/internal/entities"
-	"gitlab.com/egnd/bookshelf/internal/factories"
-	"gitlab.com/egnd/bookshelf/pkg/fb2parser"
-	"gitlab.com/egnd/bookshelf/pkg/library"
 )
 
 type ZIPFB2IndexTask struct {

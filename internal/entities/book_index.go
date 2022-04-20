@@ -9,7 +9,7 @@ import (
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"
-	"gitlab.com/egnd/bookshelf/pkg/fb2parser"
+	"github.com/egnd/fb2lib/pkg/fb2parser"
 )
 
 var (
