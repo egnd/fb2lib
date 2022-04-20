@@ -5,34 +5,34 @@ on:
      - '*'
 jobs:
 
-  binaries-latest:
-    runs-on: ${{ matrix.dist }}
-    name: ${{ matrix.goos }} ${{ matrix.goarch }} build
-    strategy:
-      matrix:
-        include:
-          - dist: ubuntu-latest
-            goos: linux
-            goarch: arm64
-          - dist: ubuntu-latest
-            goos: linux
-            goarch: amd64
-    steps:
-    - uses: actions/checkout@v3
-    - name: Install Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: 1.18
-    - name: Build
-      env:
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
-      run: |
-        make build-indexer BUILD_VERSION=latest
-        make build-server BUILD_VERSION=latest
-        make build-converter
+  # binaries-latest:
+  #   runs-on: ${{ matrix.dist }}
+  #   name: ${{ matrix.goos }} ${{ matrix.goarch }} build
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - dist: ubuntu-latest
+  #           goos: linux
+  #           goarch: arm64
+  #         - dist: ubuntu-latest
+  #           goos: linux
+  #           goarch: amd64
+  #   steps:
+  #   - uses: actions/checkout@v3
+  #   - name: Install Go
+  #     uses: actions/setup-go@v3
+  #     with:
+  #       go-version: 1.18
+  #   - name: Build
+  #     env:
+  #       GOOS: ${{ matrix.goos }}
+  #       GOARCH: ${{ matrix.goarch }}
+  #     run: |
+  #       make build-indexer BUILD_VERSION=latest
+  #       make build-server BUILD_VERSION=latest
+  #       make build-converter
 
-  images-latest:
+  build-latest:
     runs-on: ubuntu-latest
     needs: [binaries-latest]
     steps:
@@ -48,11 +48,9 @@ jobs:
         run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
       - uses: docker/build-push-action@v2
         with:
-          context: .
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/egnd/fb2lib:${{ steps.gitflow.outputs.sha_short }}
-          file: .ci/ci.Dockerfile
 
   # push-latest:
   #   runs-on: ubuntu-latest
