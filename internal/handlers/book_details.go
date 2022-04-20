@@ -11,7 +11,7 @@ import (
 )
 
 func BookDetailsHandler(tplsDir string,
-	indexRepo entities.IBooksRepo, fb2Repo entities.IFB2Repo, logger zerolog.Logger,
+	indexRepo entities.IBooksIndexRepo, fb2Repo entities.IBooksDataRepo, logger zerolog.Logger,
 ) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		var bookIdx entities.BookIndex

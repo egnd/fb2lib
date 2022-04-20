@@ -14,7 +14,7 @@ import (
 	"gitlab.com/egnd/bookshelf/internal/response"
 )
 
-func DownloadBookHandler(repo entities.IBooksRepo, cfg *viper.Viper, logger zerolog.Logger) echo.HandlerFunc {
+func DownloadBookHandler(repo entities.IBooksIndexRepo, cfg *viper.Viper, logger zerolog.Logger) echo.HandlerFunc {
 	converterDir := cfg.GetString("library.converter_dir")
 	if err := os.MkdirAll(converterDir, 0755); err != nil {
 		panic(err)

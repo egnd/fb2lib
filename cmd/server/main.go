@@ -40,8 +40,8 @@ func main() {
 		logger.Fatal().Err(err).Msg("init index")
 	}
 
-	repoIndex := repos.NewBooksBleve(cfg.GetBool("bleve.highlight"), booksIndex, logger)
-	repoFB2 := repos.NewFB2FilesRepo()
+	repoIndex := repos.NewBooksIndexBleve(cfg.GetBool("bleve.highlight"), booksIndex, logger)
+	repoFB2 := repos.NewBooksDataFB2Files()
 	server := factories.NewEchoServer(cfg, logger, repoIndex, repoFB2)
 
 	logger.Info().

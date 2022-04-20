@@ -15,7 +15,7 @@ import (
 )
 
 func NewEchoServer(cfg *viper.Viper, logger zerolog.Logger,
-	booksRepo entities.IBooksRepo, fb2Repo entities.IFB2Repo,
+	booksRepo entities.IBooksIndexRepo, fb2Repo entities.IBooksDataRepo,
 ) *echo.Echo {
 	server := echo.New()
 	server.Debug = cfg.GetBool("server.debug")

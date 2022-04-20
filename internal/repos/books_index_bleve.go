@@ -3,6 +3,7 @@ package repos
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/blevesearch/bleve/v2"
@@ -13,23 +14,27 @@ import (
 	"gitlab.com/egnd/bookshelf/pkg/pagination"
 )
 
-type BooksBleveRepo struct {
+var (
+	regexpSpaces = regexp.MustCompile(`\s+`)
+)
+
+type BooksIndexBleve struct {
 	highlight bool
 	index     entities.ISearchIndex
 	logger    zerolog.Logger
 }
 
-func NewBooksBleve(
+func NewBooksIndexBleve(
 	highlight bool, index entities.ISearchIndex, logger zerolog.Logger,
-) *BooksBleveRepo {
-	return &BooksBleveRepo{
+) *BooksIndexBleve {
+	return &BooksIndexBleve{
 		highlight: highlight,
 		index:     index,
 		logger:    logger,
 	}
 }
 
-func (r *BooksBleveRepo) SearchAll(strQuery string, pager pagination.IPager) ([]entities.BookIndex, error) {
+func (r *BooksIndexBleve) SearchAll(strQuery string, pager pagination.IPager) ([]entities.BookIndex, error) {
 	strQuery = strings.TrimSpace(strings.ToLower(strQuery))
 
 	var q query.Query
@@ -65,8 +70,8 @@ func (r *BooksBleveRepo) SearchAll(strQuery string, pager pagination.IPager) ([]
 	return r.getBooks(searchReq, pager)
 }
 
-func (r *BooksBleveRepo) SearchByAuthor(strQuery string, pager pagination.IPager) ([]entities.BookIndex, error) {
-	strQuery = strings.TrimSpace(strings.ToLower(strQuery))
+func (r *BooksIndexBleve) SearchByAuthor(strQuery string, pager pagination.IPager) ([]entities.BookIndex, error) {
+	strQuery = strings.TrimSpace(regexpSpaces.ReplaceAllString(strings.ToLower(strQuery), " "))
 
 	var q query.Query
 	if strQuery == "" {
@@ -87,8 +92,8 @@ func (r *BooksBleveRepo) SearchByAuthor(strQuery string, pager pagination.IPager
 	return r.getBooks(searchReq, pager)
 }
 
-func (r *BooksBleveRepo) SearchBySequence(strQuery string, pager pagination.IPager) ([]entities.BookIndex, error) {
-	strQuery = strings.TrimSpace(strings.ToLower(strQuery))
+func (r *BooksIndexBleve) SearchBySequence(strQuery string, pager pagination.IPager) ([]entities.BookIndex, error) {
+	strQuery = strings.TrimSpace(regexpSpaces.ReplaceAllString(strings.ToLower(strQuery), " "))
 
 	var q query.Query
 	if strQuery == "" {
@@ -109,7 +114,7 @@ func (r *BooksBleveRepo) SearchBySequence(strQuery string, pager pagination.IPag
 	return r.getBooks(searchReq, pager)
 }
 
-func (r *BooksBleveRepo) GetBook(bookID string) (entities.BookIndex, error) {
+func (r *BooksIndexBleve) GetBook(bookID string) (entities.BookIndex, error) {
 	if bookID == "" {
 		return entities.BookIndex{}, errors.New("repo get book error: empty book id")
 	}
@@ -130,7 +135,7 @@ func (r *BooksBleveRepo) GetBook(bookID string) (entities.BookIndex, error) {
 	return items[0], nil
 }
 
-func (r *BooksBleveRepo) highlightItem(fragments search.FieldFragmentMap, book entities.BookIndex) entities.BookIndex {
+func (r *BooksIndexBleve) highlightItem(fragments search.FieldFragmentMap, book entities.BookIndex) entities.BookIndex {
 	if vals, ok := fragments["ISBN"]; ok && len(vals) > 0 {
 		book.ISBN = vals[0]
 	}
@@ -162,7 +167,7 @@ func (r *BooksBleveRepo) highlightItem(fragments search.FieldFragmentMap, book e
 	return book
 }
 
-func (r *BooksBleveRepo) getBooks(
+func (r *BooksIndexBleve) getBooks(
 	searchReq *bleve.SearchRequest, pager pagination.IPager,
 ) ([]entities.BookIndex, error) {
 	searchReq.Fields = []string{"*"}

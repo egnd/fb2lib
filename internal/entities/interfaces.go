@@ -4,17 +4,9 @@ import (
 	"io"
 
 	"github.com/blevesearch/bleve/v2"
-	"gitlab.com/egnd/bookshelf/pkg/pagination"
 )
 
 type IIndexFactory func(string) (bleve.Index, error)
-
-type IBooksRepo interface {
-	SearchAll(string, pagination.IPager) ([]BookIndex, error)
-	SearchByAuthor(string, pagination.IPager) ([]BookIndex, error)
-	SearchBySequence(string, pagination.IPager) ([]BookIndex, error)
-	GetBook(string) (BookIndex, error)
-}
 
 type ISearchIndex interface {
 	io.Closer
@@ -22,8 +14,4 @@ type ISearchIndex interface {
 	Search(req *bleve.SearchRequest) (*bleve.SearchResult, error)
 	Index(id string, data interface{}) error
 	Name() string
-}
-
-type IFB2Repo interface {
-	GetFor(BookIndex) (FB2Book, error)
 }

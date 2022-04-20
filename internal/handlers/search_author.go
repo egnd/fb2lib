@@ -10,7 +10,7 @@ import (
 	"gitlab.com/egnd/bookshelf/pkg/pagination"
 )
 
-func SearchAuthorsHandler(tplsDir string, repo entities.IBooksRepo) echo.HandlerFunc {
+func SearchAuthorsHandler(tplsDir string, repo entities.IBooksIndexRepo) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		searchQuery := c.QueryParam("q")
 

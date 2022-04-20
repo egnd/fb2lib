@@ -12,14 +12,14 @@ import (
 	"golang.org/x/net/html/charset"
 )
 
-type FB2FilesRepo struct {
+type BooksDataFB2Files struct {
 }
 
-func NewFB2FilesRepo() *FB2FilesRepo {
-	return &FB2FilesRepo{}
+func NewBooksDataFB2Files() *BooksDataFB2Files {
+	return &BooksDataFB2Files{}
 }
 
-func (r *FB2FilesRepo) GetFor(book entities.BookIndex) (res entities.FB2Book, err error) {
+func (r *BooksDataFB2Files) GetFor(book entities.BookIndex) (res entities.FB2Book, err error) {
 	if book.Src == "" {
 		err = errors.New("fb2repo GetFor error: empty src")
 		return
