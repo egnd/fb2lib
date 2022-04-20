@@ -31,4 +31,4 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/egnd/fb2lib:${{ steps.gitflow.outputs.sha_short }}
-          file: .ci/proxy.Dockerfile
+          file: .ci/ci.Dockerfile
