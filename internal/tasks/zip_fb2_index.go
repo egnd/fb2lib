@@ -172,7 +172,7 @@ func (t *ZIPFB2IndexTask) runBatcher(wg *sync.WaitGroup) {
 		t.archiveFile, t.indexDir, t.rewriteIndex, entities.NewBookIndexMapping(),
 	)
 	if err != nil {
-		t.logger.Fatal().Err(err).Msg("init index")
+		t.logger.Warn().Err(err).Msg("init index")
 		return
 	}
 
