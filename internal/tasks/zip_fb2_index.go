@@ -134,7 +134,7 @@ func (t *ZIPFB2IndexTask) handleArchiveItem(zipItem *zip.File, data io.Reader, o
 	case ".fb2":
 		t.itemsTotal++
 
-		fb2File, err := fb2parser.UnmarshalFB2Stream(data)
+		fb2File, err := fb2parser.UnmarshalStream(data)
 		if err != nil {
 			logger.Error().Err(err).Msg("parsing fb2 file")
 			return nil

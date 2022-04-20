@@ -72,7 +72,7 @@ func (t *FB2IndexTask) Do(context.Context) {
 }
 
 func (t *FB2IndexTask) indexFB2File(data io.Reader) bool {
-	fb2File, err := fb2parser.UnmarshalFB2Stream(data)
+	fb2File, err := fb2parser.UnmarshalStream(data)
 	if err != nil {
 		t.logger.Error().Err(err).Msg("parsing fb2 file")
 		return false
