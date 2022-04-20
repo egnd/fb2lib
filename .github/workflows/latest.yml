@@ -5,67 +5,30 @@ on:
      - '*'
 jobs:
 
-  # binaries-latest:
-  #   runs-on: ${{ matrix.dist }}
-  #   name: ${{ matrix.goos }} ${{ matrix.goarch }} build
-  #   strategy:
-  #     matrix:
-  #       include:
-  #         - dist: ubuntu-latest
-  #           goos: linux
-  #           goarch: arm64
-  #         - dist: ubuntu-latest
-  #           goos: linux
-  #           goarch: amd64
-  #   steps:
-  #   - uses: actions/checkout@v3
-  #   - name: Install Go
-  #     uses: actions/setup-go@v3
-  #     with:
-  #       go-version: 1.18
-  #   - name: Build
-  #     env:
-  #       GOOS: ${{ matrix.goos }}
-  #       GOARCH: ${{ matrix.goarch }}
-  #     run: |
-  #       make build-indexer BUILD_VERSION=latest
-  #       make build-server BUILD_VERSION=latest
-  #       make build-converter
-
   build-latest:
     runs-on: ubuntu-latest
-    # needs: [binaries-latest]
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      - name: Build
+        run: |
+          GOOS=linux GOARCH=amd64 make build BUILD_VERSION=latest
+          GOOS=linux GOARCH=arm64 make build BUILD_VERSION=latest
+      - name: Read gitflow
+        id: gitflow
+        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
       - uses: docker/setup-buildx-action@v1
       - uses: docker/login-action@v1 
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Read gitflow
-        id: gitflow
-        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
       - uses: docker/build-push-action@v2
         with:
+          context: .
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/egnd/fb2lib:${{ steps.gitflow.outputs.sha_short }}
-
-  # push-latest:
-  #   runs-on: ubuntu-latest
-  #   needs: [images-latest]
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: docker/setup-buildx-action@v1
-  #     - uses: docker/login-action@v1 
-  #       with:
-  #         username: ${{ github.actor }}
-  #         password: ${{ secrets.GITHUB_TOKEN }}
-  #     - uses: docker/build-push-action@v2
-  #       with:
-  #         context: .
-  #         platforms: linux/amd64,linux/arm64
-  #         push: true
-  #         tags: egnd/fb2lib:latest
-  #         file: .ci/proxy.Dockerfile
+          file: .ci/proxy.Dockerfile
