@@ -144,9 +144,9 @@ func (t *ZIPFB2IndexTask) handleArchiveItem(zipItem *zip.File, data io.Reader, o
 
 		doc := entities.NewBookIndex(fb2File)
 		doc.Src = path.Join(t.archiveDir, t.archiveFile.Name(), zipItem.Name)
-		doc.Offset = float64(offset)
-		doc.SizeCompressed = float64(zipItem.CompressedSize64)
-		doc.SizeUncompressed = float64(zipItem.UncompressedSize64)
+		doc.Offset = uint64(offset)
+		doc.SizeCompressed = zipItem.CompressedSize64
+		doc.SizeUncompressed = zipItem.UncompressedSize64
 
 		if err := t.index.Index(doc.ID, doc); err != nil {
 			logger.Error().Err(err).Msg("indexing fb2")

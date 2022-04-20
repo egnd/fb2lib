@@ -17,26 +17,26 @@ var (
 )
 
 type BookIndex struct {
-	ISBN      string
-	Titles    string
-	Authors   string
-	Sequences string
-	Publisher string
-	Date      string
-	Genres    string
-
+	Year             uint16
+	Offset           uint64
+	SizeCompressed   uint64
+	SizeUncompressed uint64
 	ID               string
 	Lang             string
 	Src              string
-	Offset           float64
-	SizeCompressed   float64
-	SizeUncompressed float64
+	ISBN             string
+	Titles           string
+	Authors          string
+	Sequences        string
+	Publisher        string
+	Date             string
+	Genres           string
 }
 
 func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 	res := BookIndex{
 		Titles: fb2.Description.TitleInfo.BookTitle,
-		Date:   parseYear(fb2.Description.TitleInfo.Date),
+		Date:   strings.TrimSpace(fb2.Description.TitleInfo.Date),
 		Genres: strings.Join(fb2.Description.TitleInfo.Genre, IndexFieldSep),
 		Lang:   fb2.Description.TitleInfo.Lang,
 	}
@@ -53,7 +53,7 @@ func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 
 		res.ISBN = fb2.Description.PublishInfo.ISBN
 		res.appendStr(fb2.Description.PublishInfo.BookName, &res.Titles)
-		res.appendStr(parseYear(fb2.Description.PublishInfo.Year), &res.Date)
+		res.appendStr(fb2.Description.PublishInfo.Year, &res.Date)
 	}
 
 	if fb2.Description.SrcTitleInfo != nil {
@@ -62,7 +62,7 @@ func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 		res.appendAuthors(fb2.Description.SrcTitleInfo.Translator)
 		res.appendSequences(fb2.Description.SrcTitleInfo.Sequence)
 		res.appendGenres(fb2.Description.SrcTitleInfo.Genre)
-		res.appendStr(parseYear(fb2.Description.SrcTitleInfo.Date), &res.Date)
+		res.appendStr(fb2.Description.SrcTitleInfo.Date, &res.Date)
 	}
 
 	hasher := md5.New()
@@ -71,6 +71,7 @@ func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 	hasher.Write([]byte(res.Authors))
 
 	res.ID = hex.EncodeToString(hasher.Sum(nil))
+	res.Year = parseYear(res.Date)
 
 	return res
 }
@@ -155,7 +156,7 @@ func (bi *BookIndex) appendStr(val string, orig *string) {
 }
 
 func NewBookIndexMapping() *mapping.IndexMappingImpl {
-	strSearchField := bleve.NewTextFieldMapping()
+	strIndexedField := bleve.NewTextFieldMapping()
 
 	strField := bleve.NewTextFieldMapping()
 	strField.Index = false
@@ -168,18 +169,26 @@ func NewBookIndexMapping() *mapping.IndexMappingImpl {
 	numField.IncludeInAll = false
 	numField.DocValues = false
 
+	numSortField := *numField
+	numSortField.Index = true
+	numSortField.Store = false
+
 	books := bleve.NewDocumentMapping()
-	books.AddFieldMappingsAt("ISBN", strSearchField)
-	books.AddFieldMappingsAt("Titles", strSearchField)
-	books.AddFieldMappingsAt("Authors", strSearchField)
-	books.AddFieldMappingsAt("Sequences", strSearchField)
-	books.AddFieldMappingsAt("Publisher", strSearchField)
-	books.AddFieldMappingsAt("Date", strSearchField)
-	books.AddFieldMappingsAt("Genres", strSearchField)
-	books.AddFieldMappingsAt("Src", strField)
+
+	books.AddFieldMappingsAt("Year", &numSortField)
 	books.AddFieldMappingsAt("Offset", numField)
 	books.AddFieldMappingsAt("SizeCompressed", numField)
 	books.AddFieldMappingsAt("SizeUncompressed", numField)
+	books.AddFieldMappingsAt("Lang", strField)
+	books.AddFieldMappingsAt("Src", strField)
+
+	books.AddFieldMappingsAt("ISBN", strIndexedField)
+	books.AddFieldMappingsAt("Titles", strIndexedField)
+	books.AddFieldMappingsAt("Authors", strIndexedField)
+	books.AddFieldMappingsAt("Sequences", strIndexedField)
+	books.AddFieldMappingsAt("Publisher", strIndexedField)
+	books.AddFieldMappingsAt("Date", strIndexedField)
+	books.AddFieldMappingsAt("Genres", strIndexedField)
 
 	mapping := bleve.NewIndexMapping()
 	mapping.AddDocumentMapping("books", books)

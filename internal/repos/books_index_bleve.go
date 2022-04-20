@@ -185,23 +185,19 @@ func (r *BooksIndexBleve) getBooks(
 
 	for _, item := range searchResults.Hits {
 		book := entities.BookIndex{
-			ISBN:      item.Fields["ISBN"].(string),
-			Titles:    item.Fields["Titles"].(string),
-			Authors:   item.Fields["Authors"].(string),
-			Sequences: item.Fields["Sequences"].(string),
-			Date:      item.Fields["Date"].(string),
-			Publisher: item.Fields["Publisher"].(string),
-			Genres:    item.Fields["Genres"].(string),
-			ID:        item.ID,
-			// Lang:             item.Fields["Lang"].(string), // @TODO: uncomment
+			Offset:           item.Fields["Offset"].(uint64),
+			SizeCompressed:   item.Fields["SizeCompressed"].(uint64),
+			SizeUncompressed: item.Fields["SizeUncompressed"].(uint64),
+			Lang:             item.Fields["Lang"].(string),
 			Src:              item.Fields["Src"].(string),
-			Offset:           item.Fields["Offset"].(float64),
-			SizeCompressed:   item.Fields["SizeCompressed"].(float64),
-			SizeUncompressed: item.Fields["SizeUncompressed"].(float64),
-		}
-
-		if item.Fields["Lang"] != nil { // @TODO: remove
-			book.Lang = item.Fields["Lang"].(string)
+			ID:               item.ID,
+			ISBN:             item.Fields["ISBN"].(string),
+			Titles:           item.Fields["Titles"].(string),
+			Authors:          item.Fields["Authors"].(string),
+			Sequences:        item.Fields["Sequences"].(string),
+			Publisher:        item.Fields["Publisher"].(string),
+			Date:             item.Fields["Date"].(string),
+			Genres:           item.Fields["Genres"].(string),
 		}
 
 		if r.highlight && searchReq.Highlight != nil {

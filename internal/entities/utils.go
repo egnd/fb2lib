@@ -2,29 +2,33 @@ package entities
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 )
 
 var (
-	regexpYearPattern = regexp.MustCompile("[12][0-9]{3}")
+	regexpYearPattern = regexp.MustCompile("[0-9]{3,}")
+	currentYear       = time.Now().Year()
 )
 
-func parseYear(date string) string {
-	if len(date) < 4 {
-		return ""
+func parseYear(date string) (res uint16) {
+	if date == "" {
+		return
 	}
-
-	yearsIdx := map[string]struct{}{}
-	years := make([]string, 0, 2)
 
 	for _, year := range regexpYearPattern.FindAllString(date, -1) {
-		if _, ok := yearsIdx[year]; ok || len(years) > 1 {
-			continue
-		}
+		if len(year) <= 4 && !strings.HasPrefix(year, "0") {
+			val, _ := strconv.ParseUint(year, 10, 16)
+			res = uint16(val)
 
-		yearsIdx[year] = struct{}{}
-		years = append(years, year)
+			if res > uint16(currentYear) {
+				res = 0
+			}
+
+			break
+		}
 	}
 
-	return strings.Join(years, "-")
+	return
 }

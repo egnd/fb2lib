@@ -82,7 +82,7 @@ func (t *FB2IndexTask) indexFB2File(data io.Reader) bool {
 
 	doc := entities.NewBookIndex(fb2File)
 	doc.Src = path.Join(t.fb2Dir, t.fb2File.Name())
-	doc.SizeUncompressed = float64(t.fb2File.Size())
+	doc.SizeUncompressed = uint64(t.fb2File.Size())
 
 	if err := t.index.Index(doc.ID, doc); err != nil {
 		logger.Error().Err(err).Msg("indexing fb2")
