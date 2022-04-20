@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.com/egnd/bookshelf/internal/entities"
+	"github.com/egnd/fb2lib/internal/entities"
 	"golang.org/x/net/html/charset"
 )
 

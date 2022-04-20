@@ -1,7 +1,7 @@
 package entities
 
 import (
-	"gitlab.com/egnd/bookshelf/pkg/fb2parser"
+	"github.com/egnd/fb2lib/pkg/fb2parser"
 )
 
 type FB2Book struct {

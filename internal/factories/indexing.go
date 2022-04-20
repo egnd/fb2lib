@@ -9,8 +9,8 @@ import (
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"
+	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/rs/zerolog"
-	"gitlab.com/egnd/bookshelf/internal/entities"
 )
 
 // https://medevel.com/os-fulltext-search-solutions/

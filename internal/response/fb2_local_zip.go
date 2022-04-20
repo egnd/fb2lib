@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/labstack/echo/v4"
-	"gitlab.com/egnd/bookshelf/internal/entities"
 )
 
 func FB2FromLocalZip(book entities.BookIndex, server echo.Context) error {

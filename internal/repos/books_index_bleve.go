@@ -9,9 +9,9 @@ import (
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/search"
 	"github.com/blevesearch/bleve/v2/search/query"
+	"github.com/egnd/fb2lib/internal/entities"
+	"github.com/egnd/fb2lib/pkg/pagination"
 	"github.com/rs/zerolog"
-	"gitlab.com/egnd/bookshelf/internal/entities"
-	"gitlab.com/egnd/bookshelf/pkg/pagination"
 )
 
 var (

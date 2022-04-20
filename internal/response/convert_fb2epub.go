@@ -6,9 +6,9 @@ import (
 	"path"
 	"strings"
 
+	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
-	"gitlab.com/egnd/bookshelf/internal/entities"
 )
 
 func ConvertFB2Epub(converterDir string, book entities.BookIndex, server echo.Context, logger zerolog.Logger) error {

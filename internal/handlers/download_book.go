@@ -7,11 +7,11 @@ import (
 	"path"
 	"strings"
 
+	"github.com/egnd/fb2lib/internal/entities"
+	"github.com/egnd/fb2lib/internal/response"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
-	"gitlab.com/egnd/bookshelf/internal/entities"
-	"gitlab.com/egnd/bookshelf/internal/response"
 )
 
 func DownloadBookHandler(repo entities.IBooksIndexRepo, cfg *viper.Viper, logger zerolog.Logger) echo.HandlerFunc {
