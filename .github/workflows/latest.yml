@@ -35,6 +35,7 @@ jobs:
 
   push-latest:
     runs-on: ubuntu-latest
+    needs: [build-latest]
     steps:
       - uses: actions/checkout@v3
       - name: Read gitflow
