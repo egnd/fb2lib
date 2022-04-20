@@ -89,12 +89,18 @@ func (t *ZIPFB2IndexTask) Do(context.Context) {
 	t.batchStopChan = make(chan struct{})
 	defer close(t.batchStopChan)
 
+	index, err := factories.NewTmpIndex(t.archiveFile, t.indexDir, t.rewriteIndex, entities.NewBookIndexMapping())
+	if err != nil {
+		t.logger.Warn().Err(err).Msg("init index")
+		return
+	}
+
 	var batchWg sync.WaitGroup
 	batchWg.Add(1)
 
-	go t.runBatcher(&batchWg)
+	go t.runBatcher(&batchWg, index)
 
-	if err := library.NewZipItemIterator(
+	if err = library.NewZipItemIterator(
 		path.Join(t.archiveDir, t.archiveFile.Name()), t.logger,
 	).IterateItems(t.handleArchiveItem); err != nil {
 		t.logger.Error().Err(err).Msg("iterate over archive")
@@ -165,33 +171,26 @@ func (t *ZIPFB2IndexTask) handleArchiveItem(zipItem *zip.File, data io.Reader, o
 	}
 }
 
-func (t *ZIPFB2IndexTask) runBatcher(wg *sync.WaitGroup) {
+func (t *ZIPFB2IndexTask) runBatcher(wg *sync.WaitGroup, index entities.ISearchIndex) {
 	defer wg.Done()
-
-	index, err := factories.NewTmpIndex(
-		t.archiveFile, t.indexDir, t.rewriteIndex, entities.NewBookIndexMapping(),
-	)
-	if err != nil {
-		t.logger.Warn().Err(err).Msg("init index")
-		return
-	}
 
 	batch := index.NewBatch()
 
 	defer func() {
-		if err == nil && batch.Size() > 0 {
-			if err = index.Batch(batch); err != nil {
+		if batch.Size() > 0 {
+			if err := index.Batch(batch); err != nil {
 				t.logger.Error().Err(err).Msg("exec index batch last")
 			} else {
 				t.itemsIndexed += uint32(batch.Size())
 			}
 		}
 
-		if err = index.Close(); err != nil {
+		if err := index.Close(); err != nil {
 			t.logger.Error().Err(err).Msg("close tmp index")
+			return
 		}
 
-		if err = factories.SaveTmpIndex(index); err != nil {
+		if err := factories.SaveTmpIndex(index); err != nil {
 			t.logger.Error().Err(err).Msg("save index")
 		}
 	}()
@@ -201,7 +200,7 @@ func (t *ZIPFB2IndexTask) runBatcher(wg *sync.WaitGroup) {
 		case <-t.batchStopChan:
 			return
 		case doc := <-t.batchChan:
-			if err = batch.Index(doc.ID, doc); err != nil {
+			if err := batch.Index(doc.ID, doc); err != nil {
 				t.logger.Error().Err(err).Msg("add book to index batch")
 				continue
 			}
@@ -210,7 +209,7 @@ func (t *ZIPFB2IndexTask) runBatcher(wg *sync.WaitGroup) {
 				continue
 			}
 
-			if err = index.Batch(batch); err != nil {
+			if err := index.Batch(batch); err != nil {
 				t.logger.Error().Err(err).Msg("exec index batch")
 			} else {
 				t.itemsIndexed += uint32(batch.Size())
