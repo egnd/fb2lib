@@ -33,7 +33,8 @@ var (
 	rewriteIndex = flag.Bool("rewrite", false, "Rewrite existing indexes.")
 	hideBar      = flag.Bool("hidebar", false, "Hide progress bar.")
 	workersCnt   = flag.Int("workers", 1, "Index workers count.")
-	bufSize      = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
+	buffSize     = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
+	batchSize    = flag.Int("batchsize", 100, "Books index batch size.")
 	profiler     = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
 
 	wg         sync.WaitGroup
@@ -42,8 +43,8 @@ var (
 	bar        *mpb.Progress
 	totalBar   *mpb.Bar
 
-	targetLibFormats = []string{".zip", ".fb2"}
-	ctx              = context.Background()
+	libFormats = []string{".zip"} // @TODO: tar.gz
+	ctx        = context.Background()
 )
 
 func main() {
@@ -66,7 +67,7 @@ func main() {
 	logger := factories.NewZerologLogger(cfg, os.Stderr)
 	startTS := time.Now()
 
-	pool := newPool(*workersCnt, *bufSize)
+	pool := newPool(*workersCnt, *buffSize)
 	defer pool.Close()
 
 	if !*hideBar {
@@ -82,33 +83,20 @@ func main() {
 
 		logger = logger.Output(zerolog.ConsoleWriter{Out: logOutput, NoColor: true})
 
-		if totalBar = getTotalBar(targetLibFormats, cfg.GetString("library.dir"), bar); totalBar == nil {
+		if totalBar = getTotalBar(libFormats, cfg.GetString("library.dir"), bar); totalBar == nil {
 			logger.Fatal().Msg("unable to init total bar")
 		}
 	}
 
-	fb2index, err := factories.NewIndex(
-		"fb2/items", cfg.GetString("bleve.index_dir"), *rewriteIndex, entities.NewBookIndexMapping(),
-	)
-	if err != nil {
-		log.Fatal().Err(err).Msg("init fb2 index")
-	}
-	defer fb2index.Close()
-
 	if err = library.NewLocalFSItems(
-		cfg.GetString("library.dir"), targetLibFormats, logger,
+		cfg.GetString("library.dir"), libFormats, logger,
 	).IterateItems(func(libFile os.FileInfo, libDir string, num, total int, logger zerolog.Logger) error {
 		switch path.Ext(libFile.Name()) {
 		case ".zip":
 			wg.Add(1)
 			return pool.Add(tasks.NewZIPFB2IndexTask(libFile, libDir, cfg.GetString("bleve.index_dir"),
-				*rewriteIndex, &cntTotal, &cntIndexed,
+				*rewriteIndex, *batchSize, &cntTotal, &cntIndexed,
 				logger, &wg, bar, totalBar,
-			))
-		case ".fb2":
-			wg.Add(1)
-			return pool.Add(tasks.NewFB2IndexTask(
-				libFile, libDir, &cntTotal, &cntIndexed, logger, &wg, totalBar, fb2index,
 			))
 		default:
 			return nil

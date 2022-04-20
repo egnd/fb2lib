@@ -2,5 +2,4 @@
 - ci jobs for units and linting
 - add rest api
 - theme editorial
-- bleve .Index() with batching
 - hashsum of zip archive at index name

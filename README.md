@@ -1,11 +1,20 @@
 # bookshelf
 
-This is a full text search server for books in your local library.
-* supports both zip archives with fb2 files and regular fb2 files
-* allows to convert fb2 to epub files "on-the-fly"
+This is a server for indexing and searching fb2-books at zip archives.
 
 ### Quick start:
-1. Create ```docker-compose.yml```:
+1. Put your archives with books into ```library``` folder
+
+2. Create index:
+```bash
+docker run --rm -t --entrypoint=indexer \
+    -v $(pwd)/index:/var/index \
+    -v $(pwd)/logs:/var/logs \
+    -v $(pwd)/library:/var/library \
+    registry.gitlab.com/egnd/bookshelf:latest -workers=4 -batchsize=300
+```
+
+3. Create ```docker-compose.yml```:
 ```yaml
 version: "3.8"
 services:
@@ -16,24 +25,15 @@ services:
     volumes:
       - ./index:/var/index:rw
       - ./library:/var/library:rw
-      - ./logs:/var/logs:rw
 ```
 
-2. Run it with:
+4. Run server with:
 ```bash
 docker-compose up
 ```
 
-1. Put your fb2-books and archives into ```./library```
+5. Server is available at http://localhost:8080
 
-2. Run indexer (2 parallel threads):
-```bash
-docker-compose exec app indexer -workers 2
-```
-
-5. Stop current composed instance and run it again with:
-```bash
-docker-compose up
-```
-
-6. Server is available at http://localhost:8080
+### Hints:
+* Advanced query language - https://blevesearch.com/docs/Query-String-Query/
+* Server is able to convert fb2 to epub "on-the-fly"

@@ -19,20 +19,22 @@ import (
 )
 
 type ZIPFB2IndexTask struct {
-	rewriteIndex bool
-	archiveDir   string
-	indexDir     string
-	archiveFile  os.FileInfo
-	logger       zerolog.Logger
-	wg           *sync.WaitGroup
-	cntTotal     *entities.CntAtomic32
-	cntIndexed   *entities.CntAtomic32
-	itemsTotal   uint32
-	itemsIndexed uint32
-	index        entities.ISearchIndex
-	barContainer *mpb.Progress
-	bar          *mpb.Bar
-	totalBar     *mpb.Bar
+	rewriteIndex  bool
+	itemsTotal    uint32
+	itemsIndexed  uint32
+	batchSize     int
+	archiveDir    string
+	indexDir      string
+	batchChan     chan entities.BookIndex
+	batchStopChan chan struct{}
+	archiveFile   os.FileInfo
+	logger        zerolog.Logger
+	wg            *sync.WaitGroup
+	cntTotal      *entities.CntAtomic32
+	cntIndexed    *entities.CntAtomic32
+	barContainer  *mpb.Progress
+	bar           *mpb.Bar
+	totalBar      *mpb.Bar
 }
 
 func NewZIPFB2IndexTask(
@@ -40,6 +42,7 @@ func NewZIPFB2IndexTask(
 	archiveDir string,
 	indexDir string,
 	rewriteIndex bool,
+	batchSize int,
 	cntTotal *entities.CntAtomic32,
 	cntIndexed *entities.CntAtomic32,
 	logger zerolog.Logger,
@@ -58,6 +61,7 @@ func NewZIPFB2IndexTask(
 		cntIndexed:   cntIndexed,
 		barContainer: barContainer,
 		totalBar:     totalBar,
+		batchSize:    batchSize,
 	}
 }
 
@@ -74,31 +78,34 @@ func (t *ZIPFB2IndexTask) Do(context.Context) {
 
 	startTS := time.Now()
 
-	var err error
-	t.index, err = factories.NewTmpIndex(
-		t.archiveFile, t.indexDir, t.rewriteIndex, entities.NewBookIndexMapping(),
-	)
-	if err != nil {
-		t.logger.Warn().Err(err).Msg("init index")
-		return
-	}
-	defer t.index.Close()
-
 	if t.barContainer != nil {
 		t.bar = t.initBar()
 		defer t.bar.Abort(true)
 	}
 
-	if err := library.NewZipItemIterator(path.Join(t.archiveDir, t.archiveFile.Name()), t.logger).
-		IterateItems(t.handleArchiveItem); err != nil {
+	t.batchChan = make(chan entities.BookIndex)
+	defer close(t.batchChan)
+
+	t.batchStopChan = make(chan struct{})
+	defer close(t.batchStopChan)
+
+	var batchWg sync.WaitGroup
+	batchWg.Add(1)
+
+	go t.runBatcher(&batchWg)
+
+	if err := library.NewZipItemIterator(
+		path.Join(t.archiveDir, t.archiveFile.Name()), t.logger,
+	).IterateItems(t.handleArchiveItem); err != nil {
 		t.logger.Error().Err(err).Msg("iterate over archive")
+		t.batchStopChan <- struct{}{}
+		batchWg.Wait()
+
 		return
 	}
 
-	if err = factories.SaveTmpIndex(t.index); err != nil {
-		t.logger.Error().Err(err).Msg("save index")
-		return
-	}
+	t.batchStopChan <- struct{}{}
+	batchWg.Wait()
 
 	t.logger.Info().
 		Uint32("total", t.itemsTotal).
@@ -148,17 +155,68 @@ func (t *ZIPFB2IndexTask) handleArchiveItem(zipItem *zip.File, data io.Reader, o
 		doc.SizeCompressed = zipItem.CompressedSize64
 		doc.SizeUncompressed = zipItem.UncompressedSize64
 
-		if err := t.index.Index(doc.ID, doc); err != nil {
-			logger.Error().Err(err).Msg("indexing fb2")
-			return nil
-		}
-
-		t.itemsIndexed++
+		t.batchChan <- doc
 
 		return nil
 	default:
 		logger.Warn().Msg("invalid archive item")
 
 		return nil
+	}
+}
+
+func (t *ZIPFB2IndexTask) runBatcher(wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	index, err := factories.NewTmpIndex(
+		t.archiveFile, t.indexDir, t.rewriteIndex, entities.NewBookIndexMapping(),
+	)
+	if err != nil {
+		t.logger.Fatal().Err(err).Msg("init index")
+		return
+	}
+
+	batch := index.NewBatch()
+
+	defer func() {
+		if err == nil && batch.Size() > 0 {
+			if err = index.Batch(batch); err != nil {
+				t.logger.Error().Err(err).Msg("exec index batch last")
+			} else {
+				t.itemsIndexed += uint32(batch.Size())
+			}
+		}
+
+		if err = index.Close(); err != nil {
+			t.logger.Error().Err(err).Msg("close tmp index")
+		}
+
+		if err = factories.SaveTmpIndex(index); err != nil {
+			t.logger.Error().Err(err).Msg("save index")
+		}
+	}()
+
+	for {
+		select {
+		case <-t.batchStopChan:
+			return
+		case doc := <-t.batchChan:
+			if err = batch.Index(doc.ID, doc); err != nil {
+				t.logger.Error().Err(err).Msg("add book to index batch")
+				continue
+			}
+
+			if batch.Size() < t.batchSize {
+				continue
+			}
+
+			if err = index.Batch(batch); err != nil {
+				t.logger.Error().Err(err).Msg("exec index batch")
+			} else {
+				t.itemsIndexed += uint32(batch.Size())
+			}
+
+			batch.Reset()
+		}
 	}
 }

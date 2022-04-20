@@ -14,4 +14,6 @@ type ISearchIndex interface {
 	Search(req *bleve.SearchRequest) (*bleve.SearchResult, error)
 	Index(id string, data interface{}) error
 	Name() string
+	NewBatch() *bleve.Batch
+	Batch(b *bleve.Batch) error
 }

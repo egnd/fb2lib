@@ -61,9 +61,9 @@ func (r *BooksIndexBleve) SearchAll(strQuery string, pager pagination.IPager) ([
 	searchReq := bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
 	searchReq.Highlight = bleve.NewHighlightWithStyle("html")
 	searchReq.Sort = append(searchReq.Sort, &search.SortField{
-		Field:   "Date",
+		Field:   "Year",
 		Desc:    true,
-		Type:    search.SortFieldAsString,
+		Type:    search.SortFieldAsNumber,
 		Missing: search.SortFieldMissingLast,
 	})
 
@@ -83,9 +83,9 @@ func (r *BooksIndexBleve) SearchByAuthor(strQuery string, pager pagination.IPage
 	searchReq := bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
 	searchReq.Highlight = bleve.NewHighlightWithStyle("html")
 	searchReq.Sort = append(searchReq.Sort, &search.SortField{
-		Field:   "Date",
+		Field:   "Year",
 		Desc:    true,
-		Type:    search.SortFieldAsString,
+		Type:    search.SortFieldAsNumber,
 		Missing: search.SortFieldMissingLast,
 	})
 
@@ -105,9 +105,9 @@ func (r *BooksIndexBleve) SearchBySequence(strQuery string, pager pagination.IPa
 	searchReq := bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
 	searchReq.Highlight = bleve.NewHighlightWithStyle("html")
 	searchReq.Sort = append(searchReq.Sort, &search.SortField{
-		Field:   "Date",
+		Field:   "Year",
 		Desc:    true,
-		Type:    search.SortFieldAsString,
+		Type:    search.SortFieldAsNumber,
 		Missing: search.SortFieldMissingLast,
 	})
 
@@ -185,9 +185,9 @@ func (r *BooksIndexBleve) getBooks(
 
 	for _, item := range searchResults.Hits {
 		book := entities.BookIndex{
-			Offset:           item.Fields["Offset"].(uint64),
-			SizeCompressed:   item.Fields["SizeCompressed"].(uint64),
-			SizeUncompressed: item.Fields["SizeUncompressed"].(uint64),
+			Offset:           uint64(item.Fields["Offset"].(float64)),
+			SizeCompressed:   uint64(item.Fields["SizeCompressed"].(float64)),
+			SizeUncompressed: uint64(item.Fields["SizeUncompressed"].(float64)),
 			Lang:             item.Fields["Lang"].(string),
 			Src:              item.Fields["Src"].(string),
 			ID:               item.ID,
