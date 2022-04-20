@@ -42,7 +42,10 @@ func main() {
 
 	repoIndex := repos.NewBooksIndexBleve(cfg.GetBool("bleve.highlight"), booksIndex, logger)
 	repoFB2 := repos.NewBooksDataFB2Files()
-	server := factories.NewEchoServer(cfg, logger, repoIndex, repoFB2)
+	server, err := factories.NewEchoServer(cfg, logger, repoIndex, repoFB2)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("init http server")
+	}
 
 	logger.Info().
 		Int("port", cfg.GetInt("server.port")).

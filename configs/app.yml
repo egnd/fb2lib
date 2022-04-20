@@ -6,11 +6,15 @@ logs:
   pretty: false
   duration_unit: 1s
   dir: var/logs
-markup:
-  theme_dir: web/themes/massively
 bleve:
-  index_dir: var/index
+  index_dir: var/index/books
   highlight: true
 library:
   dir: var/library
-  converter_dir: var/converter
+  converter_dir: var/cache/converter
+renderer:
+  tpl_dir: web/themes/massively
+  globals:
+    gtitle: fb2library
+pprof:
+  dir: var/pprof

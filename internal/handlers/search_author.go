@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"path"
 
 	"github.com/flosch/pongo2/v5"
 	"github.com/labstack/echo/v4"
@@ -10,7 +9,7 @@ import (
 	"gitlab.com/egnd/bookshelf/pkg/pagination"
 )
 
-func SearchAuthorsHandler(tplsDir string, repo entities.IBooksIndexRepo) echo.HandlerFunc {
+func SearchAuthorsHandler(repo entities.IBooksIndexRepo) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		searchQuery := c.QueryParam("q")
 
@@ -25,7 +24,7 @@ func SearchAuthorsHandler(tplsDir string, repo entities.IBooksIndexRepo) echo.Ha
 			return
 		}
 
-		return c.Render(http.StatusOK, path.Join(tplsDir, "books-list.html"), pongo2.Context{
+		return c.Render(http.StatusOK, "books-list.html", pongo2.Context{
 			"search_query":       searchQuery,
 			"search_placeholder": "ФИО автора",
 			"search_type":        "authors",

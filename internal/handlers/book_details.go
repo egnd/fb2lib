@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"path"
 
 	"github.com/flosch/pongo2/v5"
 	"github.com/labstack/echo/v4"
@@ -10,7 +9,7 @@ import (
 	"gitlab.com/egnd/bookshelf/internal/entities"
 )
 
-func BookDetailsHandler(tplsDir string,
+func BookDetailsHandler(
 	indexRepo entities.IBooksIndexRepo, fb2Repo entities.IBooksDataRepo, logger zerolog.Logger,
 ) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
@@ -26,7 +25,7 @@ func BookDetailsHandler(tplsDir string,
 			return
 		}
 
-		return c.Render(http.StatusOK, path.Join(tplsDir, "books-details.html"), pongo2.Context{
+		return c.Render(http.StatusOK, "books-details.html", pongo2.Context{
 			"search_form_action": "/",
 			"search_placeholder": "Автор, название книги, серии, ISBN и т.д.",
 

@@ -15,21 +15,19 @@ import (
 )
 
 type FB2IndexTask struct {
-	useXMLMarsh bool
-	fb2Dir      string
-	fb2File     os.FileInfo
-	logger      zerolog.Logger
-	wg          *sync.WaitGroup
-	cntTotal    *entities.CntAtomic32
-	cntIndexed  *entities.CntAtomic32
-	index       entities.ISearchIndex
-	totalBar    *mpb.Bar
+	fb2Dir     string
+	fb2File    os.FileInfo
+	logger     zerolog.Logger
+	wg         *sync.WaitGroup
+	cntTotal   *entities.CntAtomic32
+	cntIndexed *entities.CntAtomic32
+	index      entities.ISearchIndex
+	totalBar   *mpb.Bar
 }
 
 func NewFB2IndexTask(
 	fb2File os.FileInfo,
 	fb2Dir string,
-	useXMLMarsh bool,
 	cntTotal *entities.CntAtomic32,
 	cntIndexed *entities.CntAtomic32,
 	logger zerolog.Logger,
@@ -38,15 +36,14 @@ func NewFB2IndexTask(
 	index entities.ISearchIndex,
 ) *FB2IndexTask {
 	return &FB2IndexTask{
-		fb2Dir:      fb2Dir,
-		fb2File:     fb2File,
-		logger:      logger,
-		wg:          wg,
-		cntTotal:    cntTotal,
-		cntIndexed:  cntIndexed,
-		totalBar:    totalBar,
-		useXMLMarsh: useXMLMarsh,
-		index:       index,
+		fb2Dir:     fb2Dir,
+		fb2File:    fb2File,
+		logger:     logger,
+		wg:         wg,
+		cntTotal:   cntTotal,
+		cntIndexed: cntIndexed,
+		totalBar:   totalBar,
+		index:      index,
 	}
 }
 
@@ -75,15 +72,7 @@ func (t *FB2IndexTask) Do(context.Context) {
 }
 
 func (t *FB2IndexTask) indexFB2File(data io.Reader) bool {
-	var err error
-	var fb2File *fb2parser.FB2File
-
-	if t.useXMLMarsh {
-		fb2File, err = fb2parser.UnmarshalFB2Stream(data)
-	} else {
-		fb2File, err = fb2parser.ParseFB2Stream(data)
-	}
-
+	fb2File, err := fb2parser.UnmarshalFB2Stream(data)
 	if err != nil {
 		t.logger.Error().Err(err).Msg("parsing fb2 file")
 		return false

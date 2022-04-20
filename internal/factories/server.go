@@ -16,15 +16,16 @@ import (
 
 func NewEchoServer(cfg *viper.Viper, logger zerolog.Logger,
 	booksRepo entities.IBooksIndexRepo, fb2Repo entities.IBooksDataRepo,
-) *echo.Echo {
+) (*echo.Echo, error) {
+	var err error
 	server := echo.New()
 	server.Debug = cfg.GetBool("server.debug")
 	server.HideBanner = true
 	server.HidePort = true
-	server.Renderer = echoext.NewPongoRenderer(server.Debug, nil, map[string]pongo2.FilterFunction{
-		"filesize":  echoext.PongoFilterFileSize,
-		"trimspace": echoext.PongoFilterTrimSpace,
-	})
+
+	if server.Renderer, err = NewEchoRender(cfg, server); err != nil {
+		return nil, err
+	}
 
 	server.Use(echoext.NewZeroLogger(cfg, logger))
 	if server.Debug {
@@ -33,14 +34,24 @@ func NewEchoServer(cfg *viper.Viper, logger zerolog.Logger,
 		server.Use(middleware.Recover())
 	}
 
-	server.File("/favicon.ico", path.Join(cfg.GetString("markup.theme_dir"), "assets/favicon.ico"))
-	server.Static("/assets", path.Join(cfg.GetString("markup.theme_dir"), "assets"))
+	server.File("/favicon.ico", path.Join(cfg.GetString("renderer.tpl_dir"), "assets/favicon.ico"))
+	server.Static("/assets", path.Join(cfg.GetString("renderer.tpl_dir"), "assets"))
 
-	server.GET("/", handlers.SearchHandler(cfg.GetString("markup.theme_dir"), booksRepo))
-	server.GET("/authors", handlers.SearchAuthorsHandler(cfg.GetString("markup.theme_dir"), booksRepo))
-	server.GET("/sequences", handlers.SearchSequencesHandler(cfg.GetString("markup.theme_dir"), booksRepo))
+	server.GET("/", handlers.SearchHandler(booksRepo))
+	server.GET("/authors", handlers.SearchAuthorsHandler(booksRepo))
+	server.GET("/sequences", handlers.SearchSequencesHandler(booksRepo))
 	server.GET("/download/:book_name", handlers.DownloadBookHandler(booksRepo, cfg, logger))
-	server.GET("/books/:book_id", handlers.BookDetailsHandler(cfg.GetString("markup.theme_dir"), booksRepo, fb2Repo, logger))
+	server.GET("/books/:book_id", handlers.BookDetailsHandler(booksRepo, fb2Repo, logger))
 
-	return server
+	return server, nil
+}
+
+func NewEchoRender(cfg *viper.Viper, server *echo.Echo) (echo.Renderer, error) {
+	return echoext.NewPongoRenderer(echoext.PongoRendererCfg{
+		Debug:   server.Debug,
+		TplsDir: cfg.GetString("renderer.tpl_dir"),
+	}, cfg.GetStringMap("renderer.globals"), map[string]pongo2.FilterFunction{
+		"filesize":  echoext.PongoFilterFileSize,
+		"trimspace": echoext.PongoFilterTrimSpace,
+	})
 }

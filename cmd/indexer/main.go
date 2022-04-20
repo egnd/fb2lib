@@ -32,7 +32,6 @@ var (
 
 	rewriteIndex = flag.Bool("rewrite", false, "Rewrite existing indexes.")
 	hideBar      = flag.Bool("hidebar", false, "Hide progress bar.")
-	useXMLMarsh  = flag.Bool("xmlmarsh", false, "Use xml marshaler.")
 	workersCnt   = flag.Int("workers", 1, "Index workers count.")
 	bufSize      = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
 	profiler     = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
@@ -50,12 +49,6 @@ var (
 func main() {
 	flag.Parse()
 
-	*useXMLMarsh = true // @TODO: disable stream parsing
-
-	if *profiler != "" {
-		defer profilerStart(*profiler).Stop()
-	}
-
 	if *showVersion {
 		fmt.Println(appVersion)
 		return
@@ -64,6 +57,10 @@ func main() {
 	cfg, err := factories.NewViperCfg(*cfgPath, *cfgPrefix)
 	if err != nil {
 		log.Fatal().Err(err).Msg("init config")
+	}
+
+	if *profiler != "" {
+		defer profilerStart(*profiler, cfg).Stop()
 	}
 
 	logger := factories.NewZerologLogger(cfg, os.Stderr)
@@ -105,13 +102,13 @@ func main() {
 		case ".zip":
 			wg.Add(1)
 			return pool.Add(tasks.NewZIPFB2IndexTask(libFile, libDir, cfg.GetString("bleve.index_dir"),
-				*rewriteIndex, *useXMLMarsh, &cntTotal, &cntIndexed,
+				*rewriteIndex, &cntTotal, &cntIndexed,
 				logger, &wg, bar, totalBar,
 			))
 		case ".fb2":
 			wg.Add(1)
 			return pool.Add(tasks.NewFB2IndexTask(
-				libFile, libDir, *useXMLMarsh, &cntTotal, &cntIndexed, logger, &wg, totalBar, fb2index,
+				libFile, libDir, &cntTotal, &cntIndexed, logger, &wg, totalBar, fb2index,
 			))
 		default:
 			return nil
@@ -153,11 +150,11 @@ func getTotalBar(targetFormats []string, libDir string, bar *mpb.Progress) *mpb.
 	)
 }
 
-func profilerStart(profType string) interface{ Stop() } {
-	_ = os.MkdirAll("var/pprof", 0755)
+func profilerStart(profType string, cfg *viper.Viper) interface{ Stop() } {
+	_ = os.MkdirAll(cfg.GetString("pprof.dir"), 0755)
 
 	pprofopts := []func(*profile.Profile){
-		profile.ProfilePath("var/pprof"),
+		profile.ProfilePath(cfg.GetString("pprof.dir")),
 		profile.NoShutdownHook,
 	}
 

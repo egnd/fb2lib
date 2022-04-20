@@ -20,7 +20,6 @@ import (
 
 type ZIPFB2IndexTask struct {
 	rewriteIndex bool
-	useXMLMarsh  bool
 	archiveDir   string
 	indexDir     string
 	archiveFile  os.FileInfo
@@ -41,7 +40,6 @@ func NewZIPFB2IndexTask(
 	archiveDir string,
 	indexDir string,
 	rewriteIndex bool,
-	useXMLMarsh bool,
 	cntTotal *entities.CntAtomic32,
 	cntIndexed *entities.CntAtomic32,
 	logger zerolog.Logger,
@@ -60,7 +58,6 @@ func NewZIPFB2IndexTask(
 		cntIndexed:   cntIndexed,
 		barContainer: barContainer,
 		totalBar:     totalBar,
-		useXMLMarsh:  useXMLMarsh,
 	}
 }
 
@@ -137,15 +134,7 @@ func (t *ZIPFB2IndexTask) handleArchiveItem(zipItem *zip.File, data io.Reader, o
 	case ".fb2":
 		t.itemsTotal++
 
-		var err error
-		var fb2File *fb2parser.FB2File
-
-		if t.useXMLMarsh {
-			fb2File, err = fb2parser.UnmarshalFB2Stream(data)
-		} else {
-			fb2File, err = fb2parser.ParseFB2Stream(data)
-		}
-
+		fb2File, err := fb2parser.UnmarshalFB2Stream(data)
 		if err != nil {
 			logger.Error().Err(err).Msg("parsing fb2 file")
 			return nil

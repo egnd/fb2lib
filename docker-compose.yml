@@ -7,8 +7,8 @@ services:
     ports:
       - ${DC_SERVER_PORT}:${BS_SERVER_PORT}
     volumes:
-      - ./var/index:/var/index:rw
       - ./var/library:/var/library:rw
-      - ./var/pprof:/var/pprof:rw
+      - ./var/index:/var/index:rw
+      - ./var/cache:/var/cache:rw
       - ./var/logs:/var/logs:rw
-      - ./var/converter:/var/converter:rw
+      - ./var/pprof:/var/pprof:rw
