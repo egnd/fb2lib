@@ -28,6 +28,7 @@ func SearchAuthorsHandler(repo entities.IBooksIndexRepo) echo.HandlerFunc {
 			"search_query":       searchQuery,
 			"search_placeholder": "ФИО автора",
 			"search_type":        "authors",
+			"title":              "Поиск по авторам",
 
 			"books": books,
 			"pager": pager,

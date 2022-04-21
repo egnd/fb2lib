@@ -28,6 +28,7 @@ func BookDetailsHandler(
 		return c.Render(http.StatusOK, "books-details.html", pongo2.Context{
 			"search_form_action": "/",
 			"search_placeholder": "Автор, название книги, серии, ISBN и т.д.",
+			"title":              book.Description.TitleInfo.BookTitle,
 
 			"book":     book,
 			"book_idx": bookIdx,

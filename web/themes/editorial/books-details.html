@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+
+{% block content %}
+{% macro showString(title, value, showHref=false) %}
+{% if value|trimspace %}<a class="button"{% if showHref %} href="/?q={{value|safe}}"{% endif %}>{{title}}: {{value}}</a>{% endif %}
+{% endmacro %}
+
+{% macro showStrings(title, values, showHref=false) %}
+{% for item in values %}
+{% if item|trimspace %}<a class="button"{% if showHref %} href="/?q={{item|safe}}"{% endif %}>{{title}}: {{item}}</a>{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro showSequences(title, values, showHref=false) %}
+{% for item in values %}
+{% if item.Name|trimspace %}<a class="button"{% if showHref %} href="/?q={{item.Name|safe}}"{% endif %}>{{title}}: {{item.Name}}</a>{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro showAuthors(title, values, showHref=false) %}
+{% for item in values %}
+{% if item.FirstName|trimspace || item.MiddleName|trimspace || item.LastName|trimspace %}
+<a class="button"{% if showHref %} href="/?q={{item.FirstName}} {{item.MiddleName}} {{item.LastName}}"{% endif %}>
+    {{title}}: {{item.FirstName}} {{item.MiddleName}} {{item.LastName}}
+</a>
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro book_info(descr, bindata) %}
+{% for img in descr.Coverpage.Images %}
+    {% for bin in bindata %}
+    {% if img.Href == "#"+bin.ID %}<img src="data:{{bin.Type}};base64,{{bin.Data}}" style="max-width: 100%; float: left;margin: 0 30px 30px 0;"/>{% endif%}
+    {% endfor %}
+{% endfor %}
+{{descr.Annotation.HTML|safe}}
+
+<div class="book-descr" style="clear: both;">
+    {{ showString("Дата",descr.Date, true) }}
+    {{ showString("Язык",descr.Lang) }}
+    {{ showString("Язык оригинала",descr.SrcLang) }}
+    {{ showStrings("Жанр", descr.Genre, true) }}
+    {{ showSequences("Серия", descr.Sequence, true) }}
+    {{ showAuthors("Автор",descr.Author, true) }}
+    {{ showAuthors("Переводчик",descr.Translator, true) }}
+</div>
+{% endmacro %}
+
+<section>
+    <header class="main"><h1>{{book.Description.TitleInfo.BookTitle}}</h1></header>
+
+    {{ book_info(book.Description.TitleInfo, book.Binary) }}
+    <a href="/download/{{book_idx.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{book_idx.SizeUncompressed|filesize}})</a>
+    <a href="/download/{{book_idx.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
+
+{% if book.Description.SrcTitleInfo %}
+    <hr class="major" />
+    <h2>Оригинал:</h2>
+    {{ book_info(book.Description.SrcTitleInfo, book.Binary) }}
+{% endif %}
+
+{% if book.Description.PublishInfo %}
+    <hr class="major" />
+    <h2>Данные об издании:</h2>
+    <div class="book-descr">
+        {{ showString("Название", book.Description.PublishInfo.BookName, true) }}
+        {{ showString("Издатель", book.Description.PublishInfo.Publisher, true) }}
+        {{ showString("Город", book.Description.PublishInfo.City) }}
+        {{ showString("Дата", book.Description.PublishInfo.Year, true) }}
+        {{ showString("ISBN", book.Description.PublishInfo.ISBN, true) }}
+    </div>
+{% endif %}
+</section>
+{% endblock %}

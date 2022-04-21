@@ -1,0 +1,43 @@
+#menu ul a.active {
+    color: #f56a6a;
+}
+
+.books-list {
+    margin-bottom: 30px;
+}
+
+
+.books-list-item {
+    margin-bottom: 10px;
+}
+
+.books-list-item .button {
+    overflow: hidden;
+    max-width: 100%;
+}
+
+.books-list-item h4 {
+    margin-bottom: 5px;
+}
+
+.books-list-item mark {
+    background-color: #fdff74;
+}
+
+.pagination {
+    text-align: center;
+}
+
+@media screen and (max-width: 480px) {
+    .pagination .button {
+        text-align: center;
+        width: 70px;
+        padding-left: 0;
+        padding-right: 0;
+    }
+}
+
+.book-descr .button {
+    overflow: hidden;
+    max-width: 100%;
+}

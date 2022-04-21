@@ -13,7 +13,7 @@ library:
   dir: var/library
   converter_dir: var/cache/converter
 renderer:
-  tpl_dir: web/themes/massively
+  tpl_dir: web/themes/editorial
   globals:
     gtitle: fb2library
 pprof:

@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+
+{% block content %}
+{% macro bookFeature(title, value, searchHref=false) %}
+    {% if value|trimspace %}
+    <a class="button"{% if searchHref %} href="?q={{value|safe|striptags|urlencode}}"{% endif %}>{{title}}: {{value|safe|slice:"0:80"}}</a>
+    {% endif %}
+{% endmacro %}
+<div class="row" style="margin-bottom: 15px;">
+{% if pager.GetTotal() > 0 %}
+    <div class="col-10 col-8-xsmall">
+        {% if pager.HasNext() %}
+        <h4>Книги {{pager.GetOffset()+1}}-{{pager.GetOffset()+pager.GetPageSize()}} из {{pager.GetTotal()}}</h4>
+        {% else %}
+        <h4>Книги {{pager.GetOffset()+1}}-{{pager.GetTotal()}} из {{pager.GetTotal()}}</h4>
+        {% endif %}
+    </div>
+    <div class="col-2 col-4-xsmall">
+        <select id="demo-category" onchange="if (this.value) window.location.href=this.value" style="text-align: center;">
+            <option value="{{pager.GetLink(1,20)}}"{% if pager.GetPageSize() == 20 %} selected{%endif%}>20</option>
+            <option value="{{pager.GetLink(1,60)}}"{% if pager.GetPageSize() == 60 %} selected{%endif%}>60</option>
+            <option value="{{pager.GetLink(1,180)}}"{% if pager.GetPageSize() == 180 %} selected{%endif%}>180</option>
+        </select>
+    </div>
+{% else %}
+    <div class="col-12"><h4>Книги не найдены</h4></div>
+{% endif %}
+</div>
+<div class="row books-list">
+{% for item in books %}
+    <div class="col-6 col-12-xsmall books-list-item">
+        <h4><a href="/books/{{item.ID}}">{{pager.GetOffset()+forloop.Counter}}. {{item.Titles|safe}}</a></h4>
+        {{ bookFeature("ISBN", item.ISBN, true) }}
+        {{ bookFeature("Авторы", item.Authors, true) }}
+        {{ bookFeature("Серия", item.Sequences, true) }}
+        {{ bookFeature("Дата", item.Date, true) }}
+        {{ bookFeature("Издатель", item.Publisher, true) }}
+        {{ bookFeature("Жанр", item.Genres, true) }}
+        {{ bookFeature("Язык", item.Lang) }}
+        <a href="/download/{{item.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{item.SizeUncompressed|filesize}})</a>
+        <a href="/download/{{item.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
+    </div>
+{% endfor %}
+</div>
+{% if pager && pager.HasPages() %}
+<ul class="pagination">
+    {%if pager.HasPrev() %}
+    <li>
+        <a href="{{pager.GetLinkFirst()}}" class="button">Начало</a>
+        <a href="{{pager.GetLinkPrev()}}" class="button">Назад</a>
+    </li>
+    {% else %}
+    <li>
+        <span class="button disabled">Начало</span>
+        <span class="button disabled">Назад</span>
+    </li>
+    {% endif %}
+    {% for page in pager.GetPages()%}
+        {%if pager.IsCurPage(page) %}
+        <li><span class="page active">{{page}}</span></li>
+        {% else %}
+        <li><a href="{{pager.GetLink(page,0)}}" class="page">{{page}}</a></li>
+        {% endif %}
+    {% endfor %}    
+    {%if pager.HasNext() %}
+    <li>
+        <a href="{{pager.GetLinkNext()}}" class="button">Вперед</a>
+        <a href="{{pager.GetLinkLast()}}" class="button">Конец</a>
+    </li>
+    {% else %}
+    <li>
+        <span class="button disabled">Вперед</span>
+        <span class="button disabled">Конец</span>
+    </li>
+    {% endif %}
+</ul>
+{%endif%}
+{% endblock %}

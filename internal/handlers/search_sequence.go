@@ -28,6 +28,7 @@ func SearchSequencesHandler(repo entities.IBooksIndexRepo) echo.HandlerFunc {
 			"search_query":       searchQuery,
 			"search_placeholder": "Название серии книг",
 			"search_type":        "sequences",
+			"title":              "Поиск по книжным сериям",
 
 			"books": books,
 			"pager": pager,
