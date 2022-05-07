@@ -2,8 +2,6 @@ package entities
 
 import (
 	"bytes"
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -12,7 +10,7 @@ import (
 	"github.com/egnd/fb2lib/pkg/fb2parser"
 )
 
-var (
+const (
 	IndexFieldSep = "; "
 )
 
@@ -65,13 +63,11 @@ func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 		res.appendStr(fb2.Description.SrcTitleInfo.Date, &res.Date)
 	}
 
-	hasher := md5.New()
-	hasher.Write([]byte(res.ISBN))
-	hasher.Write([]byte(res.Titles))
-	hasher.Write([]byte(res.Authors))
-
-	res.ID = hex.EncodeToString(hasher.Sum(nil))
-	res.Year = parseYear(res.Date)
+	res.Year = ParseYear(res.Date)
+	res.ID = GenerateID([]string{res.ISBN, res.Lang, fmt.Sprint(res.Year)},
+		strings.Split(res.Titles, ";"),
+		strings.Split(strings.ReplaceAll(res.Authors, ",", ";"), ";"),
+	)
 
 	return res
 }
@@ -94,7 +90,7 @@ func (bi *BookIndex) appendAuthors(items []fb2parser.FB2Author) {
 		}
 	}
 
-	bi.Authors = strings.Trim(buf.String(), IndexFieldSep+", ")
+	bi.Authors = strings.Trim(buf.String(), IndexFieldSep+",")
 }
 
 func (bi *BookIndex) appendSequences(items []fb2parser.FB2Sequence) {

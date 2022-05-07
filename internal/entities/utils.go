@@ -1,7 +1,10 @@
 package entities
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -12,7 +15,7 @@ var (
 	currentYear       = time.Now().Year()
 )
 
-func parseYear(date string) (res uint16) {
+func ParseYear(date string) (res uint16) {
 	if date == "" {
 		return
 	}
@@ -31,4 +34,22 @@ func parseYear(date string) (res uint16) {
 	}
 
 	return
+}
+
+func GenerateID(args ...[]string) string {
+	hasher := md5.New()
+
+	for _, vals := range args {
+		sort.Strings(vals)
+
+		for _, str := range vals {
+			str = strings.TrimSpace(str)
+
+			if str != "" {
+				hasher.Write([]byte(str))
+			}
+		}
+	}
+
+	return hex.EncodeToString(hasher.Sum(nil))
 }
