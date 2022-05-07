@@ -184,7 +184,7 @@ func newPool(workersCnt, bufsize int) *wpool.Pool {
 }
 
 func newLogFileOutput(cfg *viper.Viper) (out *os.File, err error) {
-	if err = os.MkdirAll(cfg.GetString("logs.dir"), 0755); err != nil {
+	if err = os.MkdirAll(cfg.GetString("logs.dir"), 0644); err != nil {
 		return
 	}
 

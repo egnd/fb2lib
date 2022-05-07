@@ -1,6 +1,23 @@
 server:
   port: 8080
-  debug: true
+  debug: false
 logs:
-  debug: true
-  pretty: true
+  debug: false
+  pretty: false
+  duration_unit: 1s
+  dir: var/logs
+bleve:
+  highlight: true
+converter:
+  dir: var/converter
+renderer:
+  tpl_dir: web/themes/editorial
+  globals:
+    gtitle: fb2library
+pprof:
+  dir: var/pprof
+libraries:
+  default:
+    books_dir: var/lib/books
+    index_dir: var/lib/index
+    enabled: true
