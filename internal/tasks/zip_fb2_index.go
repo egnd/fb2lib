@@ -5,9 +5,11 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"os"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -27,7 +29,8 @@ type ZIPFB2IndexTask struct {
 	markPath      string
 	batchChan     chan entities.BookIndex
 	batchStopChan chan struct{}
-	archiveFile   os.FileInfo
+	archive       os.FileInfo
+	lib           entities.CfgLibrary
 	logger        zerolog.Logger
 	wg            *sync.WaitGroup
 	cntTotal      *entities.CntAtomic32
@@ -39,10 +42,10 @@ type ZIPFB2IndexTask struct {
 }
 
 func NewZIPFB2IndexTask(
-	archiveFile os.FileInfo,
+	archive os.FileInfo,
 	archiveDir string,
-	indexDir string,
 	batchSize int,
+	lib entities.CfgLibrary,
 	cntTotal *entities.CntAtomic32,
 	cntIndexed *entities.CntAtomic32,
 	logger zerolog.Logger,
@@ -52,13 +55,14 @@ func NewZIPFB2IndexTask(
 	index entities.ISearchIndex,
 ) *ZIPFB2IndexTask {
 	hasher := md5.New()
+	hasher.Write([]byte(lib.Name))
 	hasher.Write([]byte(archiveDir))
-	hasher.Write([]byte(archiveFile.Name()))
+	hasher.Write([]byte(archive.Name()))
 
 	return &ZIPFB2IndexTask{
-		markPath:     path.Join(indexDir, hex.EncodeToString(hasher.Sum(nil))+".mark"),
+		markPath:     path.Join(lib.IndexDir, hex.EncodeToString(hasher.Sum(nil))+".mark"),
 		archiveDir:   archiveDir,
-		archiveFile:  archiveFile,
+		archive:      archive,
 		logger:       logger,
 		wg:           wg,
 		cntTotal:     cntTotal,
@@ -67,13 +71,14 @@ func NewZIPFB2IndexTask(
 		totalBar:     totalBar,
 		batchSize:    batchSize,
 		index:        index,
+		lib:          lib,
 	}
 }
 
 func (t *ZIPFB2IndexTask) Do(context.Context) {
 	defer func() {
 		if t.totalBar != nil {
-			t.totalBar.IncrInt64(t.archiveFile.Size())
+			t.totalBar.IncrInt64(t.archive.Size())
 		}
 
 		t.cntTotal.Inc(t.itemsTotal)
@@ -83,7 +88,7 @@ func (t *ZIPFB2IndexTask) Do(context.Context) {
 
 	if _, err := os.Stat(t.markPath); err == nil {
 		t.logger.Info().
-			Str("path", path.Join(t.archiveDir, t.archiveFile.Name())).
+			Str("path", path.Join(t.archiveDir, t.archive.Name())).
 			Msg("archive already indexed")
 
 		return
@@ -108,7 +113,7 @@ func (t *ZIPFB2IndexTask) Do(context.Context) {
 	go t.runBatcher(&batchWg)
 
 	if err := library.NewZipItemIterator(
-		path.Join(t.archiveDir, t.archiveFile.Name()), t.logger,
+		path.Join(t.lib.BooksDir, t.archiveDir, t.archive.Name()), t.logger,
 	).IterateItems(t.handleArchiveItem); err != nil {
 		t.logger.Error().Err(err).Msg("iterate over archive")
 		t.batchStopChan <- struct{}{}
@@ -128,11 +133,11 @@ func (t *ZIPFB2IndexTask) Do(context.Context) {
 }
 
 func (t *ZIPFB2IndexTask) initBar() *mpb.Bar {
-	return t.barContainer.AddBar(t.archiveFile.Size(),
+	return t.barContainer.AddBar(t.archive.Size(),
 		mpb.BarRemoveOnComplete(),
 		mpb.PrependDecorators(
 			decor.Name("thread: "),
-			decor.Name(t.archiveFile.Name()),
+			decor.Name(t.archive.Name()),
 		),
 		mpb.AppendDecorators(
 			decor.AverageETA(decor.ET_STYLE_GO),
@@ -162,10 +167,15 @@ func (t *ZIPFB2IndexTask) handleArchiveItem(zipItem *zip.File, data io.Reader, o
 		logger = logger.With().Str("fb2-title", fb2File.Description.TitleInfo.BookTitle).Logger()
 
 		doc := entities.NewBookIndex(fb2File)
-		doc.Src = path.Join(t.archiveDir, t.archiveFile.Name(), zipItem.Name)
+		doc.LibName = t.lib.Name
+		doc.Src = path.Join(t.archiveDir, t.archive.Name(), zipItem.Name)
 		doc.Offset = uint64(offset)
 		doc.SizeCompressed = zipItem.CompressedSize64
 		doc.SizeUncompressed = zipItem.UncompressedSize64
+		doc.ID = entities.GenerateID([]string{doc.ISBN, doc.Lang, fmt.Sprint(doc.Year)},
+			strings.Split(doc.Titles, ";"),
+			strings.Split(strings.ReplaceAll(doc.Authors, ",", ";"), ";"),
+		)
 
 		t.batchChan <- doc
 

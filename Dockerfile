@@ -20,5 +20,4 @@ COPY --from=build /src/tmp_dir /tmp
 COPY --from=build /src/binaries bin
 COPY configs configs
 COPY web web
-VOLUME ["/var/index"]
 ENTRYPOINT ["server"]

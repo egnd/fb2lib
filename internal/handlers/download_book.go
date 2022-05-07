@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -14,7 +15,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-func DownloadBookHandler(repo entities.IBooksIndexRepo, cfg *viper.Viper, logger zerolog.Logger) echo.HandlerFunc {
+func DownloadBookHandler(libsCfg entities.CfgLibsMap,
+	repo entities.IBooksIndexRepo, cfg *viper.Viper, logger zerolog.Logger,
+) echo.HandlerFunc {
 	converterDir := cfg.GetString("converter.dir")
 	if err := os.MkdirAll(converterDir, 0755); err != nil {
 		panic(err)
@@ -35,6 +38,13 @@ func DownloadBookHandler(repo entities.IBooksIndexRepo, cfg *viper.Viper, logger
 		if book, err = repo.GetBook(bookID); err != nil {
 			c.NoContent(http.StatusNotFound)
 			return
+		}
+
+		if lib, ok := libsCfg[book.LibName]; ok {
+			book.Src = path.Join(lib.BooksDir, book.Src)
+		} else {
+			c.NoContent(http.StatusInternalServerError)
+			return errors.New("can't define book library")
 		}
 
 		switch {

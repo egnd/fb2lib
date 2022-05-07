@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func NewEchoServer(cfg *viper.Viper, logger zerolog.Logger,
+func NewEchoServer(libsCfg entities.CfgLibsMap, cfg *viper.Viper, logger zerolog.Logger,
 	booksRepo entities.IBooksIndexRepo, fb2Repo entities.IBooksDataRepo,
 ) (*echo.Echo, error) {
 	var err error
@@ -40,8 +40,8 @@ func NewEchoServer(cfg *viper.Viper, logger zerolog.Logger,
 	server.GET("/", handlers.SearchHandler(booksRepo))
 	server.GET("/authors", handlers.SearchAuthorsHandler(booksRepo))
 	server.GET("/sequences", handlers.SearchSequencesHandler(booksRepo))
-	server.GET("/download/:book_name", handlers.DownloadBookHandler(booksRepo, cfg, logger))
-	server.GET("/books/:book_id", handlers.BookDetailsHandler(booksRepo, fb2Repo, logger))
+	server.GET("/download/:book_name", handlers.DownloadBookHandler(libsCfg, booksRepo, cfg, logger))
+	server.GET("/books/:book_id", handlers.BookDetailsHandler(libsCfg, booksRepo, fb2Repo, logger))
 
 	return server, nil
 }

@@ -190,6 +190,7 @@ func (r *BooksIndexBleve) getBooks(
 			SizeUncompressed: uint64(item.Fields["SizeUncompressed"].(float64)),
 			Lang:             item.Fields["Lang"].(string),
 			Src:              item.Fields["Src"].(string),
+			LibName:          item.Fields["LibName"].(string),
 			ID:               item.ID,
 			ISBN:             item.Fields["ISBN"].(string),
 			Titles:           item.Fields["Titles"].(string),

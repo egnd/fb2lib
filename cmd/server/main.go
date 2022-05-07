@@ -8,6 +8,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/internal/factories"
 	"github.com/egnd/fb2lib/internal/repos"
 )
@@ -40,9 +41,14 @@ func main() {
 		logger.Fatal().Err(err).Msg("init index")
 	}
 
+	libsCfg, err := entities.NewCfgLibsMap(cfg, "")
+	if err != nil {
+		logger.Fatal().Err(err).Msg("init libs cfg")
+	}
+
 	repoIndex := repos.NewBooksIndexBleve(cfg.GetBool("bleve.highlight"), booksIndex, logger)
 	repoFB2 := repos.NewBooksDataFB2Files()
-	server, err := factories.NewEchoServer(cfg, logger, repoIndex, repoFB2)
+	server, err := factories.NewEchoServer(libsCfg, cfg, logger, repoIndex, repoFB2)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("init http server")
 	}

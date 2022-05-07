@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -213,12 +214,14 @@ func processLib(
 
 	return library.NewLocalFSItems(
 		lib.BooksDir, libFormats, logger,
-	).IterateItems(func(libFile os.FileInfo, libDir string, num, total int, logger zerolog.Logger) error {
-		switch path.Ext(libFile.Name()) {
+	).IterateItems(func(archive os.FileInfo, libDir string, num, total int, logger zerolog.Logger) error {
+		switch path.Ext(archive.Name()) {
 		case ".zip":
 			wg.Add(1)
+
 			return pool.Add(tasks.NewZIPFB2IndexTask(
-				libFile, libDir, lib.IndexDir, *batchSize, &cntTotal, &cntIndexed, logger, wg, bar, totalBar, index,
+				archive, strings.TrimPrefix(libDir, lib.BooksDir), *batchSize, lib, &cntTotal, &cntIndexed,
+				logger, wg, bar, totalBar, index,
 			))
 		default:
 			return nil

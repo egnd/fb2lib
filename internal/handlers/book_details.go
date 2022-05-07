@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
+	"path"
 
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/flosch/pongo2/v5"
@@ -9,7 +11,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func BookDetailsHandler(
+func BookDetailsHandler(libsCfg entities.CfgLibsMap,
 	indexRepo entities.IBooksIndexRepo, fb2Repo entities.IBooksDataRepo, logger zerolog.Logger,
 ) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
@@ -17,6 +19,13 @@ func BookDetailsHandler(
 		if bookIdx, err = indexRepo.GetBook(c.Param("book_id")); err != nil {
 			c.NoContent(http.StatusNotFound)
 			return
+		}
+
+		if lib, ok := libsCfg[bookIdx.LibName]; ok {
+			bookIdx.Src = path.Join(lib.BooksDir, bookIdx.Src)
+		} else {
+			c.NoContent(http.StatusInternalServerError)
+			return errors.New("can't define book library")
 		}
 
 		var book entities.FB2Book

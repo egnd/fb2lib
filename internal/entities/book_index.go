@@ -21,6 +21,7 @@ type BookIndex struct {
 	SizeUncompressed uint64
 	ID               string
 	Lang             string
+	LibName          string
 	Src              string
 	ISBN             string
 	Titles           string
@@ -64,10 +65,6 @@ func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 	}
 
 	res.Year = ParseYear(res.Date)
-	res.ID = GenerateID([]string{res.ISBN, res.Lang, fmt.Sprint(res.Year)},
-		strings.Split(res.Titles, ";"),
-		strings.Split(strings.ReplaceAll(res.Authors, ",", ";"), ";"),
-	)
 
 	return res
 }
@@ -176,6 +173,7 @@ func NewBookIndexMapping() *mapping.IndexMappingImpl {
 	books.AddFieldMappingsAt("SizeCompressed", numField)
 	books.AddFieldMappingsAt("SizeUncompressed", numField)
 	books.AddFieldMappingsAt("Lang", strField)
+	books.AddFieldMappingsAt("LibName", strField)
 	books.AddFieldMappingsAt("Src", strField)
 
 	books.AddFieldMappingsAt("ISBN", strIndexedField)
