@@ -13,9 +13,9 @@ This is a server for indexing and searching fb2-books at zip archives.
 2. Create index:
 ```bash
 docker run --rm -t --entrypoint=indexer \
-    -v $(pwd)/index:/var/index \
+    -v $(pwd)/books:/var/lib/books \
+    -v $(pwd)/index:/var/lib/index \
     -v $(pwd)/logs:/var/logs \
-    -v $(pwd)/library:/var/library \
     egnd/fb2lib -workers=4 -batchsize=300
 ```
 

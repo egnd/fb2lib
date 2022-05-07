@@ -7,4 +7,4 @@ services:
         TARGETOS: ${DC_TARGETOS}
         TARGETARCH: ${DC_TARGETARCH}
     # entrypoint: ["indexer"]
-    # command: ["-rewrite", "-hidebar"]
+    # command: ["-reset", "-hidebar"]

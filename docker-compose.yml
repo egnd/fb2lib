@@ -7,8 +7,9 @@ services:
     ports:
       - ${DC_SERVER_PORT}:${BS_SERVER_PORT}
     volumes:
-      - ./var/library:/var/library:rw
-      - ./var/index:/var/index:rw
-      - ./var/cache:/var/cache:rw
+      - ./configs/app.override.yml:/configs/app.override.yml:ro
+      - ./var/lib/books:/var/lib/books:ro
+      - ./var/lib/index:/var/lib/index:rw
+      - ./var/converter:/var/converter:rw
       - ./var/logs:/var/logs:rw
       - ./var/pprof:/var/pprof:rw

@@ -1,6 +1,7 @@
 /.git
 /.devcontainer
 /.vscode
+/configs/*.override.y*ml
 /var
 /web/html
 

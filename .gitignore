@@ -1,4 +1,5 @@
 /bin
+/configs/*.override.y*ml
 /fb2c-*.zip
 /var
 /.env

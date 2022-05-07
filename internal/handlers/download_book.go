@@ -15,7 +15,7 @@ import (
 )
 
 func DownloadBookHandler(repo entities.IBooksIndexRepo, cfg *viper.Viper, logger zerolog.Logger) echo.HandlerFunc {
-	converterDir := cfg.GetString("library.converter_dir")
+	converterDir := cfg.GetString("converter.dir")
 	if err := os.MkdirAll(converterDir, 0755); err != nil {
 		panic(err)
 	}

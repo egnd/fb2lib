@@ -43,7 +43,7 @@ func GenerateID(args ...[]string) string {
 		sort.Strings(vals)
 
 		for _, str := range vals {
-			str = strings.TrimSpace(str)
+			str = strings.ToLower(strings.TrimSpace(str))
 
 			if str != "" {
 				hasher.Write([]byte(str))
