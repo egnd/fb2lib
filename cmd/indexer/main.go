@@ -198,13 +198,13 @@ func processLib(
 	lib entities.CfgLibrary,
 	logger zerolog.Logger, pool *wpool.Pool, wg *sync.WaitGroup,
 ) (err error) {
-	var index bleve.Index
-	if _, statErr := os.Stat(lib.IndexDir); *resetIndex || statErr != nil {
+	if *resetIndex {
 		os.RemoveAll(lib.IndexDir)
-		os.MkdirAll(lib.IndexDir, 0644)
+	}
+
+	var index bleve.Index
+	if index, err = bleve.Open(lib.IndexDir); err != nil {
 		index, err = bleve.New(lib.IndexDir, entities.NewBookIndexMapping())
-	} else {
-		index, err = bleve.Open(lib.IndexDir)
 	}
 
 	if err != nil {
