@@ -199,8 +199,9 @@ func processLib(
 	logger zerolog.Logger, pool *wpool.Pool, wg *sync.WaitGroup,
 ) (err error) {
 	var index bleve.Index
-	if *resetIndex {
+	if _, statErr := os.Stat(lib.IndexDir); *resetIndex || statErr != nil {
 		os.RemoveAll(lib.IndexDir)
+		os.MkdirAll(lib.IndexDir, 0644)
 		index, err = bleve.New(lib.IndexDir, entities.NewBookIndexMapping())
 	} else {
 		index, err = bleve.Open(lib.IndexDir)
