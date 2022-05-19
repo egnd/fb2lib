@@ -1,3 +1,6 @@
-- hashsum of zip archive at index name
+- logger skipper
+- xml stream token parser
+- archives without flate
+- indexer skip patterns
 - ci jobs for units and linting
 - add rest api

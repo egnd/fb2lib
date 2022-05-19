@@ -1,6 +1,7 @@
 package factories
 
 import (
+	"net/http"
 	"path"
 
 	"github.com/egnd/fb2lib/internal/entities"
@@ -36,6 +37,9 @@ func NewEchoServer(libsCfg entities.CfgLibsMap, cfg *viper.Viper, logger zerolog
 
 	server.File("/favicon.ico", path.Join(cfg.GetString("renderer.tpl_dir"), "assets/favicon.ico"))
 	server.Static("/assets", path.Join(cfg.GetString("renderer.tpl_dir"), "assets"))
+	server.GET("/live", func(c echo.Context) error {
+		return c.String(http.StatusOK, "OK")
+	})
 
 	server.GET("/", handlers.SearchHandler(booksRepo))
 	server.GET("/authors", handlers.SearchAuthorsHandler(booksRepo))
