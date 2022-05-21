@@ -1,4 +1,5 @@
-- archives without flate
+- books index repo batching
+- zip task without duplicate runs
 - xml stream token parser
 - logger skipper
 - indexer skip patterns

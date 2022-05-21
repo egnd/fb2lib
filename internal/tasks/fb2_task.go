@@ -1,4 +1,4 @@
-package indexing
+package tasks
 
 import (
 	"fmt"
@@ -13,19 +13,21 @@ import (
 )
 
 type FB2IndexTask struct {
-	pathStr    string
-	lib        entities.Library
-	repo       entities.IBooksIndexRepo
-	logger     zerolog.Logger
-	bar        *mpb.Bar
-	cntTotal   *entities.CntAtomic32
-	cntIndexed *entities.CntAtomic32
-	wg         *sync.WaitGroup
+	libName     string
+	itemPath    string
+	itemPathRaw string
+	repo        entities.IBooksIndexRepo
+	logger      zerolog.Logger
+	bar         *mpb.Bar
+	cntTotal    *entities.CntAtomic32
+	cntIndexed  *entities.CntAtomic32
+	wg          *sync.WaitGroup
 }
 
 func NewFB2IndexTask(
-	pathStr string,
-	lib entities.Library,
+	libName string,
+	itemPath string,
+	itemPathRaw string,
 	repo entities.IBooksIndexRepo,
 	logger zerolog.Logger,
 	bar *mpb.Bar,
@@ -34,18 +36,19 @@ func NewFB2IndexTask(
 	wg *sync.WaitGroup,
 ) *FB2IndexTask {
 	return &FB2IndexTask{
-		pathStr:    pathStr,
-		lib:        lib,
-		repo:       repo,
-		logger:     logger.With().Str("task", "fb2index").Logger(),
-		cntTotal:   cntTotal,
-		cntIndexed: cntIndexed,
-		wg:         wg,
+		libName:     libName,
+		itemPath:    itemPath,
+		itemPathRaw: itemPathRaw,
+		repo:        repo,
+		cntTotal:    cntTotal,
+		cntIndexed:  cntIndexed,
+		wg:          wg,
+		logger:      logger.With().Str("task", "fb2_index").Logger(),
 	}
 }
 
 func (t *FB2IndexTask) GetID() string {
-	return fmt.Sprintf("fb2index %s", t.pathStr)
+	return fmt.Sprintf("fb2_index [%s] %s", t.libName, t.itemPath)
 }
 
 func (t *FB2IndexTask) Do() {
@@ -54,9 +57,9 @@ func (t *FB2IndexTask) Do() {
 		t.wg.Done()
 	}()
 
-	file, err := os.Open(t.pathStr)
+	file, err := os.Open(t.itemPathRaw)
 	if err != nil {
-		t.logger.Error().Err(err).Msg("open fb2 file")
+		t.logger.Error().Err(err).Msg("open item")
 		return
 	}
 	defer file.Close()
@@ -68,27 +71,23 @@ func (t *FB2IndexTask) Do() {
 
 	fb2File, err := fb2parser.UnmarshalStream(file)
 	if err != nil {
-		t.logger.Error().Err(err).Msg("parse fb2 file")
+		t.logger.Error().Err(err).Msg("parse item")
 		return
 	}
 
 	doc := entities.NewBookIndex(fb2File)
 	doc.SizeUncompressed = uint64(finfo.Size())
-	doc.LibName = t.lib.Name
-	doc.Src = strings.TrimPrefix(t.pathStr, t.lib.BooksDir)
+	doc.LibName = t.libName
+	doc.Src = t.itemPath
 	doc.ID = entities.GenerateID([]string{doc.ISBN, doc.Lang, fmt.Sprint(doc.Year)},
 		strings.Split(doc.Titles, ";"),
 		strings.Split(strings.ReplaceAll(doc.Authors, ",", ";"), ";"),
 	)
 
-	// doc.Offset = t.book.Archive.Offset
-	// doc.SizeCompressed = t.book.Archive.Size
-	// doc.Src = path.Join(t.book.Archive.Path, t.book.Path)
-
 	if err = t.repo.SaveBook(doc); err != nil {
 		t.logger.Error().Err(err).
 			Str("bookname", fb2File.Description.TitleInfo.BookTitle).
-			Msg("index fb2 file")
+			Msg("indexing")
 	}
 
 	t.cntIndexed.Inc(1)

@@ -71,7 +71,7 @@ func (l *Library) GetItems() (res []string, err error) {
 				return iterErr
 			}
 
-			if info.IsDir() || !StringInSlice(l.Types, strings.TrimPrefix(path.Ext(info.Name()), ".")) {
+			if info.IsDir() || !SliceHasString(l.Types, strings.TrimPrefix(path.Ext(info.Name()), ".")) {
 				return nil
 			}
 

@@ -3,6 +3,6 @@
 /fb2c-*.zip
 /var
 /.env
-/docker-compose.override.yml
 .DS_Store
 *.log
+*.override.yml

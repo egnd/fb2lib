@@ -21,8 +21,8 @@ import (
 
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/internal/factories"
-	"github.com/egnd/fb2lib/internal/indexing"
 	"github.com/egnd/fb2lib/internal/repos"
+	"github.com/egnd/fb2lib/internal/tasks"
 )
 
 var (
@@ -34,8 +34,8 @@ var (
 
 	resetIndex = flag.Bool("reset", false, "Clear indexes first.")
 	hideBar    = flag.Bool("hidebar", false, "Hide progress bar.")
-	// threadsCnt = flag.Int("threads", 1, "Parallel threads count.")
-	buffSize = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
+	threadsCnt = flag.Int("threads", 1, "Parallel threads count.")
+	buffSize   = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
 	// batchSize  = flag.Int("batchsize", 100, "Books index batch size.")
 	libName  = flag.String("lib", "", "Handle only specific lib.")
 	profiler = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
@@ -94,21 +94,26 @@ func main() {
 		}
 	}()
 
+	semaphore := make(chan struct{}, *threadsCnt)
+	defer close(semaphore)
+
 	if err = IterateLibs(libs, repoList, &wg, logger,
-		pool, bar, &cntTotal, &cntIndexed); err != nil {
+		pool, bar, &cntTotal, &cntIndexed, semaphore); err != nil {
 		logger.Fatal().Err(err).Msg("iterate libs")
 	}
 
 	wg.Wait()
 	time.Sleep(1 * time.Second)
 
-	logger.Info().Uint32("total", cntTotal.Total()).Uint32("indexed", cntIndexed.Total()).
+	logger.Info().
+		Uint32("succeed", cntIndexed.Total()).
+		Uint32("failed", cntTotal.Total()-cntIndexed.Total()).
 		Dur("dur", time.Since(startTS)).Msg("indexing finished")
 }
 
 func IterateLibs(libs entities.Libraries, repoList map[string]entities.IBooksIndexRepo,
 	wg *sync.WaitGroup, logger zerolog.Logger, pool interfaces.Pool, bar *mpb.Bar,
-	cntTotal *entities.CntAtomic32, cntIndexed *entities.CntAtomic32,
+	cntTotal *entities.CntAtomic32, cntIndexed *entities.CntAtomic32, semaphore chan struct{},
 ) error {
 	libItems, err := libs.GetItems()
 	if err != nil {
@@ -117,18 +122,28 @@ func IterateLibs(libs entities.Libraries, repoList map[string]entities.IBooksInd
 
 	for libItem, libTitle := range libItems {
 		lib := libs[libTitle]
-		logger := logger.With().Str("libitem", strings.TrimPrefix(libItem, lib.BooksDir)).
-			Str("libname", libTitle).Logger()
+		itemPath := strings.TrimPrefix(libItem, lib.BooksDir)
+		logger := logger.With().Str("libname", lib.Name).Str("libitem", itemPath).Logger()
+
+		logger.Debug().Msg("lib item found")
 
 		switch path.Ext(libItem) {
 		case ".zip":
-			logger = logger.With().Str("libsubitem", libItem).Logger()
-			// @TODO: check if exists
-			// @TODO: iterate with semaphore
-			// @TODO: save item mark
+			wg.Add(1)
+			semaphore <- struct{}{}
+			go func() {
+				defer func() {
+					<-semaphore
+					wg.Done()
+				}()
+
+				tasks.NewZipIndexTask(libItem, lib,
+					repoList[lib.IndexDir], logger, bar, cntTotal, cntIndexed, wg, pool,
+				).Do()
+			}()
 		case ".fb2":
 			wg.Add(1)
-			if err := pool.AddTask(indexing.NewFB2IndexTask(libItem, libs[libTitle],
+			if err := pool.AddTask(tasks.NewFB2IndexTask(lib.Name, itemPath, libItem,
 				repoList[lib.IndexDir], logger, bar, cntTotal, cntIndexed, wg,
 			)); err != nil {
 				logger.Error().Err(err).Msg("send fb2 to pool")

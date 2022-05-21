@@ -21,6 +21,4 @@ libraries:
     disabled: false
     books_dir: var/lib/books
     index_dir: var/lib/index
-    types:
-      - fb2
-      # - zip
+    types: [] # fb2,zip
