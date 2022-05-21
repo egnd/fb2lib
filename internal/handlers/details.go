@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"errors"
+	"fmt"
 	"net/http"
 	"path"
 
@@ -11,8 +11,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func BookDetailsHandler(libsCfg entities.Libraries,
-	indexRepo entities.IBooksIndexRepo, fb2Repo entities.IBooksDataRepo, logger zerolog.Logger,
+func DetailsHandler(
+	indexRepo entities.IBooksIndexRepo, repoBooks entities.IBooksDataRepo, logger zerolog.Logger,
 ) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		var bookIdx entities.BookIndex
@@ -21,17 +21,19 @@ func BookDetailsHandler(libsCfg entities.Libraries,
 			return
 		}
 
-		if lib, ok := libsCfg[bookIdx.LibName]; ok {
-			bookIdx.Src = path.Join(lib.BooksDir, bookIdx.Src)
-		} else {
-			c.NoContent(http.StatusInternalServerError)
-			return errors.New("can't define book library")
-		}
-
 		var book entities.FB2Book
-		if book, err = fb2Repo.GetFor(bookIdx); err != nil {
+
+		switch path.Ext(bookIdx.Src) {
+		case ".fb2", ".zip":
+			if book, err = repoBooks.GetFB2(bookIdx); err != nil {
+				c.NoContent(http.StatusInternalServerError)
+				return
+			}
+		default:
 			c.NoContent(http.StatusInternalServerError)
-			return
+			return fmt.Errorf(
+				"details handler error: invalid book type %s", path.Ext(bookIdx.Src),
+			)
 		}
 
 		return c.Render(http.StatusOK, "books-details.html", pongo2.Context{

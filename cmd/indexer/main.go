@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -35,7 +36,7 @@ var (
 	resetIndex = flag.Bool("reset", false, "Clear indexes first.")
 	hideBar    = flag.Bool("hidebar", false, "Hide progress bar.")
 	threadsCnt = flag.Int("threads", 1, "Parallel threads count.")
-	buffSize   = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
+	buffSize   = flag.Int("bufsize", 0, "Workers pool queue size.")
 	// batchSize  = flag.Int("batchsize", 100, "Books index batch size.")
 	libName  = flag.String("lib", "", "Handle only specific lib.")
 	profiler = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
@@ -164,8 +165,11 @@ func GetRepos(reset bool, libs entities.Libraries, logger zerolog.Logger) (map[s
 		}
 
 		if reset {
-			if err := os.RemoveAll(path.Join(lib.IndexDir, "*")); err != nil && !os.IsNotExist(err) {
-				return nil, err
+			files, _ := filepath.Glob(path.Join(lib.IndexDir, "*"))
+			for _, f := range files {
+				if err := os.RemoveAll(f); err != nil && !os.IsNotExist(err) {
+					return nil, err
+				}
 			}
 		}
 

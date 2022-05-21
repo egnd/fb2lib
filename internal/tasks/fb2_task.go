@@ -69,13 +69,13 @@ func (t *FB2IndexTask) Do() {
 		defer t.bar.IncrInt64(finfo.Size())
 	}
 
-	fb2File, err := fb2parser.UnmarshalStream(file)
-	if err != nil {
+	var fb2File fb2parser.FB2File
+	if err = fb2parser.UnmarshalStream(file, &fb2File); err != nil {
 		t.logger.Error().Err(err).Msg("parse item")
 		return
 	}
 
-	doc := entities.NewBookIndex(fb2File)
+	doc := entities.NewBookIndex(&fb2File)
 	doc.SizeUncompressed = uint64(finfo.Size())
 	doc.LibName = t.libName
 	doc.Src = t.itemPath
@@ -88,6 +88,7 @@ func (t *FB2IndexTask) Do() {
 		t.logger.Error().Err(err).
 			Str("bookname", fb2File.Description.TitleInfo.BookTitle).
 			Msg("indexing")
+		return
 	}
 
 	t.cntIndexed.Inc(1)

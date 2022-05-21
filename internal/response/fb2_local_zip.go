@@ -2,18 +2,28 @@ package response
 
 import (
 	"compress/flate"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/labstack/echo/v4"
 )
 
-func FB2FromLocalZip(book entities.BookIndex, server echo.Context) error {
-	zipFile, err := os.Open(strings.Split(book.Src, ".zip")[0] + ".zip")
+func FB2FromLocalZip(book entities.BookIndex, libs entities.Libraries, server echo.Context) error {
+	zipFilePath := strings.Split(book.Src, ".zip")[0] + ".zip"
+	if lib, ok := libs[book.LibName]; ok {
+		zipFilePath = path.Join(lib.BooksDir, zipFilePath)
+	} else {
+		server.NoContent(http.StatusInternalServerError)
+		return errors.New("can't define book library")
+	}
+
+	zipFile, err := os.Open(zipFilePath)
 	if err != nil {
 		return err
 	}

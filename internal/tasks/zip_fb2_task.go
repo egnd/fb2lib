@@ -87,13 +87,13 @@ func (t *ZipFB2IndexTask) Do() {
 
 	defer data.Close()
 
-	fb2File, err := fb2parser.UnmarshalStream(data)
-	if err != nil {
+	var fb2File fb2parser.FB2File
+	if err = fb2parser.UnmarshalStream(data, &fb2File); err != nil {
 		t.logger.Error().Err(err).Msg("parse zipped fb2 file")
 		return
 	}
 
-	doc := entities.NewBookIndex(fb2File)
+	doc := entities.NewBookIndex(&fb2File)
 	doc.SizeUncompressed = uint64(t.file.UncompressedSize64)
 	doc.SizeCompressed = uint64(t.file.CompressedSize64)
 	doc.Offset = uint64(offset)
@@ -108,6 +108,7 @@ func (t *ZipFB2IndexTask) Do() {
 		t.logger.Error().Err(err).
 			Str("bookname", fb2File.Description.TitleInfo.BookTitle).
 			Msg("index zipped fb2 file")
+		return
 	}
 
 	t.cntIndexed.Inc(1)

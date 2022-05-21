@@ -16,5 +16,5 @@ type IBooksIndexRepo interface {
 }
 
 type IBooksDataRepo interface {
-	GetFor(BookIndex) (FB2Book, error)
+	GetFB2(BookIndex) (FB2Book, error)
 }

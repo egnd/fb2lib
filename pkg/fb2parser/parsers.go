@@ -7,17 +7,16 @@ import (
 	"golang.org/x/net/html/charset"
 )
 
-func UnmarshalStream(data io.Reader) (*FB2File, error) {
+func UnmarshalStream(data io.Reader, v interface{}) error {
 	decoder := xml.NewDecoder(data)
 	decoder.CharsetReader = charset.NewReaderLabel
 	decoder.Strict = false
 	decoder.AutoClose = xml.HTMLAutoClose
 	decoder.Entity = xml.HTMLEntity
 
-	var res FB2File
-	if err := decoder.Decode(&res); err != nil {
-		return nil, err
+	if err := decoder.Decode(v); err != nil {
+		return err
 	}
 
-	return &res, nil
+	return nil
 }

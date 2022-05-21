@@ -22,7 +22,7 @@
     {% for item in books %}
     <article class="book-list-item">
         <header>
-            <h4><a href="/books/{{item.ID}}">{{pager.GetOffset()+forloop.Counter}}. {{item.Titles|safe}}</a></h4>
+            <h4><a href="/details/{{item.ID}}">{{pager.GetOffset()+forloop.Counter}}. {{item.Titles|safe}}</a></h4>
         </header>
         <p style="text-align: left;">
             {% if item.ISBN %}<a class="button small" href="?q={{item.ISBN|safe|striptags}}">ISBN: {{item.ISBN|safe}}</a>{% endif %}

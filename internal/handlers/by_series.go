@@ -9,7 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func SearchSequencesHandler(repo entities.IBooksIndexRepo) echo.HandlerFunc {
+func BySeriesHandler(repo entities.IBooksIndexRepo) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		searchQuery := c.QueryParam("q")
 

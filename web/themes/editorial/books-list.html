@@ -29,7 +29,7 @@
 <div class="row books-list">
 {% for item in books %}
     <div class="col-6 col-12-xsmall books-list-item">
-        <h4><a href="/books/{{item.ID}}">{{pager.GetOffset()+forloop.Counter}}. {{item.Titles|safe}}</a></h4>
+        <h4><a href="/details/{{item.ID}}">{{pager.GetOffset()+forloop.Counter}}. {{item.Titles|safe}}</a></h4>
         {{ bookFeature("ISBN", item.ISBN, true) }}
         {{ bookFeature("Авторы", item.Authors, true) }}
         {{ bookFeature("Серия", item.Sequences, true) }}

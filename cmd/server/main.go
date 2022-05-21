@@ -47,8 +47,8 @@ func main() {
 	}
 
 	repoIndex := repos.NewBooksIndexBleve(cfg.GetBool("bleve.highlight"), booksIndex, logger)
-	repoFB2 := repos.NewBooksDataFB2Files()
-	server, err := factories.NewEchoServer(libs, cfg, logger, repoIndex, repoFB2)
+	repoBooks := repos.NewBooksDataFiles(libs)
+	server, err := factories.NewEchoServer(libs, cfg, logger, repoIndex, repoBooks)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("init http server")
 	}

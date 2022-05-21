@@ -15,8 +15,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-func NewEchoServer(libsCfg entities.Libraries, cfg *viper.Viper, logger zerolog.Logger,
-	booksRepo entities.IBooksIndexRepo, fb2Repo entities.IBooksDataRepo,
+func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Logger,
+	repoIndex entities.IBooksIndexRepo, repoBooks entities.IBooksDataRepo,
 ) (*echo.Echo, error) {
 	var err error
 	server := echo.New()
@@ -41,11 +41,11 @@ func NewEchoServer(libsCfg entities.Libraries, cfg *viper.Viper, logger zerolog.
 		return c.String(http.StatusOK, "OK")
 	})
 
-	server.GET("/", handlers.SearchHandler(booksRepo))
-	server.GET("/authors", handlers.SearchAuthorsHandler(booksRepo))
-	server.GET("/sequences", handlers.SearchSequencesHandler(booksRepo))
-	server.GET("/download/:book_name", handlers.DownloadBookHandler(libsCfg, booksRepo, cfg, logger))
-	server.GET("/books/:book_id", handlers.BookDetailsHandler(libsCfg, booksRepo, fb2Repo, logger))
+	server.GET("/", handlers.SearchHandler(repoIndex))
+	server.GET("/by_authors/", handlers.ByAuthorsHandler(repoIndex))
+	server.GET("/by_series/", handlers.BySeriesHandler(repoIndex))
+	server.GET("/details/:book_id", handlers.DetailsHandler(repoIndex, repoBooks, logger))
+	server.GET("/download/:book_id", handlers.DownloadHandler(libs, repoIndex, cfg, logger))
 
 	return server, nil
 }

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -15,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func DownloadBookHandler(libsCfg entities.Libraries,
+func DownloadHandler(libs entities.Libraries,
 	repo entities.IBooksIndexRepo, cfg *viper.Viper, logger zerolog.Logger,
 ) echo.HandlerFunc {
 	converterDir := cfg.GetString("converter.dir")
@@ -25,12 +24,12 @@ func DownloadBookHandler(libsCfg entities.Libraries,
 
 	return func(c echo.Context) (err error) {
 		var bookID string
-		bookType := strings.Trim(path.Ext(c.Param("book_name")), ".")
+		bookType := strings.Trim(path.Ext(c.Param("book_id")), ".")
 		switch bookType {
 		case "epub", "fb2":
-			bookID = strings.TrimSuffix(c.Param("book_name"), "."+bookType)
+			bookID = strings.TrimSuffix(c.Param("book_id"), "."+bookType)
 		default:
-			c.NoContent(http.StatusNotFound)
+			c.NoContent(http.StatusBadRequest)
 			return
 		}
 
@@ -40,20 +39,15 @@ func DownloadBookHandler(libsCfg entities.Libraries,
 			return
 		}
 
-		if lib, ok := libsCfg[book.LibName]; ok {
-			book.Src = path.Join(lib.BooksDir, book.Src)
-		} else {
-			c.NoContent(http.StatusInternalServerError)
-			return errors.New("can't define book library")
-		}
-
 		switch {
-		case bookType == "fb2":
-			err = response.FB2FromLocalZip(book, c)
-		case bookType == "epub" && path.Ext(book.Src) == ".zip":
-			err = response.ConvertFB2EpubZipOffset(converterDir, book, c, logger)
+		case bookType == "fb2" && path.Ext(book.Src) == ".fb2" && strings.Contains(book.Src, ".zip"):
+			err = response.FB2FromLocalZip(book, libs, c)
+		case bookType == "fb2" && path.Ext(book.Src) == ".fb2":
+			err = response.BookAttachment(book, libs, c)
+		case bookType == "epub" && path.Ext(book.Src) == ".fb2" && strings.Contains(book.Src, ".zip"):
+			err = response.ConvertFB2EpubZipOffset(converterDir, book, libs, c, logger)
 		case bookType == "epub" && path.Ext(book.Src) == ".fb2":
-			err = response.ConvertFB2Epub(converterDir, book, c, logger)
+			err = response.ConvertFB2Epub(converterDir, book, libs, c, logger)
 		default:
 			err = fmt.Errorf("download %s book error: invalid src %s", bookType, book.Src)
 		}
