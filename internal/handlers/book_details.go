@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func BookDetailsHandler(libsCfg entities.CfgLibsMap,
+func BookDetailsHandler(libsCfg entities.Libraries,
 	indexRepo entities.IBooksIndexRepo, fb2Repo entities.IBooksDataRepo, logger zerolog.Logger,
 ) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {

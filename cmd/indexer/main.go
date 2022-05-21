@@ -1,17 +1,17 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/blevesearch/bleve/v2"
-	wpool "github.com/egnd/go-wpool"
+	"github.com/egnd/go-wpool/v2"
+	"github.com/egnd/go-wpool/v2/interfaces"
 	"github.com/pkg/profile"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -21,8 +21,8 @@ import (
 
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/internal/factories"
-	"github.com/egnd/fb2lib/internal/tasks"
-	"github.com/egnd/fb2lib/pkg/library"
+	"github.com/egnd/fb2lib/internal/indexing"
+	"github.com/egnd/fb2lib/internal/repos"
 )
 
 var (
@@ -32,25 +32,23 @@ var (
 	cfgPath     = flag.String("config", "configs/app.yml", "Configuration file path.")
 	cfgPrefix   = flag.String("env-prefix", "BS", "Prefix for env variables.")
 
-	resetIndex = flag.Bool("reset", false, "Reset indexe.")
+	resetIndex = flag.Bool("reset", false, "Clear indexes first.")
 	hideBar    = flag.Bool("hidebar", false, "Hide progress bar.")
-	workersCnt = flag.Int("workers", 1, "Index workers count.")
-	buffSize   = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
-	batchSize  = flag.Int("batchsize", 100, "Books index batch size.")
-	libName    = flag.String("lib", "", "Handle only specific lib.")
-	profiler   = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
-
-	wg         sync.WaitGroup
-	cntTotal   entities.CntAtomic32
-	cntIndexed entities.CntAtomic32
-	bar        *mpb.Progress
-	totalBar   *mpb.Bar
-
-	libFormats = []string{".zip"} // @TODO: tar.gz
-	ctx        = context.Background()
+	// threadsCnt = flag.Int("threads", 1, "Parallel threads count.")
+	buffSize = flag.Int("bufsize", 0, "Workers pool queue buffer size.")
+	// batchSize  = flag.Int("batchsize", 100, "Books index batch size.")
+	libName  = flag.String("lib", "", "Handle only specific lib.")
+	profiler = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
 )
 
 func main() {
+	var (
+		wg         sync.WaitGroup
+		cntTotal   entities.CntAtomic32
+		cntIndexed entities.CntAtomic32
+		startTS    = time.Now()
+	)
+
 	flag.Parse()
 
 	if *showVersion {
@@ -63,85 +61,167 @@ func main() {
 		log.Fatal().Err(err).Msg("init config")
 	}
 
-	if *profiler != "" {
-		defer profilerStart(*profiler, cfg).Stop()
-	}
-
 	logger := factories.NewZerologLogger(cfg, os.Stderr)
-	startTS := time.Now()
 
-	pool := newPool(*workersCnt, *buffSize)
-	defer pool.Close()
+	if *profiler != "" {
+		defer RunProfiler(*profiler, cfg).Stop()
+	}
 
-	libs, err := entities.NewCfgLibsMap(cfg, *libName)
+	libs, err := GetLibs(*libName, cfg, logger)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("init config")
+		log.Fatal().Err(err).Msg("init config")
 	}
 
-	if !*hideBar {
-		bar = mpb.New(
-			mpb.WithOutput(os.Stdout),
-		)
-
-		logOutput, err := newLogFileOutput(cfg)
-		if err != nil {
-			logger.Fatal().Err(err).Msg("init log file output")
-		}
-		defer logOutput.Close()
-
-		logger = logger.Output(zerolog.ConsoleWriter{Out: logOutput, NoColor: true})
-
-		if totalBar = getTotalBar(libFormats, libs, bar); totalBar == nil {
-			logger.Fatal().Msg("unable to init total bar")
-		}
+	bar, err := GetProgressBar(libs, *hideBar, cfg, &logger)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("init log file output")
 	}
 
-	var wg sync.WaitGroup
-	for libName, lib := range libs {
-		logger := logger.With().Str("libname", libName).Logger()
+	pipeline := make(chan interfaces.Worker, *buffSize)
+	pool := wpool.NewPipelinePool(pipeline, wpool.NewZerologAdapter(logger))
+	defer pool.Close()
+	for i := runtime.NumCPU(); i > 0; i-- {
+		pool.AddWorker(wpool.NewPipelineWorker(pipeline))
+	}
 
-		if err := processLib(lib, logger, pool, &wg); err != nil {
-			logger.Fatal().Err(err).Msg("handle library")
+	repoList, err := GetRepos(*resetIndex, libs, logger)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("init repos")
+	}
+	defer func() {
+		for _, repo := range repoList {
+			repo.Close()
 		}
+	}()
+
+	if err = IterateLibs(libs, repoList, &wg, logger,
+		pool, bar, &cntTotal, &cntIndexed); err != nil {
+		logger.Fatal().Err(err).Msg("iterate libs")
 	}
 
 	wg.Wait()
 	time.Sleep(1 * time.Second)
 
-	logger.Info().Dur("dur", time.Since(startTS)).
-		Uint32("total", cntIndexed.Total()).
-		Uint32("indexed", cntIndexed.Total()).
-		Msg("indexing finished")
+	logger.Info().Uint32("total", cntTotal.Total()).Uint32("indexed", cntIndexed.Total()).
+		Dur("dur", time.Since(startTS)).Msg("indexing finished")
 }
 
-func getTotalBar(targetFormats []string, libs entities.CfgLibsMap, bar *mpb.Progress) *mpb.Bar {
-	var totalSize int64
+func IterateLibs(libs entities.Libraries, repoList map[string]entities.IBooksIndexRepo,
+	wg *sync.WaitGroup, logger zerolog.Logger, pool interfaces.Pool, bar *mpb.Bar,
+	cntTotal *entities.CntAtomic32, cntIndexed *entities.CntAtomic32,
+) error {
+	libItems, err := libs.GetItems()
+	if err != nil {
+		return err
+	}
 
+	for libItem, libTitle := range libItems {
+		lib := libs[libTitle]
+		logger := logger.With().Str("libitem", strings.TrimPrefix(libItem, lib.BooksDir)).
+			Str("libname", libTitle).Logger()
+
+		switch path.Ext(libItem) {
+		case ".zip":
+			logger = logger.With().Str("libsubitem", libItem).Logger()
+			// @TODO: check if exists
+			// @TODO: iterate with semaphore
+			// @TODO: save item mark
+		case ".fb2":
+			wg.Add(1)
+			if err := pool.AddTask(indexing.NewFB2IndexTask(libItem, libs[libTitle],
+				repoList[lib.IndexDir], logger, bar, cntTotal, cntIndexed, wg,
+			)); err != nil {
+				logger.Error().Err(err).Msg("send fb2 to pool")
+			}
+		default:
+			logger.Warn().Str("type", path.Ext(libItem)).Msg("undefined lib item type")
+		}
+	}
+
+	return nil
+}
+
+func GetRepos(reset bool, libs entities.Libraries, logger zerolog.Logger) (map[string]entities.IBooksIndexRepo, error) {
+	repoList := map[string]entities.IBooksIndexRepo{}
 	for _, lib := range libs {
-		library.NewLocalFSItems(lib.BooksDir, targetFormats, zerolog.Nop()).
-			IterateItems(func(libFile os.FileInfo, libDir string, num, total int, logger zerolog.Logger) error {
-				totalSize += libFile.Size()
-				return nil
-			})
+		if _, ok := repoList[lib.IndexDir]; ok {
+			continue
+		}
+
+		if reset {
+			if err := os.RemoveAll(path.Join(lib.IndexDir, "*")); err != nil && !os.IsNotExist(err) {
+				return nil, err
+			}
+		}
+
+		index, err := factories.NewBleveIndex(lib.IndexDir, entities.NewBookIndexMapping())
+		if err != nil {
+			return nil, err
+		}
+
+		repoList[lib.IndexDir] = repos.NewBooksIndexBleve(false, index, logger)
 	}
 
-	if totalSize == 0 {
-		return nil
+	return repoList, nil
+}
+
+func GetLibs(singleLibName string, cfg *viper.Viper, logger zerolog.Logger) (res entities.Libraries, err error) {
+	if res, err = entities.NewLibraries("libraries", cfg); err != nil {
+		return
 	}
 
-	return bar.AddBar(totalSize,
+	if singleLibName != "" {
+		if lib, ok := res[singleLibName]; ok {
+			res = entities.Libraries{singleLibName: lib}
+		} else {
+			err = fmt.Errorf("library %s not found", singleLibName)
+		}
+	}
+
+	return
+}
+
+func GetProgressBar(libs entities.Libraries, disableBar bool, cfg *viper.Viper, logger *zerolog.Logger) (bar *mpb.Bar, err error) {
+	if disableBar {
+		return
+	}
+
+	if err = os.MkdirAll(cfg.GetString("logs.dir"), 0644); err != nil {
+		return
+	}
+
+	var logOutput *os.File
+	if logOutput, err = os.OpenFile(
+		fmt.Sprintf("%s/indexing.%d.log", cfg.GetString("logs.dir"), time.Now().Unix()),
+		os.O_RDWR|os.O_CREATE, 0644,
+	); err != nil {
+		return
+	}
+
+	*logger = logger.Output(zerolog.ConsoleWriter{Out: logOutput, NoColor: true})
+
+	bar = mpb.New(
+		mpb.WithOutput(os.Stdout),
+		// mpb.WithWidth(64),
+	).New(libs.GetSize(),
+		mpb.BarStyle().Lbound("╢").Filler("▌").Tip("▌").Padding("░").Rbound("╟"),
 		mpb.PrependDecorators(
-			decor.Name("total"),
+			decor.Name("total - "),
+			decor.Elapsed(decor.ET_STYLE_GO),
 		),
 		mpb.AppendDecorators(
-			decor.Elapsed(decor.ET_STYLE_GO),
+			decor.AverageETA(decor.ET_STYLE_GO),
+			decor.Name(" - "),
+			decor.AverageSpeed(decor.UnitKB, "% .2f"),
 			decor.Name(" - "),
 			decor.CountersKibiByte("% .2f/% .2f"),
 		),
 	)
+
+	return
 }
 
-func profilerStart(profType string, cfg *viper.Viper) interface{ Stop() } {
+func RunProfiler(profType string, cfg *viper.Viper) interface{ Stop() } {
 	_ = os.MkdirAll(cfg.GetString("pprof.dir"), 0755)
 
 	pprofopts := []func(*profile.Profile){
@@ -173,58 +253,4 @@ func profilerStart(profType string, cfg *viper.Viper) interface{ Stop() } {
 	}
 
 	return profile.Start(pprofopts...)
-}
-
-func newPool(workersCnt, bufsize int) *wpool.Pool {
-	return wpool.NewPool(wpool.PoolCfg{
-		WorkersCnt:   uint(workersCnt),
-		TasksBufSize: uint(bufsize),
-	}, func(num uint, pipeline chan wpool.IWorker) wpool.IWorker {
-		return wpool.NewWorker(ctx, wpool.WorkerCfg{Pipeline: pipeline})
-	})
-}
-
-func newLogFileOutput(cfg *viper.Viper) (out *os.File, err error) {
-	if err = os.MkdirAll(cfg.GetString("logs.dir"), 0644); err != nil {
-		return
-	}
-
-	return os.OpenFile(
-		fmt.Sprintf("%s/indexing.%d.log", cfg.GetString("logs.dir"), time.Now().Unix()),
-		os.O_RDWR|os.O_CREATE, 0644,
-	)
-}
-
-func processLib(
-	lib entities.CfgLibrary,
-	logger zerolog.Logger, pool *wpool.Pool, wg *sync.WaitGroup,
-) (err error) {
-	if *resetIndex {
-		os.RemoveAll(lib.IndexDir)
-	}
-
-	var index bleve.Index
-	if index, err = bleve.Open(lib.IndexDir); err != nil {
-		index, err = bleve.New(lib.IndexDir, entities.NewBookIndexMapping())
-	}
-
-	if err != nil {
-		return
-	}
-
-	return library.NewLocalFSItems(
-		lib.BooksDir, libFormats, logger,
-	).IterateItems(func(archive os.FileInfo, libDir string, num, total int, logger zerolog.Logger) error {
-		switch path.Ext(archive.Name()) {
-		case ".zip":
-			wg.Add(1)
-
-			return pool.Add(tasks.NewZIPFB2IndexTask(
-				archive, strings.TrimPrefix(libDir, lib.BooksDir), *batchSize, lib, &cntTotal, &cntIndexed,
-				logger, wg, bar, totalBar, index,
-			))
-		default:
-			return nil
-		}
-	})
 }

@@ -210,3 +210,11 @@ func (r *BooksIndexBleve) getBooks(
 
 	return res, nil
 }
+
+func (r *BooksIndexBleve) SaveBook(book entities.BookIndex) error { // @TODO: batching
+	return r.index.Index(book.ID, book)
+}
+
+func (r *BooksIndexBleve) Close() error { // @TODO: batching
+	return nil
+}

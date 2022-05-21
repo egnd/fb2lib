@@ -53,3 +53,13 @@ func GenerateID(args ...[]string) string {
 
 	return hex.EncodeToString(hasher.Sum(nil))
 }
+
+func StringInSlice(haystack []string, needle string) bool {
+	for _, v := range haystack {
+		if needle == v {
+			return true
+		}
+	}
+
+	return false
+}

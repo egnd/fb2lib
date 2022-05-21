@@ -6,5 +6,5 @@ services:
       args:
         TARGETOS: ${DC_TARGETOS}
         TARGETARCH: ${DC_TARGETARCH}
-    # entrypoint: ["indexer"]
-    # command: ["-reset", "-hidebar"]
+    entrypoint: ["indexer"]
+    command: ["-reset", "-hidebar"]

@@ -1,6 +1,6 @@
-- logger skipper
-- xml stream token parser
 - archives without flate
+- xml stream token parser
+- logger skipper
 - indexer skip patterns
 - ci jobs for units and linting
 - add rest api

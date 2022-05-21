@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func DownloadBookHandler(libsCfg entities.CfgLibsMap,
+func DownloadBookHandler(libsCfg entities.Libraries,
 	repo entities.IBooksIndexRepo, cfg *viper.Viper, logger zerolog.Logger,
 ) echo.HandlerFunc {
 	converterDir := cfg.GetString("converter.dir")

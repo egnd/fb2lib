@@ -36,19 +36,19 @@ func main() {
 
 	logger := factories.NewZerologLogger(cfg, os.Stderr)
 
-	booksIndex, err := factories.NewBooksIndex(cfg)
-	if err != nil {
-		logger.Fatal().Err(err).Msg("init index")
-	}
-
-	libsCfg, err := entities.NewCfgLibsMap(cfg, "")
+	libs, err := entities.NewLibraries("libraries", cfg)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("init libs cfg")
 	}
 
+	booksIndex, err := factories.NewCompositeBleveIndex(libs, entities.NewBookIndexMapping())
+	if err != nil {
+		logger.Fatal().Err(err).Msg("init index")
+	}
+
 	repoIndex := repos.NewBooksIndexBleve(cfg.GetBool("bleve.highlight"), booksIndex, logger)
 	repoFB2 := repos.NewBooksDataFB2Files()
-	server, err := factories.NewEchoServer(libsCfg, cfg, logger, repoIndex, repoFB2)
+	server, err := factories.NewEchoServer(libs, cfg, logger, repoIndex, repoFB2)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("init http server")
 	}

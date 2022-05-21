@@ -1,5 +1,0 @@
-quiet: false
-all: true
-case: underscore
-outpkg: mocks
-output: mocks

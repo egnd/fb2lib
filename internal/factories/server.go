@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func NewEchoServer(libsCfg entities.CfgLibsMap, cfg *viper.Viper, logger zerolog.Logger,
+func NewEchoServer(libsCfg entities.Libraries, cfg *viper.Viper, logger zerolog.Logger,
 	booksRepo entities.IBooksIndexRepo, fb2Repo entities.IBooksDataRepo,
 ) (*echo.Echo, error) {
 	var err error

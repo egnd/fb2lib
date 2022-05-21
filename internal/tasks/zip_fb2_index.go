@@ -30,7 +30,7 @@ type ZIPFB2IndexTask struct {
 	batchChan     chan entities.BookIndex
 	batchStopChan chan struct{}
 	archive       os.FileInfo
-	lib           entities.CfgLibrary
+	lib           entities.Library
 	logger        zerolog.Logger
 	wg            *sync.WaitGroup
 	cntTotal      *entities.CntAtomic32
@@ -45,7 +45,7 @@ func NewZIPFB2IndexTask(
 	archive os.FileInfo,
 	archiveDir string,
 	batchSize int,
-	lib entities.CfgLibrary,
+	lib entities.Library,
 	cntTotal *entities.CntAtomic32,
 	cntIndexed *entities.CntAtomic32,
 	logger zerolog.Logger,

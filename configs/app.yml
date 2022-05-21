@@ -18,6 +18,9 @@ pprof:
   dir: var/pprof
 libraries:
   default:
+    disabled: false
     books_dir: var/lib/books
     index_dir: var/lib/index
-    enabled: true
+    types:
+      - fb2
+      # - zip
