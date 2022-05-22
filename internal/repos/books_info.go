@@ -3,6 +3,7 @@ package repos
 import (
 	"errors"
 	"fmt"
+	"path"
 	"regexp"
 	"strings"
 	"sync"
@@ -13,43 +14,55 @@ import (
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/pkg/pagination"
 	"github.com/rs/zerolog"
+	"go.etcd.io/bbolt"
 )
 
 var (
 	regexpSpaces = regexp.MustCompile(`\s+`)
 )
 
-type BooksIndexBleve struct {
+type BooksInfo struct {
 	highlight bool
 	batching  bool
 	index     entities.ISearchIndex
+	storage   *bbolt.DB
 	logger    zerolog.Logger
 	wg        sync.WaitGroup
 	batchStop chan struct{}
-	batchPipe chan entities.BookIndex
+	batchPipe chan entities.BookInfo
+	encode    entities.IMarshal
+	decode    entities.IUnmarshal
 }
 
-func NewBooksIndexBleve(batchSize int,
-	highlight bool, index entities.ISearchIndex, logger zerolog.Logger,
-) *BooksIndexBleve {
-	repo := &BooksIndexBleve{
+func NewBooksInfo(batchSize int, highlight bool,
+	storage *bbolt.DB, index entities.ISearchIndex, logger zerolog.Logger,
+	encoder entities.IMarshal, decoder entities.IUnmarshal,
+) *BooksInfo {
+	if batchSize > storage.MaxBatchSize {
+		storage.MaxBatchSize = batchSize
+	}
+
+	repo := &BooksInfo{
 		batching:  batchSize > 0,
 		highlight: highlight,
 		index:     index,
 		logger:    logger,
+		storage:   storage,
+		encode:    encoder,
+		decode:    decoder,
 	}
 
 	if repo.batching {
 		repo.wg.Add(1)
 		repo.batchStop = make(chan struct{})
-		repo.batchPipe = make(chan entities.BookIndex)
+		repo.batchPipe = make(chan entities.BookInfo)
 		go repo.runBatching(batchSize)
 	}
 
 	return repo
 }
 
-func (r *BooksIndexBleve) SearchAll(strQuery string, pager pagination.IPager) ([]entities.BookIndex, error) {
+func (r *BooksInfo) SearchAll(strQuery string, pager pagination.IPager) ([]entities.BookInfo, error) {
 	strQuery = strings.TrimSpace(strings.ToLower(strQuery))
 
 	var q query.Query
@@ -85,7 +98,7 @@ func (r *BooksIndexBleve) SearchAll(strQuery string, pager pagination.IPager) ([
 	return r.getBooks(searchReq, pager)
 }
 
-func (r *BooksIndexBleve) SearchByAuthor(strQuery string, pager pagination.IPager) ([]entities.BookIndex, error) {
+func (r *BooksInfo) SearchByAuthor(strQuery string, pager pagination.IPager) ([]entities.BookInfo, error) {
 	strQuery = strings.TrimSpace(regexpSpaces.ReplaceAllString(strings.ToLower(strQuery), " "))
 
 	var q query.Query
@@ -107,7 +120,7 @@ func (r *BooksIndexBleve) SearchByAuthor(strQuery string, pager pagination.IPage
 	return r.getBooks(searchReq, pager)
 }
 
-func (r *BooksIndexBleve) SearchBySequence(strQuery string, pager pagination.IPager) ([]entities.BookIndex, error) {
+func (r *BooksInfo) SearchBySequence(strQuery string, pager pagination.IPager) ([]entities.BookInfo, error) {
 	strQuery = strings.TrimSpace(regexpSpaces.ReplaceAllString(strings.ToLower(strQuery), " "))
 
 	var q query.Query
@@ -129,9 +142,9 @@ func (r *BooksIndexBleve) SearchBySequence(strQuery string, pager pagination.IPa
 	return r.getBooks(searchReq, pager)
 }
 
-func (r *BooksIndexBleve) GetBook(bookID string) (entities.BookIndex, error) {
+func (r *BooksInfo) GetBook(bookID string) (entities.BookInfo, error) {
 	if bookID == "" {
-		return entities.BookIndex{}, errors.New("repo get book error: empty book id")
+		return entities.BookInfo{}, errors.New("repo get book error: empty book id")
 	}
 
 	searchReq := bleve.NewSearchRequestOptions(
@@ -140,17 +153,17 @@ func (r *BooksIndexBleve) GetBook(bookID string) (entities.BookIndex, error) {
 
 	items, err := r.getBooks(searchReq, nil)
 	if err != nil {
-		return entities.BookIndex{}, err
+		return entities.BookInfo{}, err
 	}
 
 	if len(items) == 0 {
-		return entities.BookIndex{}, fmt.Errorf("repo getbook error: %s not found", bookID)
+		return entities.BookInfo{}, fmt.Errorf("repo getbook error: %s not found", bookID)
 	}
 
 	return items[0], nil
 }
 
-func (r *BooksIndexBleve) highlightItem(fragments search.FieldFragmentMap, book entities.BookIndex) entities.BookIndex {
+func (r *BooksInfo) highlightItem(fragments search.FieldFragmentMap, book entities.BookIndex) entities.BookIndex {
 	if vals, ok := fragments["ISBN"]; ok && len(vals) > 0 {
 		book.ISBN = vals[0]
 	}
@@ -182,9 +195,9 @@ func (r *BooksIndexBleve) highlightItem(fragments search.FieldFragmentMap, book 
 	return book
 }
 
-func (r *BooksIndexBleve) getBooks(
+func (r *BooksInfo) getBooks(
 	searchReq *bleve.SearchRequest, pager pagination.IPager,
-) ([]entities.BookIndex, error) {
+) ([]entities.BookInfo, error) {
 	searchReq.Fields = []string{"*"}
 
 	searchResults, err := r.index.Search(searchReq)
@@ -196,28 +209,30 @@ func (r *BooksIndexBleve) getBooks(
 		pager.SetTotal(searchResults.Total)
 	}
 
-	res := make([]entities.BookIndex, 0, len(searchResults.Hits))
+	res := make([]entities.BookInfo, 0, len(searchResults.Hits))
 
 	for _, item := range searchResults.Hits {
-		book := entities.BookIndex{
-			Offset:           uint64(item.Fields["Offset"].(float64)),
-			SizeCompressed:   uint64(item.Fields["SizeCompressed"].(float64)),
-			SizeUncompressed: uint64(item.Fields["SizeUncompressed"].(float64)),
-			Lang:             item.Fields["Lang"].(string),
-			Src:              item.Fields["Src"].(string),
-			LibName:          item.Fields["LibName"].(string),
-			ID:               item.ID,
-			ISBN:             item.Fields["ISBN"].(string),
-			Titles:           item.Fields["Titles"].(string),
-			Authors:          item.Fields["Authors"].(string),
-			Sequences:        item.Fields["Sequences"].(string),
-			Publisher:        item.Fields["Publisher"].(string),
-			Date:             item.Fields["Date"].(string),
-			Genres:           item.Fields["Genres"].(string),
+		var book entities.BookInfo
+		if err := r.storage.View(func(tx *bbolt.Tx) error {
+			return r.decode(tx.Bucket([]byte(fmt.Sprintf("lib_%s", path.Base(item.Index)))).Get([]byte(item.ID)), &book)
+		}); err != nil {
+			continue
+		}
+
+		book.Index = entities.BookIndex{
+			ID:        item.ID,
+			Lang:      item.Fields["lng"].(string),
+			ISBN:      item.Fields["isbn"].(string),
+			Titles:    item.Fields["name"].(string),
+			Authors:   item.Fields["auth"].(string),
+			Sequences: item.Fields["seq"].(string),
+			Publisher: item.Fields["publ"].(string),
+			Date:      item.Fields["date"].(string),
+			Genres:    item.Fields["genr"].(string),
 		}
 
 		if r.highlight && searchReq.Highlight != nil {
-			book = r.highlightItem(item.Fragments, book)
+			book.Index = r.highlightItem(item.Fragments, book.Index)
 		}
 
 		res = append(res, book)
@@ -226,11 +241,11 @@ func (r *BooksIndexBleve) getBooks(
 	return res, nil
 }
 
-func (r *BooksIndexBleve) SaveBook(book entities.BookIndex) (err error) {
+func (r *BooksInfo) SaveBook(book entities.BookInfo) (err error) {
 	if r.batching {
 		defer func() {
-			if recover() != nil {
-				err = r.index.Index(book.ID, book)
+			if r := recover(); err == nil && r != nil {
+				err = fmt.Errorf("%v", r)
 			}
 		}()
 
@@ -239,10 +254,26 @@ func (r *BooksIndexBleve) SaveBook(book entities.BookIndex) (err error) {
 		return
 	}
 
-	return r.index.Index(book.ID, book)
+	if err = r.index.Index(book.Index.ID, book.Index); err == nil {
+		err = r.storage.Update(func(tx *bbolt.Tx) (txErr error) {
+			bookBytes, txErr := r.encode(book)
+			if txErr != nil {
+				return fmt.Errorf("encode book error: %s", txErr)
+			}
+
+			b, txErr := tx.CreateBucketIfNotExists([]byte(fmt.Sprintf("lib_%s", book.LibName)))
+			if txErr != nil {
+				return fmt.Errorf("create bucket: %s", txErr)
+			}
+
+			return b.Put([]byte(book.Index.ID), bookBytes)
+		})
+	}
+
+	return
 }
 
-func (r *BooksIndexBleve) Close() error {
+func (r *BooksInfo) Close() error {
 	if r.batching {
 		r.batchStop <- struct{}{}
 		r.wg.Wait()
@@ -250,10 +281,10 @@ func (r *BooksIndexBleve) Close() error {
 		close(r.batchPipe)
 	}
 
-	return nil
+	return r.index.Close()
 }
 
-func (r *BooksIndexBleve) runBatching(batchSize int) {
+func (r *BooksInfo) runBatching(batchSize int) {
 	batch := r.index.NewBatch()
 
 	defer func() {
@@ -273,8 +304,25 @@ func (r *BooksIndexBleve) runBatching(batchSize int) {
 		case <-r.batchStop:
 			return
 		case doc := <-r.batchPipe:
-			if err := batch.Index(doc.ID, doc); err != nil {
+			if err := batch.Index(doc.Index.ID, doc.Index); err != nil {
 				r.logger.Error().Err(err).Msg("index repo add to batch")
+				continue
+			}
+
+			if err := r.storage.Batch(func(tx *bbolt.Tx) (txErr error) { // @TODO: improve batch fn
+				bookBytes, txErr := r.encode(doc)
+				if txErr != nil {
+					return fmt.Errorf("encode book error: %s", txErr)
+				}
+
+				b, txErr := tx.CreateBucketIfNotExists([]byte(fmt.Sprintf("lib_%s", doc.LibName)))
+				if txErr != nil {
+					return fmt.Errorf("create bucket: %s", txErr)
+				}
+
+				return b.Put([]byte(doc.Index.ID), bookBytes)
+			}); err != nil {
+				r.logger.Error().Err(err).Msg("book to storage batch")
 				continue
 			}
 

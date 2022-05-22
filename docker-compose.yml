@@ -8,8 +8,9 @@ services:
       - ${DC_SERVER_PORT}:8080
     volumes:
       - ./configs/app.override.yml:/configs/app.override.yml:ro
-      - ./var/lib/books:/var/lib/books:ro
-      - ./var/lib/index:/var/lib/index:rw
+      - ./var/index:/var/index:rw
+      - ./var/storage:/var/storage:rw
+      - ./var/libs/default:/var/libs/default:ro
       - ./var/converter:/var/converter:rw
       - ./var/logs:/var/logs:rw
       - ./var/pprof:/var/pprof:rw

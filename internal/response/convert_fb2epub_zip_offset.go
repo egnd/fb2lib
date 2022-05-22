@@ -15,19 +15,19 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func ConvertFB2EpubZipOffset(converterDir string, book entities.BookIndex,
+func ConvertFB2EpubZipOffset(converterDir string, book entities.BookInfo,
 	libs entities.Libraries, server echo.Context, logger zerolog.Logger,
 ) error {
-	epubPath := path.Join(converterDir, book.ID+".epub")
+	epubPath := path.Join(converterDir, book.Index.ID+".epub")
 	if _, err := os.Stat(epubPath); err == nil {
 		return server.File(epubPath)
 	}
 
-	fb2Path := path.Join(converterDir, book.ID+".fb2")
+	fb2Path := path.Join(converterDir, book.Index.ID+".fb2")
 	if _, err := os.Stat(fb2Path); err != nil {
 		archivePath := strings.Split(book.Src, ".zip")[0] + ".zip"
 		if lib, ok := libs[book.LibName]; ok {
-			archivePath = path.Join(lib.BooksDir, archivePath)
+			archivePath = path.Join(lib.Dir, archivePath)
 		} else {
 			server.NoContent(http.StatusInternalServerError)
 			return errors.New("can't define book library")
@@ -67,5 +67,5 @@ func ConvertFB2EpubZipOffset(converterDir string, book entities.BookIndex,
 		return err
 	}
 
-	return server.Attachment(epubPath, BuildBookName(book)+".epub")
+	return server.Attachment(epubPath, BuildBookName(book.Index)+".epub")
 }

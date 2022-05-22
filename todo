@@ -1,4 +1,3 @@
-- zip task without duplicate runs
 - xml stream token parser
 - split cpu and io work in tasks
 - logger skipper

@@ -9,7 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func FB2FromRemoteZip(urlPrefix, libDir string, book entities.BookIndex, // @TODO:
+func FB2FromRemoteZip(urlPrefix, libDir string, book entities.BookInfo, // @TODO:
 	server echo.Context, client *http.Client,
 ) error {
 	req, err := http.NewRequest(http.MethodGet, BuildBookURL(
@@ -34,7 +34,7 @@ func FB2FromRemoteZip(urlPrefix, libDir string, book entities.BookIndex, // @TOD
 
 	server.Response().Header().Set(echo.HeaderContentEncoding, "deflate")
 	server.Response().Header().Set(echo.HeaderContentDisposition,
-		fmt.Sprintf(`attachment; filename="%s.fb2"`, BuildBookName(book)),
+		fmt.Sprintf(`attachment; filename="%s.fb2"`, BuildBookName(book.Index)),
 	)
 
 	return server.Stream(http.StatusOK, "application/fb2", resp.Body)

@@ -15,7 +15,7 @@ import (
 )
 
 func DownloadHandler(libs entities.Libraries,
-	repo entities.IBooksIndexRepo, cfg *viper.Viper, logger zerolog.Logger,
+	repo entities.IBooksInfoRepo, cfg *viper.Viper, logger zerolog.Logger,
 ) echo.HandlerFunc {
 	converterDir := cfg.GetString("converter.dir")
 	if err := os.MkdirAll(converterDir, 0755); err != nil {
@@ -33,7 +33,7 @@ func DownloadHandler(libs entities.Libraries,
 			return
 		}
 
-		var book entities.BookIndex
+		var book entities.BookInfo
 		if book, err = repo.GetBook(bookID); err != nil {
 			c.NoContent(http.StatusNotFound)
 			return

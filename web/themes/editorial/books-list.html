@@ -29,16 +29,16 @@
 <div class="row books-list">
 {% for item in books %}
     <div class="col-6 col-12-xsmall books-list-item">
-        <h4><a href="/details/{{item.ID}}">{{pager.GetOffset()+forloop.Counter}}. {{item.Titles|safe}}</a></h4>
-        {{ bookFeature("ISBN", item.ISBN, true) }}
-        {{ bookFeature("Авторы", item.Authors, true) }}
-        {{ bookFeature("Серия", item.Sequences, true) }}
-        {{ bookFeature("Дата", item.Date, true) }}
-        {{ bookFeature("Издатель", item.Publisher, true) }}
-        {{ bookFeature("Жанр", item.Genres, true) }}
-        {{ bookFeature("Язык", item.Lang) }}
-        <a href="/download/{{item.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{item.SizeUncompressed|filesize}})</a>
-        <a href="/download/{{item.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
+        <h4><a href="/details/{{item.Index.ID}}">{{pager.GetOffset()+forloop.Counter}}. {{item.Index.Titles|safe}}</a></h4>
+        {{ bookFeature("ISBN", item.Index.ISBN, true) }}
+        {{ bookFeature("Авторы", item.Index.Authors, true) }}
+        {{ bookFeature("Серия", item.Index.Sequences, true) }}
+        {{ bookFeature("Дата", item.Index.Date, true) }}
+        {{ bookFeature("Издатель", item.Index.Publisher, true) }}
+        {{ bookFeature("Жанр", item.Index.Genres, true) }}
+        {{ bookFeature("Язык", item.Index.Lang) }}
+        <a href="/download/{{item.Index.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{item.SizeUncompressed|filesize}})</a>
+        <a href="/download/{{item.Index.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
     </div>
 {% endfor %}
 </div>

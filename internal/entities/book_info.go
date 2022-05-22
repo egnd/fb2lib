@@ -14,22 +14,26 @@ const (
 	IndexFieldSep = "; "
 )
 
+type BookInfo struct {
+	Offset           uint64    `json:"offset"`
+	SizeCompressed   uint64    `json:"sizec"`
+	SizeUncompressed uint64    `json:"size"`
+	LibName          string    `json:"lib"`
+	Src              string    `json:"src"`
+	Index            BookIndex `json:"-"`
+}
+
 type BookIndex struct {
-	Year             uint16
-	Offset           uint64
-	SizeCompressed   uint64
-	SizeUncompressed uint64
-	ID               string
-	Lang             string
-	LibName          string
-	Src              string
-	ISBN             string
-	Titles           string
-	Authors          string
-	Sequences        string
-	Publisher        string
-	Date             string
-	Genres           string
+	Year      uint16
+	ID        string
+	Lang      string `json:"lng"`
+	ISBN      string `json:"isbn"`
+	Titles    string `json:"name"`
+	Authors   string `json:"auth"`
+	Sequences string `json:"seq"`
+	Publisher string `json:"publ"`
+	Date      string `json:"date"`
+	Genres    string `json:"genr"`
 }
 
 func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
@@ -65,6 +69,10 @@ func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
 	}
 
 	res.Year = ParseYear(res.Date)
+	res.ID = GenerateID([]string{res.ISBN, res.Lang, fmt.Sprint(res.Year)},
+		strings.Split(res.Titles, ";"),
+		strings.Split(strings.ReplaceAll(res.Authors, ",", ";"), ";"),
+	)
 
 	return res
 }
@@ -149,40 +157,24 @@ func (bi *BookIndex) appendStr(val string, orig *string) {
 }
 
 func NewBookIndexMapping() *mapping.IndexMappingImpl {
-	strIndexedField := bleve.NewTextFieldMapping()
+	searchField := bleve.NewTextFieldMapping()
 
-	strField := bleve.NewTextFieldMapping()
-	strField.Index = false
-	strField.IncludeInAll = false
-	strField.IncludeTermVectors = false
-	strField.DocValues = false
-
-	numField := bleve.NewNumericFieldMapping()
-	numField.Index = false
-	numField.IncludeInAll = false
-	numField.DocValues = false
-
-	numSortField := *numField
-	numSortField.Index = true
-	numSortField.Store = false
+	sortField := bleve.NewNumericFieldMapping()
+	sortField.IncludeInAll = false
+	sortField.DocValues = false
+	sortField.Index = true
 
 	books := bleve.NewDocumentMapping()
 
-	books.AddFieldMappingsAt("Year", &numSortField)
-	books.AddFieldMappingsAt("Offset", numField)
-	books.AddFieldMappingsAt("SizeCompressed", numField)
-	books.AddFieldMappingsAt("SizeUncompressed", numField)
-	books.AddFieldMappingsAt("Lang", strField)
-	books.AddFieldMappingsAt("LibName", strField)
-	books.AddFieldMappingsAt("Src", strField)
-
-	books.AddFieldMappingsAt("ISBN", strIndexedField)
-	books.AddFieldMappingsAt("Titles", strIndexedField)
-	books.AddFieldMappingsAt("Authors", strIndexedField)
-	books.AddFieldMappingsAt("Sequences", strIndexedField)
-	books.AddFieldMappingsAt("Publisher", strIndexedField)
-	books.AddFieldMappingsAt("Date", strIndexedField)
-	books.AddFieldMappingsAt("Genres", strIndexedField)
+	books.AddFieldMappingsAt("year", sortField)
+	books.AddFieldMappingsAt("lng", searchField)
+	books.AddFieldMappingsAt("isbn", searchField)
+	books.AddFieldMappingsAt("name", searchField)
+	books.AddFieldMappingsAt("auth", searchField)
+	books.AddFieldMappingsAt("seq", searchField)
+	books.AddFieldMappingsAt("publ", searchField)
+	books.AddFieldMappingsAt("date", searchField)
+	books.AddFieldMappingsAt("genr", searchField)
 
 	mapping := bleve.NewIndexMapping()
 	mapping.AddDocumentMapping("books", books)

@@ -27,7 +27,7 @@
 {% endfor %}
 {% endmacro %}
 
-{% macro book_info(descr, bindata) %}
+{% macro book_info_mc(descr, bindata) %}
 {% for img in descr.Coverpage.Images %}
     {% for bin in bindata %}
     {% if img.Href == "#"+bin.ID %}<img src="data:{{bin.Type}};base64,{{bin.Data}}" style="max-width: 100%; float: left;margin: 0 30px 30px 0;"/>{% endif%}
@@ -49,14 +49,14 @@
 <section>
     <header class="main"><h1>{{book.Description.TitleInfo.BookTitle}}</h1></header>
 
-    {{ book_info(book.Description.TitleInfo, book.Binary) }}
-    <a href="/download/{{book_idx.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{book_idx.SizeUncompressed|filesize}})</a>
-    <a href="/download/{{book_idx.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
+    {{ book_info_mc(book.Description.TitleInfo, book.Binary) }}
+    <a href="/download/{{book_info.Index.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{book_info.SizeUncompressed|filesize}})</a>
+    <a href="/download/{{book_info.Index.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
 
 {% if book.Description.SrcTitleInfo %}
     <hr class="major" />
     <h2>Оригинал:</h2>
-    {{ book_info(book.Description.SrcTitleInfo, book.Binary) }}
+    {{ book_info_mc(book.Description.SrcTitleInfo, book.Binary) }}
 {% endif %}
 
 {% if book.Description.PublishInfo %}

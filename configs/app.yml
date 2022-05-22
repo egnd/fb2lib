@@ -8,6 +8,9 @@ logs:
   dir: var/logs
 bleve:
   highlight: true
+  path: var/index
+boltdb:
+  path: var/storage/db.bolt
 converter:
   dir: var/converter
 renderer:
@@ -19,6 +22,5 @@ pprof:
 libraries:
   default:
     disabled: false
-    books_dir: var/lib/books
-    index_dir: var/lib/index
+    dir: var/libs/default
     types: [] # fb2,zip

@@ -16,7 +16,7 @@ import (
 )
 
 func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Logger,
-	repoIndex entities.IBooksIndexRepo, repoBooks entities.IBooksDataRepo,
+	repoInfo entities.IBooksInfoRepo, repoBooks entities.IBooksLibraryRepo,
 ) (*echo.Echo, error) {
 	var err error
 	server := echo.New()
@@ -41,11 +41,11 @@ func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Log
 		return c.String(http.StatusOK, "OK")
 	})
 
-	server.GET("/", handlers.SearchHandler(repoIndex))
-	server.GET("/by_authors/", handlers.ByAuthorsHandler(repoIndex))
-	server.GET("/by_series/", handlers.BySeriesHandler(repoIndex))
-	server.GET("/details/:book_id", handlers.DetailsHandler(repoIndex, repoBooks, logger))
-	server.GET("/download/:book_id", handlers.DownloadHandler(libs, repoIndex, cfg, logger))
+	server.GET("/", handlers.SearchHandler(repoInfo))
+	server.GET("/by_authors/", handlers.ByAuthorsHandler(repoInfo))
+	server.GET("/by_series/", handlers.BySeriesHandler(repoInfo))
+	server.GET("/details/:book_id", handlers.DetailsHandler(repoInfo, repoBooks, logger))
+	server.GET("/download/:book_id", handlers.DownloadHandler(libs, repoInfo, cfg, logger))
 
 	return server, nil
 }

@@ -9,14 +9,14 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func ByAuthorsHandler(repo entities.IBooksIndexRepo) echo.HandlerFunc {
+func ByAuthorsHandler(repo entities.IBooksInfoRepo) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		searchQuery := c.QueryParam("q")
 
 		pager := pagination.NewPager(c.Request()).SetPageSize(20).
 			ReadPageSize().ReadCurPage()
 
-		var books []entities.BookIndex
+		var books []entities.BookInfo
 		books, err = repo.SearchByAuthor(searchQuery, pager)
 
 		if err != nil {

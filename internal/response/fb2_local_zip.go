@@ -14,10 +14,10 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func FB2FromLocalZip(book entities.BookIndex, libs entities.Libraries, server echo.Context) error {
+func FB2FromLocalZip(book entities.BookInfo, libs entities.Libraries, server echo.Context) error {
 	zipFilePath := strings.Split(book.Src, ".zip")[0] + ".zip"
 	if lib, ok := libs[book.LibName]; ok {
-		zipFilePath = path.Join(lib.BooksDir, zipFilePath)
+		zipFilePath = path.Join(lib.Dir, zipFilePath)
 	} else {
 		server.NoContent(http.StatusInternalServerError)
 		return errors.New("can't define book library")
@@ -33,7 +33,7 @@ func FB2FromLocalZip(book entities.BookIndex, libs entities.Libraries, server ec
 	defer reader.Close()
 
 	server.Response().Header().Set(echo.HeaderContentDisposition,
-		fmt.Sprintf(`attachment; filename="%s.fb2"`, BuildBookName(book)),
+		fmt.Sprintf(`attachment; filename="%s.fb2"`, BuildBookName(book.Index)),
 	)
 
 	return server.Stream(http.StatusOK, "application/fb2", reader)

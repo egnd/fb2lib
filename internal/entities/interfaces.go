@@ -15,3 +15,7 @@ type ISearchIndex interface {
 	NewBatch() *bleve.Batch
 	Batch(b *bleve.Batch) error
 }
+
+type IMarshal func(any) ([]byte, error)
+
+type IUnmarshal func([]byte, any) error

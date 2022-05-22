@@ -17,25 +17,27 @@ import (
 type ZipIndexTask struct {
 	pathStr    string
 	lib        entities.Library
-	repo       entities.IBooksIndexRepo
+	repo       entities.IBooksInfoRepo
 	logger     zerolog.Logger
 	bar        *mpb.Bar
 	cntTotal   *entities.CntAtomic32
 	cntIndexed *entities.CntAtomic32
 	wg         *sync.WaitGroup
 	pool       interfaces.Pool
+	repoMarks  entities.ILibMarksRepo
 }
 
 func NewZipIndexTask(
 	pathStr string,
 	lib entities.Library,
-	repo entities.IBooksIndexRepo,
+	repo entities.IBooksInfoRepo,
 	logger zerolog.Logger,
 	bar *mpb.Bar,
 	cntTotal *entities.CntAtomic32,
 	cntIndexed *entities.CntAtomic32,
 	wg *sync.WaitGroup,
 	pool interfaces.Pool,
+	repoMarks entities.ILibMarksRepo,
 ) *ZipIndexTask {
 	return &ZipIndexTask{
 		pathStr:    pathStr,
@@ -46,6 +48,7 @@ func NewZipIndexTask(
 		cntIndexed: cntIndexed,
 		wg:         wg,
 		pool:       pool,
+		repoMarks:  repoMarks,
 		logger:     logger.With().Str("task", "zip_index").Logger(),
 	}
 }
@@ -55,7 +58,15 @@ func (t *ZipIndexTask) GetID() string {
 }
 
 func (t *ZipIndexTask) Do() {
-	if t.alreadyIndexed() {
+	if t.repoMarks.MarkExists(t.lib.Name + t.pathStr) {
+		t.logger.Info().Msg("already indexed")
+
+		if t.bar != nil {
+			if finfo, err := os.Stat(t.pathStr); err == nil {
+				t.bar.IncrInt64(finfo.Size())
+			}
+		}
+
 		return
 	}
 
@@ -80,22 +91,14 @@ func (t *ZipIndexTask) Do() {
 		logger := t.logger.With().Str("libsubitem", innerFile.Name).Logger()
 
 		if err := t.pool.AddTask(NewZipFB2IndexTask(t.lib.Name,
-			path.Join(strings.TrimPrefix(t.pathStr, t.lib.BooksDir), innerFile.Name),
+			path.Join(strings.TrimPrefix(t.pathStr, t.lib.Dir), innerFile.Name),
 			archive, innerFile, t.repo, logger, t.bar, t.cntTotal, t.cntIndexed, t.wg,
 		)); err != nil {
 			logger.Error().Err(err).Str("libsubitem", innerFile.Name).Msg("handle subitem")
 		}
 	}
 
-	if err := t.memorize(); err != nil {
+	if err := t.repoMarks.AddMark(t.lib.Name + t.pathStr); err != nil {
 		t.logger.Error().Err(err).Msg("handle zip file")
 	}
-}
-
-func (t *ZipIndexTask) alreadyIndexed() bool {
-	return false // @TODO:
-}
-
-func (t *ZipIndexTask) memorize() error {
-	return nil // @TODO:
 }

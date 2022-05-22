@@ -13,17 +13,17 @@ import (
 	"github.com/egnd/fb2lib/pkg/fb2parser"
 )
 
-type BooksDataFiles struct {
+type LibraryFiles struct {
 	libs entities.Libraries
 }
 
-func NewBooksDataFiles(libs entities.Libraries) *BooksDataFiles {
-	return &BooksDataFiles{
+func NewLibraryFiles(libs entities.Libraries) *LibraryFiles {
+	return &LibraryFiles{
 		libs: libs,
 	}
 }
 
-func (r *BooksDataFiles) GetFB2(book entities.BookIndex) (res entities.FB2Book, err error) {
+func (r *LibraryFiles) GetFB2(book entities.BookInfo) (res entities.FB2Book, err error) {
 	if book.Src == "" {
 		err = errors.New("repo getfb2 error: empty src")
 		return
@@ -37,15 +37,15 @@ func (r *BooksDataFiles) GetFB2(book entities.BookIndex) (res entities.FB2Book, 
 
 	if strings.Contains(book.Src, ".zip") {
 		return r.extractZippedFB2(
-			strings.Split(path.Join(lib.BooksDir, book.Src), ".zip")[0]+".zip",
+			strings.Split(path.Join(lib.Dir, book.Src), ".zip")[0]+".zip",
 			int64(book.Offset), int64(book.SizeCompressed),
 		)
 	}
 
-	return r.extractFB2(path.Join(lib.BooksDir, book.Src))
+	return r.extractFB2(path.Join(lib.Dir, book.Src))
 }
 
-func (r *BooksDataFiles) extractZippedFB2(archivePath string, offset int64, limit int64) (res entities.FB2Book, err error) {
+func (r *LibraryFiles) extractZippedFB2(archivePath string, offset int64, limit int64) (res entities.FB2Book, err error) {
 	var zipFile *os.File
 	if zipFile, err = os.Open(archivePath); err != nil {
 		return
@@ -60,7 +60,7 @@ func (r *BooksDataFiles) extractZippedFB2(archivePath string, offset int64, limi
 	return
 }
 
-func (r *BooksDataFiles) extractFB2(filePath string) (res entities.FB2Book, err error) {
+func (r *LibraryFiles) extractFB2(filePath string) (res entities.FB2Book, err error) {
 	var fb2Stream io.ReadCloser
 	if fb2Stream, err = os.Open(filePath); err != nil {
 		return

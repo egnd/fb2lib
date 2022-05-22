@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -13,12 +12,14 @@ import (
 
 	"github.com/egnd/go-wpool/v2"
 	"github.com/egnd/go-wpool/v2/interfaces"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/profile"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"github.com/vbauerster/mpb/v7"
 	"github.com/vbauerster/mpb/v7/decor"
+	"go.etcd.io/bbolt"
 
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/internal/factories"
@@ -33,7 +34,6 @@ var (
 	cfgPath     = flag.String("config", "configs/app.yml", "Configuration file path.")
 	cfgPrefix   = flag.String("env-prefix", "BS", "Prefix for env variables.")
 
-	resetIndex = flag.Bool("reset", false, "Clear indexes first.")
 	hideBar    = flag.Bool("hidebar", false, "Hide progress bar.")
 	threadsCnt = flag.Int("threads", 1, "Parallel threads count.")
 	buffSize   = flag.Int("bufsize", 0, "Workers pool queue size.")
@@ -57,51 +57,33 @@ func main() {
 		return
 	}
 
-	cfg, err := factories.NewViperCfg(*cfgPath, *cfgPrefix)
-	if err != nil {
-		log.Fatal().Err(err).Msg("init config")
-	}
-
-	logger := factories.NewZerologLogger(cfg, os.Stderr)
-
+	cfg := factories.NewViperCfg(*cfgPath, *cfgPrefix)
 	if *profiler != "" {
 		defer RunProfiler(*profiler, cfg).Stop()
 	}
 
-	libs, err := GetLibs(*libName, cfg, logger)
-	if err != nil {
-		log.Fatal().Err(err).Msg("init config")
-	}
+	storage := factories.NewBoltDB(cfg.GetString("boltdb.path"))
+	defer storage.Close()
 
-	bar, err := GetProgressBar(libs, *hideBar, cfg, &logger)
-	if err != nil {
-		logger.Fatal().Err(err).Msg("init log file output")
-	}
+	logger := factories.NewZerologLogger(cfg, os.Stderr)
+	libs := GetLibs(*libName, cfg, logger)
+	bar := GetProgressBar(libs, *hideBar, cfg, &logger)
+	reposInfo := GetInfoRepos(*batchSize, libs, logger, cfg, storage)
+	repoMarks := repos.NewLibMarks("indexed_items", storage)
 
 	pipeline := make(chan interfaces.Worker, *buffSize)
-	pool := wpool.NewPipelinePool(pipeline, wpool.NewZerologAdapter(logger))
-	defer pool.Close()
-	for i := runtime.NumCPU(); i > 0; i-- {
-		pool.AddWorker(wpool.NewPipelineWorker(pipeline))
-	}
-
-	repoList, err := GetRepos(*resetIndex, *batchSize, libs, logger)
-	if err != nil {
-		logger.Fatal().Err(err).Msg("init repos")
-	}
+	defer close(pipeline)
 
 	semaphore := make(chan struct{}, *threadsCnt)
 	defer close(semaphore)
 
-	if err = IterateLibs(libs, repoList, &wg, logger,
-		pool, bar, &cntTotal, &cntIndexed, semaphore); err != nil {
-		logger.Fatal().Err(err).Msg("iterate libs")
-	}
+	pool := GetPool(pipeline, logger)
+	defer pool.Close()
 
+	IterateLibs(libs, reposInfo, &wg, logger, pool, bar, &cntTotal, &cntIndexed, semaphore, repoMarks)
 	wg.Wait()
-	time.Sleep(1 * time.Second)
 
-	for _, repo := range repoList {
+	for _, repo := range reposInfo {
 		repo.Close()
 	}
 
@@ -111,18 +93,19 @@ func main() {
 		Dur("dur", time.Since(startTS)).Msg("indexing finished")
 }
 
-func IterateLibs(libs entities.Libraries, repoList map[string]entities.IBooksIndexRepo,
+func IterateLibs(libs entities.Libraries, reposInfo map[string]entities.IBooksInfoRepo,
 	wg *sync.WaitGroup, logger zerolog.Logger, pool interfaces.Pool, bar *mpb.Bar,
 	cntTotal *entities.CntAtomic32, cntIndexed *entities.CntAtomic32, semaphore chan struct{},
-) error {
+	repoMarks entities.ILibMarksRepo,
+) {
 	libItems, err := libs.GetItems()
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	for libItem, libTitle := range libItems {
 		lib := libs[libTitle]
-		itemPath := strings.TrimPrefix(libItem, lib.BooksDir)
+		itemPath := strings.TrimPrefix(libItem, lib.Dir)
 		logger := logger.With().Str("libname", lib.Name).Str("libitem", itemPath).Logger()
 
 		logger.Debug().Msg("lib item found")
@@ -131,20 +114,18 @@ func IterateLibs(libs entities.Libraries, repoList map[string]entities.IBooksInd
 		case ".zip":
 			wg.Add(1)
 			semaphore <- struct{}{}
-			go func() {
+			go func(libItem string, lib entities.Library, repoInfo entities.IBooksInfoRepo) {
 				defer func() {
 					<-semaphore
 					wg.Done()
 				}()
 
-				tasks.NewZipIndexTask(libItem, lib,
-					repoList[lib.IndexDir], logger, bar, cntTotal, cntIndexed, wg, pool,
-				).Do()
-			}()
+				tasks.NewZipIndexTask(libItem, lib, repoInfo, logger, bar, cntTotal, cntIndexed, wg, pool, repoMarks).Do()
+			}(libItem, lib, reposInfo[libTitle])
 		case ".fb2":
 			wg.Add(1)
-			if err := pool.AddTask(tasks.NewFB2IndexTask(lib.Name, itemPath, libItem,
-				repoList[lib.IndexDir], logger, bar, cntTotal, cntIndexed, wg,
+			if err := pool.AddTask(tasks.NewFB2IndexTask(libTitle, itemPath, libItem,
+				reposInfo[libTitle], logger, bar, cntTotal, cntIndexed, wg, repoMarks,
 			)); err != nil {
 				logger.Error().Err(err).Msg("send fb2 to pool")
 			}
@@ -152,73 +133,60 @@ func IterateLibs(libs entities.Libraries, repoList map[string]entities.IBooksInd
 			logger.Warn().Str("type", path.Ext(libItem)).Msg("undefined lib item type")
 		}
 	}
-
-	return nil
 }
 
-func GetRepos(reset bool, batchSize int, libs entities.Libraries, logger zerolog.Logger) (map[string]entities.IBooksIndexRepo, error) {
-	repoList := map[string]entities.IBooksIndexRepo{}
-	for _, lib := range libs {
-		if _, ok := repoList[lib.IndexDir]; ok {
-			continue
-		}
+func GetInfoRepos(batchSize int, libs entities.Libraries, logger zerolog.Logger, cfg *viper.Viper, storage *bbolt.DB) map[string]entities.IBooksInfoRepo {
+	res := make(map[string]entities.IBooksInfoRepo, len(libs))
 
-		if reset {
-			files, _ := filepath.Glob(path.Join(lib.IndexDir, "*"))
-			for _, f := range files {
-				if err := os.RemoveAll(f); err != nil && !os.IsNotExist(err) {
-					return nil, err
-				}
-			}
-		}
-
-		index, err := factories.NewBleveIndex(lib.IndexDir, entities.NewBookIndexMapping())
-		if err != nil {
-			return nil, err
-		}
-
-		repoList[lib.IndexDir] = repos.NewBooksIndexBleve(batchSize, false, index, logger)
+	for libName := range libs {
+		res[libName] = repos.NewBooksInfo(batchSize, false, storage,
+			factories.NewBleveIndex(cfg.GetString("bleve.path"), libName, entities.NewBookIndexMapping()),
+			logger,
+			jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
+			jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal,
+		)
 	}
 
-	return repoList, nil
+	return res
 }
 
-func GetLibs(singleLibName string, cfg *viper.Viper, logger zerolog.Logger) (res entities.Libraries, err error) {
-	if res, err = entities.NewLibraries("libraries", cfg); err != nil {
-		return
+func GetLibs(singleLibName string, cfg *viper.Viper, logger zerolog.Logger) entities.Libraries {
+	res, err := entities.NewLibraries("libraries", cfg)
+	if err != nil {
+		panic(err)
 	}
 
 	if singleLibName != "" {
 		if lib, ok := res[singleLibName]; ok {
 			res = entities.Libraries{singleLibName: lib}
 		} else {
-			err = fmt.Errorf("library %s not found", singleLibName)
+			panic(fmt.Errorf("library %s not found", singleLibName))
 		}
 	}
 
-	return
+	return res
 }
 
-func GetProgressBar(libs entities.Libraries, disableBar bool, cfg *viper.Viper, logger *zerolog.Logger) (bar *mpb.Bar, err error) {
+func GetProgressBar(libs entities.Libraries, disableBar bool, cfg *viper.Viper, logger *zerolog.Logger) *mpb.Bar {
 	if disableBar {
-		return
+		return nil
 	}
 
-	if err = os.MkdirAll(cfg.GetString("logs.dir"), 0644); err != nil {
-		return
+	if err := os.MkdirAll(cfg.GetString("logs.dir"), 0644); err != nil {
+		panic(err)
 	}
 
-	var logOutput *os.File
-	if logOutput, err = os.OpenFile(
+	logOutput, err := os.OpenFile(
 		fmt.Sprintf("%s/indexing.%d.log", cfg.GetString("logs.dir"), time.Now().Unix()),
 		os.O_RDWR|os.O_CREATE, 0644,
-	); err != nil {
-		return
+	)
+	if err != nil {
+		panic(err)
 	}
 
 	*logger = logger.Output(zerolog.ConsoleWriter{Out: logOutput, NoColor: true})
 
-	bar = mpb.New(
+	return mpb.New(
 		mpb.WithOutput(os.Stdout),
 		// mpb.WithWidth(64),
 	).New(libs.GetSize(),
@@ -235,8 +203,6 @@ func GetProgressBar(libs entities.Libraries, disableBar bool, cfg *viper.Viper, 
 			decor.CountersKibiByte("% .2f/% .2f"),
 		),
 	)
-
-	return
 }
 
 func RunProfiler(profType string, cfg *viper.Viper) interface{ Stop() } {
@@ -271,4 +237,14 @@ func RunProfiler(profType string, cfg *viper.Viper) interface{ Stop() } {
 	}
 
 	return profile.Start(pprofopts...)
+}
+
+func GetPool(pipeline chan interfaces.Worker, logger zerolog.Logger) interfaces.Pool {
+	pool := wpool.NewPipelinePool(pipeline, wpool.NewZerologAdapter(logger))
+
+	for i := runtime.NumCPU(); i > 0; i-- {
+		pool.AddWorker(wpool.NewPipelineWorker(pipeline))
+	}
+
+	return pool
 }

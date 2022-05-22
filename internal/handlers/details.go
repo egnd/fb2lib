@@ -12,27 +12,26 @@ import (
 )
 
 func DetailsHandler(
-	indexRepo entities.IBooksIndexRepo, repoBooks entities.IBooksDataRepo, logger zerolog.Logger,
+	indexRepo entities.IBooksInfoRepo, repoBooks entities.IBooksLibraryRepo, logger zerolog.Logger,
 ) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
-		var bookIdx entities.BookIndex
-		if bookIdx, err = indexRepo.GetBook(c.Param("book_id")); err != nil {
+		var bookInfo entities.BookInfo
+		if bookInfo, err = indexRepo.GetBook(c.Param("book_id")); err != nil {
 			c.NoContent(http.StatusNotFound)
 			return
 		}
 
 		var book entities.FB2Book
-
-		switch path.Ext(bookIdx.Src) {
+		switch path.Ext(bookInfo.Src) {
 		case ".fb2", ".zip":
-			if book, err = repoBooks.GetFB2(bookIdx); err != nil {
+			if book, err = repoBooks.GetFB2(bookInfo); err != nil {
 				c.NoContent(http.StatusInternalServerError)
 				return
 			}
 		default:
 			c.NoContent(http.StatusInternalServerError)
 			return fmt.Errorf(
-				"details handler error: invalid book type %s", path.Ext(bookIdx.Src),
+				"details handler error: invalid book type %s", path.Ext(bookInfo.Src),
 			)
 		}
 
@@ -41,8 +40,8 @@ func DetailsHandler(
 			"search_placeholder": "Автор, название книги, серии, ISBN и т.д.",
 			"title":              book.Description.TitleInfo.BookTitle,
 
-			"book":     book,
-			"book_idx": bookIdx,
+			"book":      book,
+			"book_info": bookInfo,
 		})
 	}
 }

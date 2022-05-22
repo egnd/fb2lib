@@ -9,14 +9,14 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func BookAttachment(book entities.BookIndex, libs entities.Libraries, server echo.Context) error {
+func BookAttachment(book entities.BookInfo, libs entities.Libraries, server echo.Context) error {
 	bookPath := book.Src
 	if lib, ok := libs[book.LibName]; ok {
-		bookPath = path.Join(lib.BooksDir, bookPath)
+		bookPath = path.Join(lib.Dir, bookPath)
 	} else {
 		server.NoContent(http.StatusInternalServerError)
 		return errors.New("can't define book library")
 	}
 
-	return server.Attachment(bookPath, BuildBookName(book)+path.Ext(book.Src))
+	return server.Attachment(bookPath, BuildBookName(book.Index)+path.Ext(book.Src))
 }

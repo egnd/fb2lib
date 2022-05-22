@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"sync"
 
 	"github.com/egnd/fb2lib/internal/entities"
@@ -20,7 +19,7 @@ type ZipFB2IndexTask struct {
 	itemPath   string
 	parent     *os.File
 	file       *zip.File
-	repo       entities.IBooksIndexRepo
+	repo       entities.IBooksInfoRepo
 	logger     zerolog.Logger
 	bar        *mpb.Bar
 	cntTotal   *entities.CntAtomic32
@@ -33,7 +32,7 @@ func NewZipFB2IndexTask(
 	itemPath string,
 	parent *os.File,
 	file *zip.File,
-	repo entities.IBooksIndexRepo,
+	repo entities.IBooksInfoRepo,
 	logger zerolog.Logger,
 	bar *mpb.Bar,
 	cntTotal *entities.CntAtomic32,
@@ -93,18 +92,14 @@ func (t *ZipFB2IndexTask) Do() {
 		return
 	}
 
-	doc := entities.NewBookIndex(&fb2File)
-	doc.SizeUncompressed = uint64(t.file.UncompressedSize64)
-	doc.SizeCompressed = uint64(t.file.CompressedSize64)
-	doc.Offset = uint64(offset)
-	doc.LibName = t.libName
-	doc.Src = t.itemPath
-	doc.ID = entities.GenerateID([]string{doc.ISBN, doc.Lang, fmt.Sprint(doc.Year)},
-		strings.Split(doc.Titles, ";"),
-		strings.Split(strings.ReplaceAll(doc.Authors, ",", ";"), ";"),
-	)
-
-	if err = t.repo.SaveBook(doc); err != nil {
+	if err = t.repo.SaveBook(entities.BookInfo{
+		Index:            entities.NewBookIndex(&fb2File),
+		Offset:           uint64(offset),
+		SizeCompressed:   uint64(t.file.CompressedSize64),
+		SizeUncompressed: uint64(t.file.UncompressedSize64),
+		LibName:          t.libName,
+		Src:              t.itemPath,
+	}); err != nil {
 		t.logger.Error().Err(err).
 			Str("bookname", fb2File.Description.TitleInfo.BookTitle).
 			Msg("index zipped fb2 file")

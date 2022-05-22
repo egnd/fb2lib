@@ -38,8 +38,7 @@ func (l *Libraries) GetItems() (map[string]string, error) {
 
 type Library struct {
 	Disabled bool   `mapstructure:"disabled"`
-	BooksDir string `mapstructure:"books_dir"`
-	IndexDir string `mapstructure:"index_dir"`
+	Dir      string `mapstructure:"dir"`
 	Name     string
 	Types    []string `mapstructure:"types"`
 }
@@ -65,20 +64,19 @@ func NewLibraries(cfgKey string, cfg *viper.Viper) (Libraries, error) {
 }
 
 func (l *Library) GetItems() (res []string, err error) {
-	err = filepath.Walk(l.BooksDir,
-		func(pathStr string, info os.FileInfo, iterErr error) error {
-			if iterErr != nil {
-				return iterErr
-			}
+	err = filepath.Walk(l.Dir, func(pathStr string, info os.FileInfo, iterErr error) error {
+		if iterErr != nil {
+			return iterErr
+		}
 
-			if info.IsDir() || !SliceHasString(l.Types, strings.TrimPrefix(path.Ext(info.Name()), ".")) {
-				return nil
-			}
-
-			res = append(res, pathStr)
-
+		if info.IsDir() || !SliceHasString(l.Types, strings.TrimPrefix(path.Ext(info.Name()), ".")) {
 			return nil
-		})
+		}
+
+		res = append(res, pathStr)
+
+		return nil
+	})
 
 	return
 }
