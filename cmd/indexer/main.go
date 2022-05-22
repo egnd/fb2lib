@@ -37,9 +37,9 @@ var (
 	hideBar    = flag.Bool("hidebar", false, "Hide progress bar.")
 	threadsCnt = flag.Int("threads", 1, "Parallel threads count.")
 	buffSize   = flag.Int("bufsize", 0, "Workers pool queue size.")
-	// batchSize  = flag.Int("batchsize", 100, "Books index batch size.")
-	libName  = flag.String("lib", "", "Handle only specific lib.")
-	profiler = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
+	batchSize  = flag.Int("batchsize", 100, "Books index batch size.")
+	libName    = flag.String("lib", "", "Handle only specific lib.")
+	profiler   = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
 )
 
 func main() {
@@ -85,15 +85,10 @@ func main() {
 		pool.AddWorker(wpool.NewPipelineWorker(pipeline))
 	}
 
-	repoList, err := GetRepos(*resetIndex, libs, logger)
+	repoList, err := GetRepos(*resetIndex, *batchSize, libs, logger)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("init repos")
 	}
-	defer func() {
-		for _, repo := range repoList {
-			repo.Close()
-		}
-	}()
 
 	semaphore := make(chan struct{}, *threadsCnt)
 	defer close(semaphore)
@@ -105,6 +100,10 @@ func main() {
 
 	wg.Wait()
 	time.Sleep(1 * time.Second)
+
+	for _, repo := range repoList {
+		repo.Close()
+	}
 
 	logger.Info().
 		Uint32("succeed", cntIndexed.Total()).
@@ -157,7 +156,7 @@ func IterateLibs(libs entities.Libraries, repoList map[string]entities.IBooksInd
 	return nil
 }
 
-func GetRepos(reset bool, libs entities.Libraries, logger zerolog.Logger) (map[string]entities.IBooksIndexRepo, error) {
+func GetRepos(reset bool, batchSize int, libs entities.Libraries, logger zerolog.Logger) (map[string]entities.IBooksIndexRepo, error) {
 	repoList := map[string]entities.IBooksIndexRepo{}
 	for _, lib := range libs {
 		if _, ok := repoList[lib.IndexDir]; ok {
@@ -178,7 +177,7 @@ func GetRepos(reset bool, libs entities.Libraries, logger zerolog.Logger) (map[s
 			return nil, err
 		}
 
-		repoList[lib.IndexDir] = repos.NewBooksIndexBleve(false, index, logger)
+		repoList[lib.IndexDir] = repos.NewBooksIndexBleve(batchSize, false, index, logger)
 	}
 
 	return repoList, nil

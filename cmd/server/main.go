@@ -46,7 +46,7 @@ func main() {
 		logger.Fatal().Err(err).Msg("init index")
 	}
 
-	repoIndex := repos.NewBooksIndexBleve(cfg.GetBool("bleve.highlight"), booksIndex, logger)
+	repoIndex := repos.NewBooksIndexBleve(0, cfg.GetBool("bleve.highlight"), booksIndex, logger)
 	repoBooks := repos.NewBooksDataFiles(libs)
 	server, err := factories.NewEchoServer(libs, cfg, logger, repoIndex, repoBooks)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/search"
@@ -20,18 +21,32 @@ var (
 
 type BooksIndexBleve struct {
 	highlight bool
+	batching  bool
 	index     entities.ISearchIndex
 	logger    zerolog.Logger
+	wg        sync.WaitGroup
+	batchStop chan struct{}
+	batchPipe chan entities.BookIndex
 }
 
-func NewBooksIndexBleve(
+func NewBooksIndexBleve(batchSize int,
 	highlight bool, index entities.ISearchIndex, logger zerolog.Logger,
 ) *BooksIndexBleve {
-	return &BooksIndexBleve{
+	repo := &BooksIndexBleve{
+		batching:  batchSize > 0,
 		highlight: highlight,
 		index:     index,
 		logger:    logger,
 	}
+
+	if repo.batching {
+		repo.wg.Add(1)
+		repo.batchStop = make(chan struct{})
+		repo.batchPipe = make(chan entities.BookIndex)
+		go repo.runBatching(batchSize)
+	}
+
+	return repo
 }
 
 func (r *BooksIndexBleve) SearchAll(strQuery string, pager pagination.IPager) ([]entities.BookIndex, error) {
@@ -211,10 +226,69 @@ func (r *BooksIndexBleve) getBooks(
 	return res, nil
 }
 
-func (r *BooksIndexBleve) SaveBook(book entities.BookIndex) error { // @TODO: batching
+func (r *BooksIndexBleve) SaveBook(book entities.BookIndex) (err error) {
+	if r.batching {
+		defer func() {
+			if recover() != nil {
+				err = r.index.Index(book.ID, book)
+			}
+		}()
+
+		r.batchPipe <- book
+
+		return
+	}
+
 	return r.index.Index(book.ID, book)
 }
 
-func (r *BooksIndexBleve) Close() error { // @TODO: batching
+func (r *BooksIndexBleve) Close() error {
+	if r.batching {
+		r.batchStop <- struct{}{}
+		r.wg.Wait()
+		close(r.batchStop)
+		close(r.batchPipe)
+	}
+
 	return nil
+}
+
+func (r *BooksIndexBleve) runBatching(batchSize int) {
+	batch := r.index.NewBatch()
+
+	defer func() {
+		if batch.Size() > 0 {
+			if err := r.index.Batch(batch); err != nil {
+				r.logger.Error().Err(err).Msg("index repo batch last")
+			} else {
+				r.logger.Debug().Msg("index repo batch last")
+			}
+		}
+
+		r.wg.Done()
+	}()
+
+	for {
+		select {
+		case <-r.batchStop:
+			return
+		case doc := <-r.batchPipe:
+			if err := batch.Index(doc.ID, doc); err != nil {
+				r.logger.Error().Err(err).Msg("index repo add to batch")
+				continue
+			}
+
+			if batch.Size() < batchSize {
+				continue
+			}
+
+			if err := r.index.Batch(batch); err != nil {
+				r.logger.Error().Err(err).Msg("index repo batch")
+			} else {
+				r.logger.Debug().Msg("index repo batch")
+			}
+
+			batch.Reset()
+		}
+	}
 }
