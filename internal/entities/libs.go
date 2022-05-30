@@ -9,6 +9,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+type LibEncodeType string
+
+const (
+	LibEncodeMarshaler LibEncodeType = "marshaler"
+	LibEncodeParser    LibEncodeType = "parser"
+)
+
 type Libraries map[string]Library
 
 func (l *Libraries) GetSize() (res int64) {
@@ -40,7 +47,8 @@ type Library struct {
 	Disabled bool   `mapstructure:"disabled"`
 	Dir      string `mapstructure:"dir"`
 	Name     string
-	Types    []string `mapstructure:"types"`
+	Types    []string      `mapstructure:"types"`
+	Encoder  LibEncodeType `mapstructure:"encoder"`
 }
 
 func NewLibraries(cfgKey string, cfg *viper.Viper) (Libraries, error) {

@@ -124,7 +124,7 @@ func IterateLibs(libs entities.Libraries, reposInfo map[string]entities.IBooksIn
 			}(libItem, lib, reposInfo[libTitle])
 		case ".fb2":
 			wg.Add(1)
-			if err := pool.AddTask(tasks.NewFB2IndexTask(libTitle, itemPath, libItem,
+			if err := pool.AddTask(tasks.NewFB2IndexTask(libTitle, lib.Encoder, itemPath, libItem,
 				reposInfo[libTitle], logger, bar, cntTotal, cntIndexed, wg, repoMarks,
 			)); err != nil {
 				logger.Error().Err(err).Msg("send fb2 to pool")

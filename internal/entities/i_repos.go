@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/egnd/fb2lib/pkg/pagination"
+	"github.com/egnd/go-fb2parse"
 )
 
 type IBooksInfoRepo interface {
@@ -16,7 +17,7 @@ type IBooksInfoRepo interface {
 }
 
 type IBooksLibraryRepo interface {
-	GetFB2(BookInfo) (FB2Book, error)
+	GetFB2(BookInfo) (fb2parse.FB2File, error)
 }
 
 type ILibMarksRepo interface {

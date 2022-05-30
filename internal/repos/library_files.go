@@ -9,8 +9,9 @@ import (
 	"path"
 	"strings"
 
+	"github.com/egnd/go-fb2parse"
+
 	"github.com/egnd/fb2lib/internal/entities"
-	"github.com/egnd/fb2lib/pkg/fb2parser"
 )
 
 type LibraryFiles struct {
@@ -23,7 +24,7 @@ func NewLibraryFiles(libs entities.Libraries) *LibraryFiles {
 	}
 }
 
-func (r *LibraryFiles) GetFB2(book entities.BookInfo) (res entities.FB2Book, err error) {
+func (r *LibraryFiles) GetFB2(book entities.BookInfo) (res fb2parse.FB2File, err error) {
 	if book.Src == "" {
 		err = errors.New("repo getfb2 error: empty src")
 		return
@@ -38,14 +39,16 @@ func (r *LibraryFiles) GetFB2(book entities.BookInfo) (res entities.FB2Book, err
 	if strings.Contains(book.Src, ".zip") {
 		return r.extractZippedFB2(
 			strings.Split(path.Join(lib.Dir, book.Src), ".zip")[0]+".zip",
-			int64(book.Offset), int64(book.SizeCompressed),
+			int64(book.Offset), int64(book.SizeCompressed), lib.Encoder,
 		)
 	}
 
-	return r.extractFB2(path.Join(lib.Dir, book.Src))
+	return r.extractFB2(path.Join(lib.Dir, book.Src), lib.Encoder)
 }
 
-func (r *LibraryFiles) extractZippedFB2(archivePath string, offset int64, limit int64) (res entities.FB2Book, err error) {
+func (r *LibraryFiles) extractZippedFB2(
+	archivePath string, offset int64, limit int64, encoder entities.LibEncodeType,
+) (res fb2parse.FB2File, err error) {
 	var zipFile *os.File
 	if zipFile, err = os.Open(archivePath); err != nil {
 		return
@@ -55,19 +58,17 @@ func (r *LibraryFiles) extractZippedFB2(archivePath string, offset int64, limit 
 	fb2Stream := flate.NewReader(io.NewSectionReader(zipFile, offset, limit))
 	defer fb2Stream.Close()
 
-	err = fb2parser.UnmarshalStream(fb2Stream, &res)
-
-	return
+	return entities.ParseFB2(fb2Stream, encoder)
 }
 
-func (r *LibraryFiles) extractFB2(filePath string) (res entities.FB2Book, err error) {
+func (r *LibraryFiles) extractFB2(
+	filePath string, encoder entities.LibEncodeType,
+) (res fb2parse.FB2File, err error) {
 	var fb2Stream io.ReadCloser
 	if fb2Stream, err = os.Open(filePath); err != nil {
 		return
 	}
 	defer fb2Stream.Close()
 
-	err = fb2parser.UnmarshalStream(fb2Stream, &res)
-
-	return
+	return entities.ParseFB2(fb2Stream, encoder)
 }

@@ -33,7 +33,7 @@ func FB2FromLocalZip(book entities.BookInfo, libs entities.Libraries, server ech
 	defer reader.Close()
 
 	server.Response().Header().Set(echo.HeaderContentDisposition,
-		fmt.Sprintf(`attachment; filename="%s.fb2"`, BuildBookName(book.Index)),
+		fmt.Sprintf(`attachment; filename="%s.fb2"`, entities.BuildBookName(book.Index)),
 	)
 
 	return server.Stream(http.StatusOK, "application/fb2", reader)

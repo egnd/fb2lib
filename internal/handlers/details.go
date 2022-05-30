@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/egnd/fb2lib/internal/entities"
+	"github.com/egnd/go-fb2parse"
 	"github.com/flosch/pongo2/v5"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
@@ -21,7 +22,7 @@ func DetailsHandler(
 			return
 		}
 
-		var book entities.FB2Book
+		var book fb2parse.FB2File
 		switch path.Ext(bookInfo.Src) {
 		case ".fb2", ".zip":
 			if book, err = repoBooks.GetFB2(bookInfo); err != nil {
@@ -38,7 +39,7 @@ func DetailsHandler(
 		return c.Render(http.StatusOK, "books-details.html", pongo2.Context{
 			"search_form_action": "/",
 			"search_placeholder": "Автор, название книги, серии, ISBN и т.д.",
-			"title":              book.Description.TitleInfo.BookTitle,
+			"title":              entities.GetFirstStr(book.Description[0].TitleInfo[0].BookTitle),
 
 			"book":      book,
 			"book_info": bookInfo,

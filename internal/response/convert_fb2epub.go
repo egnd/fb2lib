@@ -38,5 +38,5 @@ func ConvertFB2Epub(converterDir string, book entities.BookInfo,
 		return err
 	}
 
-	return server.Attachment(epubPath, BuildBookName(book.Index)+".epub")
+	return server.Attachment(epubPath, entities.BuildBookName(book.Index)+".epub")
 }

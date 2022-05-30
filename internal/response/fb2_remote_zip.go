@@ -12,7 +12,7 @@ import (
 func FB2FromRemoteZip(urlPrefix, libDir string, book entities.BookInfo, // @TODO:
 	server echo.Context, client *http.Client,
 ) error {
-	req, err := http.NewRequest(http.MethodGet, BuildBookURL(
+	req, err := http.NewRequest(http.MethodGet, entities.BuildBookURL(
 		strings.Split(book.Src, ".zip")[0]+".zip", urlPrefix, libDir,
 	), nil)
 	if err != nil {
@@ -34,7 +34,7 @@ func FB2FromRemoteZip(urlPrefix, libDir string, book entities.BookInfo, // @TODO
 
 	server.Response().Header().Set(echo.HeaderContentEncoding, "deflate")
 	server.Response().Header().Set(echo.HeaderContentDisposition,
-		fmt.Sprintf(`attachment; filename="%s.fb2"`, BuildBookName(book.Index)),
+		fmt.Sprintf(`attachment; filename="%s.fb2"`, entities.BuildBookName(book.Index)),
 	)
 
 	return server.Stream(http.StatusOK, "application/fb2", resp.Body)

@@ -8,15 +8,17 @@ import (
 	"os"
 	"sync"
 
-	"github.com/egnd/fb2lib/internal/entities"
-	"github.com/egnd/fb2lib/pkg/fb2parser"
+	"github.com/egnd/go-fb2parse"
 	"github.com/rs/zerolog"
 	"github.com/vbauerster/mpb/v7"
+
+	"github.com/egnd/fb2lib/internal/entities"
 )
 
 type ZipFB2IndexTask struct {
 	libName    string
 	itemPath   string
+	encoder    entities.LibEncodeType
 	parent     *os.File
 	file       *zip.File
 	repo       entities.IBooksInfoRepo
@@ -29,6 +31,7 @@ type ZipFB2IndexTask struct {
 
 func NewZipFB2IndexTask(
 	libName string,
+	encoder entities.LibEncodeType,
 	itemPath string,
 	parent *os.File,
 	file *zip.File,
@@ -42,6 +45,7 @@ func NewZipFB2IndexTask(
 	return &ZipFB2IndexTask{
 		libName:    libName,
 		itemPath:   itemPath,
+		encoder:    encoder,
 		parent:     parent,
 		file:       file,
 		repo:       repo,
@@ -86,22 +90,23 @@ func (t *ZipFB2IndexTask) Do() {
 
 	defer data.Close()
 
-	var fb2File fb2parser.FB2File
-	if err = fb2parser.UnmarshalStream(data, &fb2File); err != nil {
+	var fb2File fb2parse.FB2File
+	if fb2File, err = entities.ParseFB2(data, t.encoder,
+		SkipFB2Binaries, SkipFB2DocInfo, SkipFB2CustomInfo, SkipFB2Cover); err != nil {
 		t.logger.Error().Err(err).Msg("parse zipped fb2 file")
 		return
 	}
 
 	if err = t.repo.SaveBook(entities.BookInfo{
-		Index:            entities.NewBookIndex(&fb2File),
-		Offset:           uint64(offset),
-		SizeCompressed:   uint64(t.file.CompressedSize64),
-		SizeUncompressed: uint64(t.file.UncompressedSize64),
-		LibName:          t.libName,
-		Src:              t.itemPath,
+		Index:          entities.NewFB2Index(&fb2File),
+		Offset:         uint64(offset),
+		SizeCompressed: uint64(t.file.CompressedSize64),
+		Size:           uint64(t.file.UncompressedSize64),
+		LibName:        t.libName,
+		Src:            t.itemPath,
 	}); err != nil {
 		t.logger.Error().Err(err).
-			Str("bookname", fb2File.Description.TitleInfo.BookTitle).
+			Str("bookname", entities.GetFirstStr(fb2File.Description[0].TitleInfo[0].BookTitle)).
 			Msg("index zipped fb2 file")
 		return
 	}

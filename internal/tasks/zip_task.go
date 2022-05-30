@@ -90,7 +90,7 @@ func (t *ZipIndexTask) Do() {
 		t.wg.Add(1)
 		logger := t.logger.With().Str("libsubitem", innerFile.Name).Logger()
 
-		if err := t.pool.AddTask(NewZipFB2IndexTask(t.lib.Name,
+		if err := t.pool.AddTask(NewZipFB2IndexTask(t.lib.Name, t.lib.Encoder,
 			path.Join(strings.TrimPrefix(t.pathStr, t.lib.Dir), innerFile.Name),
 			archive, innerFile, t.repo, logger, t.bar, t.cntTotal, t.cntIndexed, t.wg,
 		)); err != nil {

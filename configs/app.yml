@@ -23,4 +23,5 @@ libraries:
   default:
     disabled: false
     dir: var/libs/default
+    # encoder: marshaler # or parser
     types: [] # fb2,zip

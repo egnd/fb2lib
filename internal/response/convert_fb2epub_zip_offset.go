@@ -67,5 +67,5 @@ func ConvertFB2EpubZipOffset(converterDir string, book entities.BookInfo,
 		return err
 	}
 
-	return server.Attachment(epubPath, BuildBookName(book.Index)+".epub")
+	return server.Attachment(epubPath, entities.BuildBookName(book.Index)+".epub")
 }

@@ -5,16 +5,18 @@ import (
 	"os"
 	"sync"
 
-	"github.com/egnd/fb2lib/internal/entities"
-	"github.com/egnd/fb2lib/pkg/fb2parser"
+	"github.com/egnd/go-fb2parse"
 	"github.com/rs/zerolog"
 	"github.com/vbauerster/mpb/v7"
+
+	"github.com/egnd/fb2lib/internal/entities"
 )
 
 type FB2IndexTask struct {
 	libName     string
 	itemPath    string
 	itemPathRaw string
+	encoder     entities.LibEncodeType
 	repo        entities.IBooksInfoRepo
 	logger      zerolog.Logger
 	bar         *mpb.Bar
@@ -26,6 +28,7 @@ type FB2IndexTask struct {
 
 func NewFB2IndexTask(
 	libName string,
+	encoder entities.LibEncodeType,
 	itemPath string,
 	itemPathRaw string,
 	repo entities.IBooksInfoRepo,
@@ -38,6 +41,7 @@ func NewFB2IndexTask(
 ) *FB2IndexTask {
 	return &FB2IndexTask{
 		libName:     libName,
+		encoder:     encoder,
 		itemPath:    itemPath,
 		itemPathRaw: itemPathRaw,
 		repo:        repo,
@@ -80,20 +84,21 @@ func (t *FB2IndexTask) Do() {
 	}
 	defer file.Close()
 
-	var fb2File fb2parser.FB2File
-	if err = fb2parser.UnmarshalStream(file, &fb2File); err != nil {
+	var fb2File fb2parse.FB2File
+	if fb2File, err = entities.ParseFB2(file, t.encoder,
+		SkipFB2Binaries, SkipFB2DocInfo, SkipFB2CustomInfo, SkipFB2Cover); err != nil {
 		t.logger.Error().Err(err).Msg("parse item")
 		return
 	}
 
 	if err = t.repo.SaveBook(entities.BookInfo{
-		Index:            entities.NewBookIndex(&fb2File),
-		SizeUncompressed: uint64(finfo.Size()),
-		LibName:          t.libName,
-		Src:              t.itemPath,
+		Index:   entities.NewFB2Index(&fb2File),
+		Size:    uint64(finfo.Size()),
+		LibName: t.libName,
+		Src:     t.itemPath,
 	}); err != nil {
 		t.logger.Error().Err(err).
-			Str("bookname", fb2File.Description.TitleInfo.BookTitle).
+			Str("bookname", entities.GetFirstStr(fb2File.Description[0].TitleInfo[0].BookTitle)).
 			Msg("indexing")
 		return
 	}

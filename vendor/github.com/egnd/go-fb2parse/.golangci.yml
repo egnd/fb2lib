@@ -1,0 +1,29 @@
+---
+# https://github.com/golangci/golangci-lint#configuration
+run:
+  go: 1.17
+  deadline: 5m
+  concurency: 4
+  timeout: 1m
+  issues-exit-code: 1
+  tests: false
+  skip-dirs:
+    - vendor
+output:
+  format: tab
+  print-issued-lines: true
+  print-linter-name: true
+linters:
+  enable-all: true
+  disable:
+   - goerr113
+   - golint
+   - interfacer
+   - maligned
+   - scopelint
+  fast: false
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: false

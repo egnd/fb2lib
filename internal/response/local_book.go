@@ -18,5 +18,5 @@ func BookAttachment(book entities.BookInfo, libs entities.Libraries, server echo
 		return errors.New("can't define book library")
 	}
 
-	return server.Attachment(bookPath, BuildBookName(book.Index)+path.Ext(book.Src))
+	return server.Attachment(bookPath, entities.BuildBookName(book.Index)+path.Ext(book.Src))
 }
