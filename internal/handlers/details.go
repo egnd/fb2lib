@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"path"
+	"strings"
 
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/go-fb2parse"
@@ -22,13 +23,15 @@ func DetailsHandler(
 			return
 		}
 
-		var book fb2parse.FB2File
 		switch path.Ext(bookInfo.Src) {
 		case ".fb2", ".zip":
+			var book fb2parse.FB2File
 			if book, err = repoBooks.GetFB2(bookInfo); err != nil {
 				c.NoContent(http.StatusInternalServerError)
 				return
 			}
+
+			bookInfo.ReadDetails(&book)
 		default:
 			c.NoContent(http.StatusInternalServerError)
 			return fmt.Errorf(
@@ -39,10 +42,9 @@ func DetailsHandler(
 		return c.Render(http.StatusOK, "books-details.html", pongo2.Context{
 			"search_form_action": "/",
 			"search_placeholder": "Автор, название книги, серии, ISBN и т.д.",
-			"title":              entities.GetFirstStr(book.Description[0].TitleInfo[0].BookTitle),
+			"title":              strings.Split(bookInfo.Index.Titles, "; ")[0],
 
-			"book":      book,
-			"book_info": bookInfo,
+			"book": bookInfo,
 		})
 	}
 }

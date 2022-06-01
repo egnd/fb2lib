@@ -40,4 +40,5 @@
 .book-descr .button {
     overflow: hidden;
     max-width: 100%;
+    margin-right: 5px;
 }

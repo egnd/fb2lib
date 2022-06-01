@@ -9,7 +9,10 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func BySeriesHandler(repo entities.IBooksInfoRepo) echo.HandlerFunc {
+func BySeriesHandler(
+	repoInfo entities.IBooksInfoRepo,
+	repoBooks entities.IBooksLibraryRepo,
+) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		searchQuery := c.QueryParam("q")
 
@@ -17,12 +20,14 @@ func BySeriesHandler(repo entities.IBooksInfoRepo) echo.HandlerFunc {
 			ReadPageSize().ReadCurPage()
 
 		var books []entities.BookInfo
-		books, err = repo.SearchBySequence(searchQuery, pager)
+		books, err = repoInfo.SearchBySequence(searchQuery, pager)
 
 		if err != nil {
 			c.NoContent(http.StatusBadRequest)
 			return
 		}
+
+		addDetails(books, repoBooks)
 
 		return c.Render(http.StatusOK, "books-list.html", pongo2.Context{
 			"search_query":       searchQuery,

@@ -41,9 +41,9 @@ func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Log
 		return c.String(http.StatusOK, "OK")
 	})
 
-	server.GET("/", handlers.SearchHandler(repoInfo))
-	server.GET("/by_authors/", handlers.ByAuthorsHandler(repoInfo))
-	server.GET("/by_series/", handlers.BySeriesHandler(repoInfo))
+	server.GET("/", handlers.SearchHandler(repoInfo, repoBooks))
+	server.GET("/by_authors/", handlers.ByAuthorsHandler(repoInfo, repoBooks))
+	server.GET("/by_series/", handlers.BySeriesHandler(repoInfo, repoBooks))
 	server.GET("/details/:book_id", handlers.DetailsHandler(repoInfo, repoBooks, logger))
 	server.GET("/download/:book_id", handlers.DownloadHandler(libs, repoInfo, cfg, logger))
 

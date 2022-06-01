@@ -160,7 +160,7 @@ func appendUniqFB2Seq(current *string, items []fb2parse.FB2Sequence) {
 
 		buf.WriteString(item.Name)
 
-		if item.Number != "" {
+		if item.Number != "" && item.Number != "0" {
 			buf.WriteRune(' ')
 			buf.WriteRune('(')
 			buf.WriteString(item.Number)

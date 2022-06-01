@@ -7,8 +7,8 @@ import (
 // FB2Image struct of fb2 image.
 // http://www.fictionbook.org/index.php/Элемент_image
 type FB2Image struct {
-	Type  string `xml:"l:type,attr"`
-	Href  string `xml:"l:href,attr"`
+	Type  string `xml:"type,attr"`
+	Href  string `xml:"href,attr"`
 	Alt   string `xml:"alt,attr"`
 	Title string `xml:"title,attr"`
 	ID    string `xml:"id,attr"`
@@ -18,9 +18,9 @@ type FB2Image struct {
 func NewFB2Image(token xml.StartElement) (res FB2Image, err error) {
 	for _, attr := range token.Attr {
 		switch attr.Name.Local {
-		case "l:type":
+		case "type":
 			res.Type = attr.Value
-		case "l:href":
+		case "href":
 			res.Href = attr.Value
 		case "alt":
 			res.Alt = attr.Value

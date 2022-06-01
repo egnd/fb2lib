@@ -89,7 +89,7 @@ func (r *BooksInfo) SearchAll(strQuery string, pager pagination.IPager) ([]entit
 	searchReq := bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
 	searchReq.Highlight = bleve.NewHighlightWithStyle("html")
 	searchReq.Sort = append(searchReq.Sort, &search.SortField{
-		Field:   "Year",
+		Field:   "year",
 		Desc:    true,
 		Type:    search.SortFieldAsNumber,
 		Missing: search.SortFieldMissingLast,
@@ -111,7 +111,7 @@ func (r *BooksInfo) SearchByAuthor(strQuery string, pager pagination.IPager) ([]
 	searchReq := bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
 	searchReq.Highlight = bleve.NewHighlightWithStyle("html")
 	searchReq.Sort = append(searchReq.Sort, &search.SortField{
-		Field:   "Year",
+		Field:   "year",
 		Desc:    true,
 		Type:    search.SortFieldAsNumber,
 		Missing: search.SortFieldMissingLast,
@@ -133,7 +133,7 @@ func (r *BooksInfo) SearchBySequence(strQuery string, pager pagination.IPager) (
 	searchReq := bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
 	searchReq.Highlight = bleve.NewHighlightWithStyle("html")
 	searchReq.Sort = append(searchReq.Sort, &search.SortField{
-		Field:   "Year",
+		Field:   "year",
 		Desc:    true,
 		Type:    search.SortFieldAsNumber,
 		Missing: search.SortFieldMissingLast,

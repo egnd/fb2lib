@@ -3,10 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
-	"path"
-	"runtime"
-	"strings"
 	"sync"
 	"time"
 
@@ -31,16 +29,22 @@ var (
 	appVersion = "debug"
 
 	showVersion = flag.Bool("version", false, "Show app version.")
-	cfgPath     = flag.String("config", "configs/app.yml", "Configuration file path.")
-	cfgPrefix   = flag.String("env-prefix", "BS", "Prefix for env variables.")
+	hideBar     = flag.Bool("hidebar", false, "Hide progress bar.")
 
-	hideBar    = flag.Bool("hidebar", false, "Hide progress bar.")
-	threadsCnt = flag.Int("threads", 1, "Parallel threads count.")
-	buffSize   = flag.Int("bufsize", 0, "Workers pool queue size.")
-	batchSize  = flag.Int("batchsize", 100, "Books index batch size.")
-	libName    = flag.String("lib", "", "Handle only specific lib.")
-	profiler   = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
+	libItemsThreads = flag.Int("lib_items_cnt", 1, "Number of library items handlers at a time.")
+	readThreads     = flag.Int("read_threads", 100, "Books reading threads count.")
+	readBuffSize    = flag.Int("read_buffer", 0, "Books reading queue size.")
+	parseThreads    = flag.Int("parse_threads", 6, "Books parsing threads count (<= CPU cores).")
+	parseBuffSize   = flag.Int("parse_buffer", 0, "Books parsing queue size.")
+	batchSize       = flag.Int("batchsize", 100, "Books index batch size.")
+
+	cfgPath   = flag.String("config", "configs/app.yml", "Configuration file path.")
+	cfgPrefix = flag.String("env-prefix", "BS", "Prefix for env variables.")
+	libName   = flag.String("lib", "", "Handle only specific lib.")
+	profiler  = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
 )
+
+// @TODO: progress bar
 
 func main() {
 	var (
@@ -67,20 +71,51 @@ func main() {
 
 	logger := factories.NewZerologLogger(cfg, os.Stderr)
 	libs := GetLibs(*libName, cfg, logger)
-	bar := GetProgressBar(libs, *hideBar, cfg, &logger)
+	// bar := GetProgressBar(libs, *hideBar, cfg, &logger)
 	reposInfo := GetInfoRepos(*batchSize, libs, logger, cfg, storage)
 	repoMarks := repos.NewLibMarks("indexed_items", storage)
 
-	pipeline := make(chan interfaces.Worker, *buffSize)
-	defer close(pipeline)
+	parsingPipeline := make(chan interfaces.Worker, *parseBuffSize)
+	defer close(parsingPipeline)
 
-	semaphore := make(chan struct{}, *threadsCnt)
+	parsingPool := GetPool(*readThreads, parsingPipeline, logger)
+	defer parsingPool.Close()
+
+	readingPipeline := make(chan interfaces.Worker, *readBuffSize)
+	defer close(readingPipeline)
+
+	readingPool := GetPool(*parseThreads, readingPipeline, logger)
+	defer readingPool.Close()
+
+	semaphore := make(chan struct{}, *libItemsThreads)
 	defer close(semaphore)
 
-	pool := GetPool(pipeline, logger)
-	defer pool.Close()
+	libItems, err := libs.GetItems()
+	if err != nil {
+		panic(err)
+	}
 
-	IterateLibs(libs, reposInfo, &wg, logger, pool, bar, &cntTotal, &cntIndexed, semaphore, repoMarks)
+	for libItem, libTitle := range libItems {
+		wg.Add(1)
+
+		semaphore <- struct{}{}
+		go func(libItem, libTitle string) {
+			defer func() {
+				<-semaphore
+				wg.Done()
+			}()
+
+			tasks.NewHandleLibItemTask(
+				libItem, libs[libTitle], logger, readingPool, parsingPool, &wg, repoMarks, &cntTotal,
+				func(data io.Reader, book entities.BookInfo, logger zerolog.Logger) interfaces.Task {
+					return tasks.NewIndexFB2DataTask(data, book,
+						libs[libTitle].Encoder, reposInfo[libTitle], logger, &wg, &cntIndexed,
+					)
+				},
+			).Do()
+		}(libItem, libTitle)
+	}
+
 	wg.Wait()
 
 	for _, repo := range reposInfo {
@@ -91,48 +126,6 @@ func main() {
 		Uint32("succeed", cntIndexed.Total()).
 		Uint32("failed", cntTotal.Total()-cntIndexed.Total()).
 		Dur("dur", time.Since(startTS)).Msg("indexing finished")
-}
-
-func IterateLibs(libs entities.Libraries, reposInfo map[string]entities.IBooksInfoRepo,
-	wg *sync.WaitGroup, logger zerolog.Logger, pool interfaces.Pool, bar *mpb.Bar,
-	cntTotal *entities.CntAtomic32, cntIndexed *entities.CntAtomic32, semaphore chan struct{},
-	repoMarks entities.ILibMarksRepo,
-) {
-	libItems, err := libs.GetItems()
-	if err != nil {
-		panic(err)
-	}
-
-	for libItem, libTitle := range libItems {
-		lib := libs[libTitle]
-		itemPath := strings.TrimPrefix(libItem, lib.Dir)
-		logger := logger.With().Str("libname", lib.Name).Str("libitem", itemPath).Logger()
-
-		logger.Debug().Msg("lib item found")
-
-		switch path.Ext(libItem) {
-		case ".zip":
-			wg.Add(1)
-			semaphore <- struct{}{}
-			go func(libItem string, lib entities.Library, repoInfo entities.IBooksInfoRepo) {
-				defer func() {
-					<-semaphore
-					wg.Done()
-				}()
-
-				tasks.NewZipIndexTask(libItem, lib, repoInfo, logger, bar, cntTotal, cntIndexed, wg, pool, repoMarks).Do()
-			}(libItem, lib, reposInfo[libTitle])
-		case ".fb2":
-			wg.Add(1)
-			if err := pool.AddTask(tasks.NewFB2IndexTask(libTitle, lib.Encoder, itemPath, libItem,
-				reposInfo[libTitle], logger, bar, cntTotal, cntIndexed, wg, repoMarks,
-			)); err != nil {
-				logger.Error().Err(err).Msg("send fb2 to pool")
-			}
-		default:
-			logger.Warn().Str("type", path.Ext(libItem)).Msg("undefined lib item type")
-		}
-	}
 }
 
 func GetInfoRepos(batchSize int, libs entities.Libraries, logger zerolog.Logger, cfg *viper.Viper, storage *bbolt.DB) map[string]entities.IBooksInfoRepo {
@@ -239,10 +232,10 @@ func RunProfiler(profType string, cfg *viper.Viper) interface{ Stop() } {
 	return profile.Start(pprofopts...)
 }
 
-func GetPool(pipeline chan interfaces.Worker, logger zerolog.Logger) interfaces.Pool {
+func GetPool(workersCNt int, pipeline chan interfaces.Worker, logger zerolog.Logger) interfaces.Pool {
 	pool := wpool.NewPipelinePool(pipeline, wpool.NewZerologAdapter(logger))
 
-	for i := runtime.NumCPU(); i > 0; i-- {
+	for i := 0; i < workersCNt; i++ {
 		pool.AddWorker(wpool.NewPipelineWorker(pipeline))
 	}
 
