@@ -44,11 +44,11 @@ var (
 	profiler  = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
 )
 
-// @TODO: progress bar
-
 func main() {
 	var (
 		wg         sync.WaitGroup
+		bars       *mpb.Progress
+		barTotal   *mpb.Bar
 		cntTotal   entities.CntAtomic32
 		cntIndexed entities.CntAtomic32
 		startTS    = time.Now()
@@ -71,7 +71,11 @@ func main() {
 
 	logger := factories.NewZerologLogger(cfg, os.Stderr)
 	libs := GetLibs(*libName, cfg, logger)
-	// bar := GetProgressBar(libs, *hideBar, cfg, &logger)
+	if !*hideBar {
+		bars = mpb.New(mpb.WithOutput(os.Stdout))
+		barTotal = GetProgressBar(bars, libs, cfg, &logger)
+	}
+
 	reposInfo := GetInfoRepos(*batchSize, libs, logger, cfg, storage)
 	repoMarks := repos.NewLibMarks("indexed_items", storage)
 
@@ -95,25 +99,28 @@ func main() {
 		panic(err)
 	}
 
+	var num int
+	total := len(libItems)
 	for libItem, libTitle := range libItems {
 		wg.Add(1)
+		num++
 
 		semaphore <- struct{}{}
-		go func(libItem, libTitle string) {
+		go func(num int, libItem, libTitle string) {
 			defer func() {
 				<-semaphore
 				wg.Done()
 			}()
 
-			tasks.NewHandleLibItemTask(
-				libItem, libs[libTitle], logger, readingPool, parsingPool, &wg, repoMarks, &cntTotal,
+			tasks.NewHandleLibItemTask(num, total, libItem, libs[libTitle],
+				logger, readingPool, parsingPool, &wg, repoMarks, &cntTotal, bars,
 				func(data io.Reader, book entities.BookInfo, logger zerolog.Logger) interfaces.Task {
 					return tasks.NewIndexFB2DataTask(data, book,
-						libs[libTitle].Encoder, reposInfo[libTitle], logger, &wg, &cntIndexed,
+						libs[libTitle].Encoder, reposInfo[libTitle], logger, &wg, &cntIndexed, barTotal,
 					)
 				},
 			).Do()
-		}(libItem, libTitle)
+		}(num, libItem, libTitle)
 	}
 
 	wg.Wait()
@@ -160,40 +167,29 @@ func GetLibs(singleLibName string, cfg *viper.Viper, logger zerolog.Logger) enti
 	return res
 }
 
-func GetProgressBar(libs entities.Libraries, disableBar bool, cfg *viper.Viper, logger *zerolog.Logger) *mpb.Bar {
-	if disableBar {
-		return nil
-	}
-
+func GetProgressBar(bars *mpb.Progress, libs entities.Libraries, cfg *viper.Viper, logger *zerolog.Logger) *mpb.Bar {
 	if err := os.MkdirAll(cfg.GetString("logs.dir"), 0644); err != nil {
 		panic(err)
 	}
 
-	logOutput, err := os.OpenFile(
-		fmt.Sprintf("%s/indexing.%d.log", cfg.GetString("logs.dir"), time.Now().Unix()),
-		os.O_RDWR|os.O_CREATE, 0644,
-	)
+	logOutput, err := os.OpenFile(fmt.Sprintf("%s/indexing.%d.log",
+		cfg.GetString("logs.dir"), time.Now().Unix(),
+	), os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		panic(err)
 	}
 
 	*logger = logger.Output(zerolog.ConsoleWriter{Out: logOutput, NoColor: true})
 
-	return mpb.New(
-		mpb.WithOutput(os.Stdout),
-		// mpb.WithWidth(64),
-	).New(libs.GetSize(),
-		mpb.BarStyle().Lbound("╢").Filler("▌").Tip("▌").Padding("░").Rbound("╟"),
+	return bars.AddBar(libs.GetSize(),
+		// mpb.BarStyle().Lbound("╢").Filler("▌").Tip("▌").Padding("░").Rbound("╟"),
 		mpb.PrependDecorators(
-			decor.Name("total - "),
 			decor.Elapsed(decor.ET_STYLE_GO),
 		),
 		mpb.AppendDecorators(
+			decor.CountersKibiByte("% .2f/% .2f"), decor.Name(", "),
+			// decor.AverageSpeed(decor.UnitKB, "% .2f"), decor.Name(", "),
 			decor.AverageETA(decor.ET_STYLE_GO),
-			decor.Name(" - "),
-			decor.AverageSpeed(decor.UnitKB, "% .2f"),
-			decor.Name(" - "),
-			decor.CountersKibiByte("% .2f/% .2f"),
 		),
 	)
 }

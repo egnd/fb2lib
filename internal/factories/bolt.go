@@ -1,11 +1,18 @@
 package factories
 
 import (
+	"os"
+	"path"
+
 	"go.etcd.io/bbolt"
 )
 
-func NewBoltDB(dir string) *bbolt.DB {
-	db, err := bbolt.Open(dir, 0644, nil)
+func NewBoltDB(dbPath string) *bbolt.DB {
+	if err := os.MkdirAll(path.Dir(dbPath), 0755); err != nil {
+		panic(err)
+	}
+
+	db, err := bbolt.Open(dbPath, 0644, nil)
 	if err != nil {
 		panic(err)
 	}

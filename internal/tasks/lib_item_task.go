@@ -9,9 +9,12 @@ import (
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/go-wpool/v2/interfaces"
 	"github.com/rs/zerolog"
+	"github.com/vbauerster/mpb/v7"
 )
 
 type HandleLibItemTask struct {
+	num       int
+	total     int
 	item      string
 	lib       entities.Library
 	logger    zerolog.Logger
@@ -21,9 +24,11 @@ type HandleLibItemTask struct {
 	taskIndex IndexTaskFactory
 	repoMarks entities.ILibMarksRepo
 	counter   *entities.CntAtomic32
+	bars      *mpb.Progress
 }
 
 func NewHandleLibItemTask(
+	num, total int,
 	item string,
 	lib entities.Library,
 	logger zerolog.Logger,
@@ -32,9 +37,12 @@ func NewHandleLibItemTask(
 	wg *sync.WaitGroup,
 	repoMarks entities.ILibMarksRepo,
 	counter *entities.CntAtomic32,
+	bars *mpb.Progress,
 	taskIndex IndexTaskFactory,
 ) *HandleLibItemTask {
 	return &HandleLibItemTask{
+		num:       num,
+		total:     total,
 		wg:        wg,
 		lib:       lib,
 		item:      item,
@@ -43,6 +51,7 @@ func NewHandleLibItemTask(
 		taskIndex: taskIndex,
 		repoMarks: repoMarks,
 		counter:   counter,
+		bars:      bars,
 		logger: logger.With().Str("libname", lib.Name).
 			Str("libitem", strings.TrimPrefix(item, lib.Dir)).Logger(),
 	}
@@ -71,7 +80,9 @@ func (t *HandleLibItemTask) Do() {
 
 	switch path.Ext(t.item) {
 	case ".zip":
-		NewReadZipTask(t.item, finfo, t.lib, t.repoMarks, t.logger, t.readPool, t.indexPool, t.wg, t.counter, t.taskIndex).Do()
+		NewReadZipTask(t.num, t.total, t.item, finfo, t.lib,
+			t.repoMarks, t.logger, t.readPool, t.indexPool, t.wg, t.counter, t.bars, t.taskIndex,
+		).Do()
 
 		if err := t.repoMarks.AddMark(t.item); err != nil {
 			t.logger.Error().Err(err).Msg("memorize zip file")
