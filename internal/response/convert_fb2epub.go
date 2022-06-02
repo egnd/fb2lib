@@ -1,6 +1,8 @@
 package response
 
 import (
+	"errors"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -11,9 +13,19 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func ConvertFB2Epub(converterDir string, book entities.BookIndex, server echo.Context, logger zerolog.Logger) error {
+func ConvertFB2Epub(converterDir string, book entities.BookInfo,
+	libs entities.Libraries, server echo.Context, logger zerolog.Logger,
+) error {
+	filePath := book.Src
+	if lib, ok := libs[book.LibName]; ok {
+		filePath = path.Join(lib.Dir, filePath)
+	} else {
+		server.NoContent(http.StatusInternalServerError)
+		return errors.New("can't define book library")
+	}
+
 	epubPath := path.Join(converterDir, strings.TrimSuffix(path.Base(book.Src), ".fb2")+".epub")
-	cmd := exec.Command("bin/fb2c", "convert", "--ow", "--to=epub", book.Src, converterDir)
+	cmd := exec.Command("bin/fb2c", "convert", "--ow", "--to=epub", filePath, converterDir)
 
 	logger.Info().Str("epub", epubPath).Str("cmd", cmd.String()).Msg("fb2epub")
 
@@ -26,5 +38,5 @@ func ConvertFB2Epub(converterDir string, book entities.BookIndex, server echo.Co
 		return err
 	}
 
-	return server.Attachment(epubPath, BuildBookName(book)+".epub")
+	return server.Attachment(epubPath, entities.BuildBookName(book.Index)+".epub")
 }

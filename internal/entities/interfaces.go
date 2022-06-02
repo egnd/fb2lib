@@ -6,8 +6,6 @@ import (
 	"github.com/blevesearch/bleve/v2"
 )
 
-type IIndexFactory func(string) (bleve.Index, error)
-
 type ISearchIndex interface {
 	io.Closer
 	DocCount() (uint64, error)
@@ -17,3 +15,7 @@ type ISearchIndex interface {
 	NewBatch() *bleve.Batch
 	Batch(b *bleve.Batch) error
 }
+
+type IMarshal func(any) ([]byte, error)
+
+type IUnmarshal func([]byte, any) error

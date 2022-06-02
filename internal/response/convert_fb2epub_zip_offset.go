@@ -2,7 +2,9 @@ package response
 
 import (
 	"compress/flate"
+	"errors"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -13,15 +15,25 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func ConvertFB2EpubZipOffset(converterDir string, book entities.BookIndex, server echo.Context, logger zerolog.Logger) error {
-	epubPath := path.Join(converterDir, book.ID+".epub")
+func ConvertFB2EpubZipOffset(converterDir string, book entities.BookInfo,
+	libs entities.Libraries, server echo.Context, logger zerolog.Logger,
+) error {
+	epubPath := path.Join(converterDir, book.Index.ID+".epub")
 	if _, err := os.Stat(epubPath); err == nil {
 		return server.File(epubPath)
 	}
 
-	fb2Path := path.Join(converterDir, book.ID+".fb2")
+	fb2Path := path.Join(converterDir, book.Index.ID+".fb2")
 	if _, err := os.Stat(fb2Path); err != nil {
-		zipFile, err := os.Open(strings.Split(book.Src, ".zip")[0] + ".zip")
+		archivePath := strings.Split(book.Src, ".zip")[0] + ".zip"
+		if lib, ok := libs[book.LibName]; ok {
+			archivePath = path.Join(lib.Dir, archivePath)
+		} else {
+			server.NoContent(http.StatusInternalServerError)
+			return errors.New("can't define book library")
+		}
+
+		zipFile, err := os.Open(archivePath)
 		if err != nil {
 			return err
 		}
@@ -55,5 +67,5 @@ func ConvertFB2EpubZipOffset(converterDir string, book entities.BookIndex, serve
 		return err
 	}
 
-	return server.Attachment(epubPath, BuildBookName(book)+".epub")
+	return server.Attachment(epubPath, entities.BuildBookName(book.Index)+".epub")
 }

@@ -1,194 +1,89 @@
 package entities
 
 import (
-	"bytes"
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"strings"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"
-	"github.com/egnd/fb2lib/pkg/fb2parser"
+	"github.com/egnd/go-fb2parse"
 )
 
-var (
-	IndexFieldSep = "; "
+const (
+	indexFieldSep = "; "
 )
 
 type BookIndex struct {
-	Year             uint16
-	Offset           uint64
-	SizeCompressed   uint64
-	SizeUncompressed uint64
-	ID               string
-	Lang             string
-	Src              string
-	ISBN             string
-	Titles           string
-	Authors          string
-	Sequences        string
-	Publisher        string
-	Date             string
-	Genres           string
+	Year      uint16 `json:"year"`
+	ID        string
+	ISBN      string `json:"isbn"`
+	Titles    string `json:"name"`
+	Authors   string `json:"auth"`
+	Sequences string `json:"seq"`
+	Date      string `json:"date"`
+	Genres    string `json:"genr"`
+	Publisher string `json:"publ"`
+	Lang      string `json:"lng"`
 }
 
-func NewBookIndex(fb2 *fb2parser.FB2File) BookIndex {
-	res := BookIndex{
-		Titles: fb2.Description.TitleInfo.BookTitle,
-		Date:   strings.TrimSpace(fb2.Description.TitleInfo.Date),
-		Genres: strings.Join(fb2.Description.TitleInfo.Genre, IndexFieldSep),
-		Lang:   fb2.Description.TitleInfo.Lang,
-	}
-
-	res.appendAuthors(fb2.Description.TitleInfo.Author)
-	res.appendAuthors(fb2.Description.TitleInfo.Translator)
-	res.appendSequences(fb2.Description.TitleInfo.Sequence)
-
-	if fb2.Description.PublishInfo != nil {
-		res.Publisher = fb2.Description.PublishInfo.Publisher
-		if res.Publisher != "" && fb2.Description.PublishInfo.City != "" {
-			res.Publisher += fmt.Sprintf(" (%s)", fb2.Description.PublishInfo.City)
+func NewFB2Index(fb2 *fb2parse.FB2File) (res BookIndex) {
+	for _, descr := range fb2.Description {
+		for _, title := range descr.TitleInfo {
+			appendUniqStr(&res.Titles, title.BookTitle...)
+			appendUniqFB2Author(&res.Authors, title.Author)
+			appendUniqFB2Author(&res.Authors, title.Translator)
+			appendUniqFB2Seq(&res.Sequences, title.Sequence)
+			appendUniqStr(&res.Date, title.Date...)
+			appendUniqStr(&res.Genres, title.Genre...)
+			appendUniqStr(&res.Lang, title.Lang...)
 		}
 
-		res.ISBN = fb2.Description.PublishInfo.ISBN
-		res.appendStr(fb2.Description.PublishInfo.BookName, &res.Titles)
-		res.appendStr(fb2.Description.PublishInfo.Year, &res.Date)
-	}
-
-	if fb2.Description.SrcTitleInfo != nil {
-		res.appendStr(fb2.Description.SrcTitleInfo.BookTitle, &res.Titles)
-		res.appendAuthors(fb2.Description.SrcTitleInfo.Author)
-		res.appendAuthors(fb2.Description.SrcTitleInfo.Translator)
-		res.appendSequences(fb2.Description.SrcTitleInfo.Sequence)
-		res.appendGenres(fb2.Description.SrcTitleInfo.Genre)
-		res.appendStr(fb2.Description.SrcTitleInfo.Date, &res.Date)
-	}
-
-	hasher := md5.New()
-	hasher.Write([]byte(res.ISBN))
-	hasher.Write([]byte(res.Titles))
-	hasher.Write([]byte(res.Authors))
-
-	res.ID = hex.EncodeToString(hasher.Sum(nil))
-	res.Year = parseYear(res.Date)
-
-	return res
-}
-
-func (bi *BookIndex) appendAuthors(items []fb2parser.FB2Author) {
-	if len(items) == 0 {
-		return
-	}
-
-	var buf bytes.Buffer
-	buf.WriteString(bi.Authors)
-	buf.WriteString(IndexFieldSep)
-
-	for _, item := range items {
-		if itemStr := strings.TrimSpace(fmt.Sprintf("%s %s %s",
-			item.FirstName, item.MiddleName, item.LastName,
-		)); itemStr != "" && !strings.Contains(bi.Authors, itemStr) {
-			buf.WriteString(itemStr)
-			buf.WriteString(", ")
+		for _, srcTitle := range descr.SrcTitleInfo {
+			appendUniqStr(&res.Titles, srcTitle.BookTitle...)
+			appendUniqFB2Author(&res.Authors, srcTitle.Author)
+			appendUniqFB2Seq(&res.Sequences, srcTitle.Sequence)
+			appendUniqStr(&res.Date, srcTitle.Date...)
+			appendUniqStr(&res.Genres, srcTitle.Genre...)
 		}
-	}
 
-	bi.Authors = strings.Trim(buf.String(), IndexFieldSep+", ")
-}
+		for _, publish := range descr.PublishInfo {
+			appendUniqStr(&res.ISBN, publish.ISBN...)
+			appendUniqStr(&res.Titles, publish.BookName...)
+			appendUniqStr(&res.Date, publish.Year...)
 
-func (bi *BookIndex) appendSequences(items []fb2parser.FB2Sequence) {
-	if len(items) == 0 {
-		return
-	}
-
-	var buf bytes.Buffer
-	buf.WriteString(bi.Sequences)
-	buf.WriteString(IndexFieldSep)
-
-	for _, item := range items {
-		if item.Name != "" && !strings.Contains(bi.Sequences, item.Name) {
-			buf.WriteString(item.Name)
-
-			if item.Number != "" {
-				buf.WriteString(" (")
-				buf.WriteString(item.Number)
-				buf.WriteString(")")
-			}
-
-			buf.WriteString(", ")
 		}
+
+		appendUniqFB2Publisher(&res.Publisher, descr.PublishInfo)
 	}
 
-	bi.Sequences = strings.Trim(buf.String(), IndexFieldSep+", ")
-}
+	res.Year = ParseYear(res.Date)
+	res.ID = GenerateID(
+		[]string{res.ISBN, res.Lang, fmt.Sprint(res.Year)},
+		strings.Split(res.Titles, indexFieldSep),
+		strings.Split(res.Authors, indexFieldSep),
+	)
 
-func (bi *BookIndex) appendGenres(items []string) {
-	if len(items) == 0 {
-		return
-	}
-
-	var buf bytes.Buffer
-	buf.WriteString(bi.Sequences)
-	buf.WriteString(IndexFieldSep)
-
-	for _, item := range items {
-		if item != "" && !strings.Contains(bi.Sequences, item) {
-			buf.WriteString(item)
-			buf.WriteString(", ")
-		}
-	}
-
-	bi.Genres = strings.Trim(buf.String(), IndexFieldSep+", ")
-}
-
-func (bi *BookIndex) appendStr(val string, orig *string) {
-	if val == "" || strings.Contains(*orig, val) {
-		return
-	}
-
-	if *orig == "" {
-		*orig = val
-	} else {
-		*orig = fmt.Sprintf("%s%s%s", *orig, IndexFieldSep, val)
-	}
-
+	return
 }
 
 func NewBookIndexMapping() *mapping.IndexMappingImpl {
-	strIndexedField := bleve.NewTextFieldMapping()
-
-	strField := bleve.NewTextFieldMapping()
-	strField.Index = false
-	strField.IncludeInAll = false
-	strField.IncludeTermVectors = false
-	strField.DocValues = false
-
-	numField := bleve.NewNumericFieldMapping()
-	numField.Index = false
-	numField.IncludeInAll = false
-	numField.DocValues = false
-
-	numSortField := *numField
-	numSortField.Index = true
-	numSortField.Store = false
-
 	books := bleve.NewDocumentMapping()
 
-	books.AddFieldMappingsAt("Year", &numSortField)
-	books.AddFieldMappingsAt("Offset", numField)
-	books.AddFieldMappingsAt("SizeCompressed", numField)
-	books.AddFieldMappingsAt("SizeUncompressed", numField)
-	books.AddFieldMappingsAt("Lang", strField)
-	books.AddFieldMappingsAt("Src", strField)
+	sortField := bleve.NewNumericFieldMapping()
+	sortField.IncludeInAll = false
+	sortField.DocValues = false
+	sortField.Index = true
+	books.AddFieldMappingsAt("year", sortField)
 
-	books.AddFieldMappingsAt("ISBN", strIndexedField)
-	books.AddFieldMappingsAt("Titles", strIndexedField)
-	books.AddFieldMappingsAt("Authors", strIndexedField)
-	books.AddFieldMappingsAt("Sequences", strIndexedField)
-	books.AddFieldMappingsAt("Publisher", strIndexedField)
-	books.AddFieldMappingsAt("Date", strIndexedField)
-	books.AddFieldMappingsAt("Genres", strIndexedField)
+	searchField := bleve.NewTextFieldMapping()
+	books.AddFieldMappingsAt("isbn", searchField)
+	books.AddFieldMappingsAt("name", searchField)
+	books.AddFieldMappingsAt("auth", searchField)
+	books.AddFieldMappingsAt("seq", searchField)
+	books.AddFieldMappingsAt("date", searchField)
+	books.AddFieldMappingsAt("genr", searchField)
+	books.AddFieldMappingsAt("publ", searchField)
+	books.AddFieldMappingsAt("lng", searchField)
 
 	mapping := bleve.NewIndexMapping()
 	mapping.AddDocumentMapping("books", books)

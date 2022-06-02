@@ -8,15 +8,16 @@
 This is a server for indexing and searching fb2-books at zip archives.
 
 ### Quick start:
-1. Put your archives with books into ```library``` folder
+1. Put your archives with books into ```books``` folder
 
 2. Create index:
 ```bash
 docker run --rm -t --entrypoint=indexer \
-    -v $(pwd)/index:/var/index \
-    -v $(pwd)/logs:/var/logs \
-    -v $(pwd)/library:/var/library \
-    egnd/fb2lib -workers=4 -batchsize=300
+  -v $(pwd)/books:/var/libs/default:ro \
+  -v $(pwd)/index:/var/index/default:rw \
+  -v $(pwd)/storage:/var/storage:rw \
+  -v $(pwd)/logs:/var/logs:rw \
+  egnd/fb2lib
 ```
 
 3. Create ```docker-compose.yml```:
@@ -26,10 +27,12 @@ services:
   app:
     image: egnd/fb2lib
     ports:
-      - 8080:8080
+      - 80:8080
     volumes:
+      - ./cfg.yml:/configs/app.override.yml:ro
+      - ./libs/default:/var/libs/default:ro
       - ./index:/var/index:rw
-      - ./library:/var/library:rw
+      - ./storage:/var/storage:rw
 ```
 
 4. Run server with:
@@ -37,8 +40,7 @@ services:
 docker-compose up
 ```
 
-5. Server is available at http://localhost:8080
+5. Server is available at http://localhost
 
 ### Hints:
 * Advanced query language - https://blevesearch.com/docs/Query-String-Query/
-* Server is able to convert fb2 to epub "on-the-fly"

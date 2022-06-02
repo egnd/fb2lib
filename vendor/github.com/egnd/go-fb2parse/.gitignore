@@ -1,0 +1,5 @@
+/examples/*
+!/examples/*.xml
+/profiles
+/*.test
+.DS_Store

@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-
 	"os"
 
-	"github.com/rs/zerolog/log"
+	jsoniter "github.com/json-iterator/go"
 
+	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/internal/factories"
 	"github.com/egnd/fb2lib/internal/repos"
 )
@@ -28,21 +28,27 @@ func main() {
 		return
 	}
 
-	cfg, err := factories.NewViperCfg(*cfgPath, *cfgPrefix)
-	if err != nil {
-		log.Fatal().Err(err).Msg("init config")
-	}
-
+	cfg := factories.NewViperCfg(*cfgPath, *cfgPrefix)
 	logger := factories.NewZerologLogger(cfg, os.Stderr)
 
-	booksIndex, err := factories.OpenIndex(cfg.GetString("bleve.index_dir"), logger)
+	libs, err := entities.NewLibraries("libraries", cfg)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("init index")
+		logger.Fatal().Err(err).Msg("init libs cfg")
 	}
 
-	repoIndex := repos.NewBooksIndexBleve(cfg.GetBool("bleve.highlight"), booksIndex, logger)
-	repoFB2 := repos.NewBooksDataFB2Files()
-	server, err := factories.NewEchoServer(cfg, logger, repoIndex, repoFB2)
+	index := factories.NewCompositeBleveIndex(cfg.GetString("bleve.path"), libs, entities.NewBookIndexMapping())
+	defer index.Close()
+
+	storage := factories.NewBoltDB(cfg.GetString("boltdb.path"))
+	defer storage.Close()
+
+	repoLibrary := repos.NewLibraryFiles(libs)
+	repoInfo := repos.NewBooksInfo(0, cfg.GetBool("bleve.highlight"), storage, index, logger,
+		jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
+		jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal,
+	)
+
+	server, err := factories.NewEchoServer(libs, cfg, logger, repoInfo, repoLibrary)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("init http server")
 	}

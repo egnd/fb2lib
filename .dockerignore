@@ -1,6 +1,7 @@
 /.git
 /.devcontainer
 /.vscode
+/configs/*.override.y*ml
 /var
 /web/html
 
@@ -13,3 +14,4 @@
 
 .DS_Store
 *.log
+*.override.yml

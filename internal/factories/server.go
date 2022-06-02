@@ -1,6 +1,7 @@
 package factories
 
 import (
+	"net/http"
 	"path"
 
 	"github.com/egnd/fb2lib/internal/entities"
@@ -14,8 +15,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-func NewEchoServer(cfg *viper.Viper, logger zerolog.Logger,
-	booksRepo entities.IBooksIndexRepo, fb2Repo entities.IBooksDataRepo,
+func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Logger,
+	repoInfo entities.IBooksInfoRepo, repoBooks entities.IBooksLibraryRepo,
 ) (*echo.Echo, error) {
 	var err error
 	server := echo.New()
@@ -36,12 +37,15 @@ func NewEchoServer(cfg *viper.Viper, logger zerolog.Logger,
 
 	server.File("/favicon.ico", path.Join(cfg.GetString("renderer.tpl_dir"), "assets/favicon.ico"))
 	server.Static("/assets", path.Join(cfg.GetString("renderer.tpl_dir"), "assets"))
+	server.GET("/live", func(c echo.Context) error {
+		return c.String(http.StatusOK, "OK")
+	})
 
-	server.GET("/", handlers.SearchHandler(booksRepo))
-	server.GET("/authors", handlers.SearchAuthorsHandler(booksRepo))
-	server.GET("/sequences", handlers.SearchSequencesHandler(booksRepo))
-	server.GET("/download/:book_name", handlers.DownloadBookHandler(booksRepo, cfg, logger))
-	server.GET("/books/:book_id", handlers.BookDetailsHandler(booksRepo, fb2Repo, logger))
+	server.GET("/", handlers.SearchHandler(repoInfo, repoBooks))
+	server.GET("/by_authors/", handlers.ByAuthorsHandler(repoInfo, repoBooks))
+	server.GET("/by_series/", handlers.BySeriesHandler(repoInfo, repoBooks))
+	server.GET("/details/:book_id", handlers.DetailsHandler(repoInfo, repoBooks, logger))
+	server.GET("/download/:book_id", handlers.DownloadHandler(libs, repoInfo, cfg, logger))
 
 	return server, nil
 }

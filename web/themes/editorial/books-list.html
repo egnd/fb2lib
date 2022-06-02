@@ -1,11 +1,14 @@
 {% extends "layout.html" %}
 
 {% block content %}
-{% macro bookFeature(title, value, searchHref=false) %}
-    {% if value|trimspace %}
-    <a class="button"{% if searchHref %} href="?q={{value|safe|striptags|urlencode}}"{% endif %}>{{title}}: {{value|safe|slice:"0:80"}}</a>
+{% macro bookFeature(title, values, searchHref=false) %}
+    {% if values|trimspace %}
+        {% for value in values|split:"; " %}
+        <a class="button"{% if searchHref %} href="?q={{value|safe|striptags|urlencode}}"{% endif %} title="{{title}}">{{value|safe}}</a>
+        {% endfor %}
     {% endif %}
 {% endmacro %}
+
 <div class="row" style="margin-bottom: 15px;">
 {% if pager.GetTotal() > 0 %}
     <div class="col-10 col-8-xsmall">
@@ -29,16 +32,21 @@
 <div class="row books-list">
 {% for item in books %}
     <div class="col-6 col-12-xsmall books-list-item">
-        <h4><a href="/books/{{item.ID}}">{{pager.GetOffset()+forloop.Counter}}. {{item.Titles|safe}}</a></h4>
-        {{ bookFeature("ISBN", item.ISBN, true) }}
-        {{ bookFeature("Авторы", item.Authors, true) }}
-        {{ bookFeature("Серия", item.Sequences, true) }}
-        {{ bookFeature("Дата", item.Date, true) }}
-        {{ bookFeature("Издатель", item.Publisher, true) }}
-        {{ bookFeature("Жанр", item.Genres, true) }}
-        {{ bookFeature("Язык", item.Lang) }}
-        <a href="/download/{{item.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{item.SizeUncompressed|filesize}})</a>
-        <a href="/download/{{item.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
+        <h4><a href="/details/{{item.Index.ID}}">{{pager.GetOffset()+forloop.Counter}}. {{item.Index.Titles|safe}}</a></h4>
+        {% for img in item.Details.Images %}
+        <a href="/details/{{item.Index.ID}}">
+            <img src="data:{{img.Type}};base64,{{img.Data}}" style="float:left; max-width: 200px; margin:0 10px 10px 0;"/>
+        </a>
+        {% endfor %}
+        <a href="/download/{{item.Index.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{item.Size|filesize}})</a>
+        <a href="/download/{{item.Index.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
+        {{ bookFeature("ISBN", item.Index.ISBN, true) }}
+        {{ bookFeature("Дата", item.Index.Date, true) }}
+        {{ bookFeature("Язык", item.Index.Lang) }}
+        {{ bookFeature("Жанр", item.Index.Genres, true) }}
+        {{ bookFeature("Автор", item.Index.Authors, true) }}
+        {{ bookFeature("Издательство", item.Index.Publisher, true) }}
+        {{ bookFeature("Серия", item.Index.Sequences, true) }}
     </div>
 {% endfor %}
 </div>

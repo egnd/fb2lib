@@ -7,14 +7,21 @@ logs:
   duration_unit: 1s
   dir: var/logs
 bleve:
-  index_dir: var/index/books
   highlight: true
-library:
-  dir: var/library
-  converter_dir: var/cache/converter
+  path: var/index
+boltdb:
+  path: var/storage/db.bolt
+converter:
+  dir: var/converter
 renderer:
   tpl_dir: web/themes/editorial
   globals:
     gtitle: fb2library
 pprof:
   dir: var/pprof
+libraries:
+  default:
+    # disabled: false
+    dir: var/libs/default
+    encoder: parser # or marshaler
+    types: ["fb2", "zip"]

@@ -1,6 +1,8 @@
 package entities
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+)
 
 type CntAtomic32 uint32
 
