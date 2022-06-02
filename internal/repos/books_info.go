@@ -285,58 +285,81 @@ func (r *BooksInfo) Close() error {
 }
 
 func (r *BooksInfo) runBatching(batchSize int) {
-	batch := r.index.NewBatch()
+	defer r.wg.Done()
 
-	defer func() {
-		if batch.Size() > 0 {
-			if err := r.index.Batch(batch); err != nil {
-				r.logger.Error().Err(err).Msg("index repo batch last")
-			} else {
-				r.logger.Debug().Msg("index repo batch last")
-			}
-		}
+	batch := make([]entities.BookInfo, 0, batchSize)
+	indexBatch := r.index.NewBatch()
 
-		r.wg.Done()
-	}()
-
+loop:
 	for {
 		select {
 		case <-r.batchStop:
-			return
+			break loop
 		case doc := <-r.batchPipe:
-			if err := batch.Index(doc.Index.ID, doc.Index); err != nil {
-				r.logger.Error().Err(err).Msg("index repo add to batch")
+			batch = append(batch, doc)
+
+			if len(batch) < cap(batch) {
 				continue
 			}
 
-			if err := r.storage.Batch(func(tx *bbolt.Tx) (txErr error) { // @TODO: improve batch fn
-				bookBytes, txErr := r.encode(doc)
-				if txErr != nil {
-					return fmt.Errorf("encode book error: %s", txErr)
-				}
-
-				b, txErr := tx.CreateBucketIfNotExists([]byte(fmt.Sprintf("lib_%s", doc.LibName)))
-				if txErr != nil {
-					return fmt.Errorf("create bucket: %s", txErr)
-				}
-
-				return b.Put([]byte(doc.Index.ID), bookBytes)
-			}); err != nil {
-				r.logger.Error().Err(err).Msg("book to storage batch")
-				continue
-			}
-
-			if batch.Size() < batchSize {
-				continue
-			}
-
-			if err := r.index.Batch(batch); err != nil {
-				r.logger.Error().Err(err).Msg("index repo batch")
-			} else {
-				r.logger.Debug().Msg("index repo batch")
-			}
-
-			batch.Reset()
+			r.saveBatch(batch, indexBatch)
+			batch = batch[:0]
+			indexBatch.Reset()
 		}
 	}
+
+	r.saveBatch(batch, indexBatch)
+}
+
+func (r *BooksInfo) saveBatch(batch []entities.BookInfo, indexBatch *bleve.Batch) {
+	if len(batch) == 0 {
+		return
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	logger := r.logger.With().Str("lib", batch[0].LibName).Logger()
+
+	go func() {
+		defer wg.Done()
+
+		for _, book := range batch {
+			if err := indexBatch.Index(book.Index.ID, book.Index); err != nil {
+				logger.Error().Err(err).Str("item", book.Src).Msg("info repo batch index item")
+			}
+		}
+
+		if err := r.index.Batch(indexBatch); err != nil {
+			logger.Error().Err(err).Msg("info repo batch exec")
+		}
+	}()
+
+	go r.storage.Update(func(tx *bbolt.Tx) (err error) {
+		defer wg.Done()
+
+		bucket, err := tx.CreateBucketIfNotExists([]byte(fmt.Sprintf("lib_%s", batch[0].LibName)))
+		if err != nil {
+			logger.Error().Err(err).Msg("info repo batch get bucket")
+			return
+		}
+
+		var bookBytes []byte
+
+		for _, book := range batch {
+			if bookBytes, err = r.encode(book); err != nil {
+				logger.Error().Err(err).Str("item", book.Src).Msg("info repo batch encode info")
+				continue
+			}
+
+			if err = bucket.Put([]byte(book.Index.ID), bookBytes); err != nil {
+				logger.Error().Err(err).Str("item", book.Src).Msg("info repo batch save info")
+			}
+		}
+
+		return
+	})
+
+	wg.Wait()
+	logger.Debug().Msg("info repo batch saved")
 }

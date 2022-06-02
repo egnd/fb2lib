@@ -9,7 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func FB2FromRemoteZip(urlPrefix, libDir string, book entities.BookInfo, // @TODO:
+func FB2FromRemoteZip(urlPrefix, libDir string, book entities.BookInfo,
 	server echo.Context, client *http.Client,
 ) error {
 	req, err := http.NewRequest(http.MethodGet, entities.BuildBookURL(

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 
@@ -31,12 +32,12 @@ var (
 	showVersion = flag.Bool("version", false, "Show app version.")
 	hideBar     = flag.Bool("hidebar", false, "Hide progress bar.")
 
-	libItemsThreads = flag.Int("lib_items_cnt", 1, "Number of library items handlers at a time.")
-	readThreads     = flag.Int("read_threads", 100, "Books reading threads count.")
+	libItemsThreads = flag.Int("items_threads", 1, "Number of parallel threads for library files reading.")
 	readBuffSize    = flag.Int("read_buffer", 0, "Books reading queue size.")
-	parseThreads    = flag.Int("parse_threads", 6, "Books parsing threads count (<= CPU cores).")
+	readThreads     = flag.Int("read_threads", 0, "Number of parallel threads for library books reading (default items_threads*10).")
 	parseBuffSize   = flag.Int("parse_buffer", 0, "Books parsing queue size.")
-	batchSize       = flag.Int("batchsize", 100, "Books index batch size.")
+	parseThreads    = flag.Int("parse_threads", 0, "Number of parallel threads for library books parsing (default half of CPU cores count).")
+	batchSize       = flag.Int("batchsize", 200, "Books index batch size.")
 
 	cfgPath   = flag.String("config", "configs/app.yml", "Configuration file path.")
 	cfgPrefix = flag.String("env-prefix", "BS", "Prefix for env variables.")
@@ -55,6 +56,20 @@ func main() {
 	)
 
 	flag.Parse()
+
+	if *libItemsThreads == 0 {
+		*libItemsThreads = 1
+	}
+
+	if *readThreads == 0 {
+		*readThreads = *libItemsThreads * 10
+	}
+
+	if *parseThreads == 0 {
+		if *parseThreads = runtime.NumCPU() / 2; *parseThreads == 0 {
+			*parseThreads = 1
+		}
+	}
 
 	if *showVersion {
 		fmt.Println(appVersion)
@@ -188,7 +203,7 @@ func GetProgressBar(bars *mpb.Progress, libs entities.Libraries, cfg *viper.Vipe
 		),
 		mpb.AppendDecorators(
 			decor.CountersKibiByte("% .2f/% .2f"), decor.Name(", "),
-			// decor.AverageSpeed(decor.UnitKB, "% .2f"), decor.Name(", "),
+			decor.AverageSpeed(decor.UnitKB, "% .2f"), decor.Name(", "),
 			decor.AverageETA(decor.ET_STYLE_GO),
 		),
 	)

@@ -21,7 +21,7 @@ pprof:
   dir: var/pprof
 libraries:
   default:
-    disabled: false
+    # disabled: false
     dir: var/libs/default
     encoder: parser # or marshaler
     types: ["fb2", "zip"]

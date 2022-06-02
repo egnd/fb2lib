@@ -1,6 +1,5 @@
-- repo batching func
-- logger skipper
-- indexer skip patterns
+- indexer skip patterns && books removing
 - update massively theme
+- logger skipper
 - ci jobs for units and linting
 - add rest api
