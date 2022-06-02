@@ -87,13 +87,16 @@ func (r *BooksInfo) SearchAll(strQuery string, pager pagination.IPager) ([]entit
 	}
 
 	searchReq := bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
-	searchReq.Highlight = bleve.NewHighlightWithStyle("html")
 	searchReq.Sort = append(searchReq.Sort, &search.SortField{
 		Field:   "year",
 		Desc:    true,
 		Type:    search.SortFieldAsNumber,
 		Missing: search.SortFieldMissingLast,
 	})
+
+	if r.highlight {
+		searchReq.Highlight = bleve.NewHighlightWithStyle("html")
+	}
 
 	return r.getBooks(searchReq, pager)
 }
@@ -109,13 +112,16 @@ func (r *BooksInfo) SearchByAuthor(strQuery string, pager pagination.IPager) ([]
 	}
 
 	searchReq := bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
-	searchReq.Highlight = bleve.NewHighlightWithStyle("html")
 	searchReq.Sort = append(searchReq.Sort, &search.SortField{
 		Field:   "year",
 		Desc:    true,
 		Type:    search.SortFieldAsNumber,
 		Missing: search.SortFieldMissingLast,
 	})
+
+	if r.highlight {
+		searchReq.Highlight = bleve.NewHighlightWithStyle("html")
+	}
 
 	return r.getBooks(searchReq, pager)
 }
@@ -131,13 +137,16 @@ func (r *BooksInfo) SearchBySequence(strQuery string, pager pagination.IPager) (
 	}
 
 	searchReq := bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
-	searchReq.Highlight = bleve.NewHighlightWithStyle("html")
 	searchReq.Sort = append(searchReq.Sort, &search.SortField{
 		Field:   "year",
 		Desc:    true,
 		Type:    search.SortFieldAsNumber,
 		Missing: search.SortFieldMissingLast,
 	})
+
+	if r.highlight {
+		searchReq.Highlight = bleve.NewHighlightWithStyle("html")
+	}
 
 	return r.getBooks(searchReq, pager)
 }
@@ -163,36 +172,42 @@ func (r *BooksInfo) GetBook(bookID string) (entities.BookInfo, error) {
 	return items[0], nil
 }
 
-func (r *BooksInfo) highlightItem(fragments search.FieldFragmentMap, book entities.BookIndex) entities.BookIndex {
-	if vals, ok := fragments["ISBN"]; ok && len(vals) > 0 {
+func (r *BooksInfo) highlightItem(fragments search.FieldFragmentMap, book *entities.BookIndex) {
+	if len(fragments) == 0 {
+		return
+	}
+
+	if vals, ok := fragments["isbn"]; ok && len(vals) > 0 {
 		book.ISBN = vals[0]
 	}
 
-	if vals, ok := fragments["Titles"]; ok && len(vals) > 0 {
+	if vals, ok := fragments["name"]; ok && len(vals) > 0 {
 		book.Titles = vals[0]
 	}
 
-	if vals, ok := fragments["Authors"]; ok && len(vals) > 0 {
+	if vals, ok := fragments["auth"]; ok && len(vals) > 0 {
 		book.Authors = vals[0]
 	}
 
-	if vals, ok := fragments["Sequences"]; ok && len(vals) > 0 {
+	if vals, ok := fragments["seq"]; ok && len(vals) > 0 {
 		book.Sequences = vals[0]
 	}
 
-	if vals, ok := fragments["Publisher"]; ok && len(vals) > 0 {
-		book.Publisher = vals[0]
-	}
-
-	if vals, ok := fragments["Date"]; ok && len(vals) > 0 {
+	if vals, ok := fragments["date"]; ok && len(vals) > 0 {
 		book.Date = vals[0]
 	}
 
-	if vals, ok := fragments["Genres"]; ok && len(vals) > 0 {
+	if vals, ok := fragments["genr"]; ok && len(vals) > 0 {
 		book.Genres = vals[0]
 	}
 
-	return book
+	if vals, ok := fragments["publ"]; ok && len(vals) > 0 {
+		book.Publisher = vals[0]
+	}
+
+	if vals, ok := fragments["lng"]; ok && len(vals) > 0 {
+		book.Lang = vals[0]
+	}
 }
 
 func (r *BooksInfo) getBooks(
@@ -231,8 +246,8 @@ func (r *BooksInfo) getBooks(
 			Genres:    item.Fields["genr"].(string),
 		}
 
-		if r.highlight && searchReq.Highlight != nil {
-			book.Index = r.highlightItem(item.Fragments, book.Index)
+		if searchReq.Highlight != nil {
+			r.highlightItem(item.Fragments, &book.Index)
 		}
 
 		res = append(res, book)
