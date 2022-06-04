@@ -68,6 +68,7 @@ func (t *IndexFB2DataTask) Do() {
 	}
 
 	t.book.Index = entities.NewFB2Index(&fb2File)
+	t.book.Index.Lib = t.book.LibName
 
 	if err = t.repo.SaveBook(t.book); err != nil {
 		t.logger.Error().Err(err).Msg("index fb2 data")

@@ -1,0 +1,15 @@
+version: "3.8"
+services:
+  server:
+    build:
+      context: .
+      args:
+        TARGETOS: ${DC_TARGETOS:-linux}
+        TARGETARCH: ${DC_TARGETARCH:-amd64}
+    volumes:
+      - ./configs/app.override.yml:/configs/app.override.yml:ro
+      - ./var/converter:/var/converter:rw
+      - ./var/logs:/var/logs:rw
+      - ./var/pprof:/var/pprof:rw
+    entrypoint: ["indexer"]
+    command: ["-hidebar"]

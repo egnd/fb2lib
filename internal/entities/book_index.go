@@ -1,56 +1,58 @@
 package entities
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"
+	"github.com/blevesearch/bleve/v2/search"
 	"github.com/egnd/go-fb2parse"
 )
 
 const (
-	indexFieldSep = "; "
+	IndexFieldSep = "; "
 )
 
 type BookIndex struct {
-	Year      uint16 `json:"year"`
-	ID        string
-	ISBN      string `json:"isbn"`
-	Titles    string `json:"name"`
-	Authors   string `json:"auth"`
-	Sequences string `json:"seq"`
-	Date      string `json:"date"`
-	Genres    string `json:"genr"`
-	Publisher string `json:"publ"`
-	Lang      string `json:"lng"`
+	Year       uint16 `json:"year"`
+	ID         string
+	ISBN       string `json:"isbn"`
+	Title      string `json:"title"`
+	Author     string `json:"author"`
+	Translator string `json:"transl"`
+	Serie      string `json:"serie"`
+	Date       string `json:"date"`
+	Genre      string `json:"genre"`
+	Publisher  string `json:"publ"`
+	Lang       string `json:"lang"`
+	Lib        string `json:"lib"`
 }
 
 func NewFB2Index(fb2 *fb2parse.FB2File) (res BookIndex) {
 	for _, descr := range fb2.Description {
 		for _, title := range descr.TitleInfo {
-			appendUniqStr(&res.Titles, title.BookTitle...)
-			appendUniqFB2Author(&res.Authors, title.Author)
-			appendUniqFB2Author(&res.Authors, title.Translator)
-			appendUniqFB2Seq(&res.Sequences, title.Sequence)
+			appendUniqStr(&res.Title, title.BookTitle...)
+			appendUniqFB2Author(&res.Author, title.Author)
+			appendUniqFB2Author(&res.Translator, title.Translator)
+			appendUniqFB2Seq(&res.Serie, title.Sequence)
 			appendUniqStr(&res.Date, title.Date...)
-			appendUniqStr(&res.Genres, title.Genre...)
+			appendUniqStr(&res.Genre, title.Genre...)
 			appendUniqStr(&res.Lang, title.Lang...)
 		}
 
 		for _, srcTitle := range descr.SrcTitleInfo {
-			appendUniqStr(&res.Titles, srcTitle.BookTitle...)
-			appendUniqFB2Author(&res.Authors, srcTitle.Author)
-			appendUniqFB2Seq(&res.Sequences, srcTitle.Sequence)
+			appendUniqStr(&res.Title, srcTitle.BookTitle...)
+			appendUniqFB2Author(&res.Author, srcTitle.Author)
+			appendUniqFB2Author(&res.Translator, srcTitle.Translator)
+			appendUniqFB2Seq(&res.Serie, srcTitle.Sequence)
 			appendUniqStr(&res.Date, srcTitle.Date...)
-			appendUniqStr(&res.Genres, srcTitle.Genre...)
+			appendUniqStr(&res.Genre, srcTitle.Genre...)
 		}
 
 		for _, publish := range descr.PublishInfo {
 			appendUniqStr(&res.ISBN, publish.ISBN...)
-			appendUniqStr(&res.Titles, publish.BookName...)
+			appendUniqStr(&res.Title, publish.BookName...)
 			appendUniqStr(&res.Date, publish.Year...)
-
 		}
 
 		appendUniqFB2Publisher(&res.Publisher, descr.PublishInfo)
@@ -58,12 +60,41 @@ func NewFB2Index(fb2 *fb2parse.FB2File) (res BookIndex) {
 
 	res.Year = ParseYear(res.Date)
 	res.ID = GenerateID(
-		[]string{res.ISBN, res.Lang, fmt.Sprint(res.Year)},
-		strings.Split(res.Titles, indexFieldSep),
-		strings.Split(res.Authors, indexFieldSep),
+		[]string{res.ISBN, res.Lang},
+		strings.Split(res.Title, IndexFieldSep),
+		strings.Split(res.Author, IndexFieldSep),
+		strings.Split(res.Translator, IndexFieldSep),
 	)
 
 	return
+}
+
+func NewBookIndex(match *search.DocumentMatch) BookIndex {
+	getVal := func(fieldName string) string {
+		if highlights, ok := match.Fragments[fieldName]; ok && len(highlights) > 0 {
+			return highlights[0]
+		}
+
+		if val, ok := match.Fields[fieldName]; ok {
+			return val.(string)
+		}
+
+		return ""
+	}
+
+	return BookIndex{
+		ID:         match.ID,
+		ISBN:       getVal("isbn"),
+		Title:      getVal("title"),
+		Author:     getVal("author"),
+		Translator: getVal("transl"),
+		Serie:      getVal("serie"),
+		Date:       getVal("date"),
+		Genre:      getVal("genre"),
+		Publisher:  getVal("publ"),
+		Lang:       getVal("lang"),
+		Lib:        getVal("lib"),
+	}
 }
 
 func NewBookIndexMapping() *mapping.IndexMappingImpl {
@@ -77,13 +108,15 @@ func NewBookIndexMapping() *mapping.IndexMappingImpl {
 
 	searchField := bleve.NewTextFieldMapping()
 	books.AddFieldMappingsAt("isbn", searchField)
-	books.AddFieldMappingsAt("name", searchField)
-	books.AddFieldMappingsAt("auth", searchField)
-	books.AddFieldMappingsAt("seq", searchField)
+	books.AddFieldMappingsAt("title", searchField)
+	books.AddFieldMappingsAt("author", searchField)
+	books.AddFieldMappingsAt("transl", searchField)
+	books.AddFieldMappingsAt("serie", searchField)
 	books.AddFieldMappingsAt("date", searchField)
-	books.AddFieldMappingsAt("genr", searchField)
+	books.AddFieldMappingsAt("genre", searchField)
 	books.AddFieldMappingsAt("publ", searchField)
-	books.AddFieldMappingsAt("lng", searchField)
+	books.AddFieldMappingsAt("lang", searchField)
+	books.AddFieldMappingsAt("lib", searchField)
 
 	mapping := bleve.NewIndexMapping()
 	mapping.AddDocumentMapping("books", books)

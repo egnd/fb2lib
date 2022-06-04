@@ -1,4 +1,45 @@
-#menu ul a.active {
+#sidebar {
+    width: 15em;
+}
+
+#sidebar.inactive {
+    margin-left: -15em;
+}
+
+#sidebar > .inner {
+    width: 15em;
+}
+
+#sidebar .toggle {
+    left: 15em;
+}
+
+.search-items .item {
+    overflow: hidden;
+    min-height:300px;
+    margin-bottom: 25px;
+}
+
+.search-items .item img {
+    float: left;
+    height:300px;
+    margin: 0 10px 10px 0;
+}
+
+.search-items .item .button {
+    margin-right: 5px;
+    margin-bottom: 10px;
+}
+
+.search-items .item mark {
+    background-color: #fdff74;
+}
+
+.search-result .pagination {
+    text-align: center;
+}
+
+/* #menu ul a.active {
     color: #f56a6a;
 }
 
@@ -20,9 +61,7 @@
     margin-bottom: 5px;
 }
 
-.books-list-item mark {
-    background-color: #fdff74;
-}
+
 
 .pagination {
     text-align: center;
@@ -41,4 +80,4 @@
     overflow: hidden;
     max-width: 100%;
     margin-right: 5px;
-}
+} */

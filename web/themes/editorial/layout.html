@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
-    <title>{{gtitle}} {{title}}</title>
+    <title>{{page_title}}</title>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 		<link type="image/png" sizes="16x16" rel="icon" href="/assets/images/icons8-book-16.png">
@@ -14,40 +14,24 @@
     <div id="wrapper">
         <div id="main">
           <div class="inner">
-              <header id="header">
-                <a href="/" class="logo"><strong>{{gtitle}}</strong></a>{{title}}
-              </header>
-              <br>
-              {% if search_type != "all" %}
-              <form method="get" action="{{search_form_action}}">
-                <div class="row gtr-uniform">
-                  <div class="col-10 col-12-xsmall">
-                    <input type="text" name="q" placeholder="{{search_placeholder}}" value="{{search_query}}">
-                  </div>
-                  <div class="col-2 col-12-xsmall">
-                    <input type="submit" value="Найти" class="primary fit">
-                  </div>
-                </div>
-              </form>
-              {% endif %}
+              <header id="header"><a href="/" class="logo">{{page_h1}}</a></header>
               {% block content %}{% endblock %}
           </div>
         </div>
         <div id="sidebar">
           <div class="inner">
               <section id="search" class="alt">
-                <form method="get" action="/">
-                  <input type="text" name="q" value="{{search_query}}"/>
-                </form>
+                <form method="get" action="/"><input type="text" name="q"/></form>
               </section>
               <nav id="menu">
                 <header class="major">
                   <h2>Меню</h2>
                 </header>
                 <ul>
-                  <li><a href="/"{% if search_type == "all" %} class="active"{% endif %}>Главная</a></li>
-                  <li><a href="/by_authors/"{% if search_type == "authors" %} class="active"{% endif %}>Поиск по авторам</a></li>
-                  <li><a href="/by_series/"{% if search_type == "sequences" %} class="active"{% endif %}>Поиск по книжным сериям</a></li>
+                  <li><a href="/"{% if section_name == "home" %} class="active"{% endif %}>Главная</a></li>
+                  <li><a href="/genres/"{% if section_name == "genres" %} class="active"{% endif %}>Жанры</a></li>
+                  <li><a href="/authors/"{% if section_name == "authors" %} class="active"{% endif %}>Авторы</a></li>
+                  <li><a href="/series/"{% if section_name == "series" %} class="active"{% endif %}>Серии</a></li>
                 </ul>
               </nav>
           </div>

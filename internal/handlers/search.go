@@ -2,67 +2,54 @@ package handlers
 
 import (
 	"net/http"
-	"sync"
+	"strconv"
+	"strings"
 
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/pkg/pagination"
-	"github.com/egnd/go-fb2parse"
 	"github.com/flosch/pongo2/v5"
 	"github.com/labstack/echo/v4"
+	"github.com/spf13/viper"
 )
 
-func SearchHandler(
+func SearchHandler(cfg *viper.Viper, libs entities.Libraries,
 	repoInfo entities.IBooksInfoRepo,
 	repoBooks entities.IBooksLibraryRepo,
 ) echo.HandlerFunc {
-	return func(c echo.Context) (err error) {
-		searchQuery := c.QueryParam("q")
+	defPageSize, err := strconv.Atoi(strings.Split(cfg.GetString("renderer.globals.limits_books"), ",")[0])
+	if err != nil {
+		panic(err)
+	}
 
-		pager := pagination.NewPager(c.Request()).SetPageSize(20).
+	return func(c echo.Context) (err error) {
+		libName := c.Param("lib_name")
+		if _, ok := libs[libName]; libName != "" && !ok {
+			c.NoContent(http.StatusNotFound)
+			return
+		}
+
+		searchQuery := c.QueryParam("q")
+		pager := pagination.NewPager(c.Request()).SetPageSize(defPageSize).
 			ReadPageSize().ReadCurPage()
 
 		var books []entities.BookInfo
-		books, err = repoInfo.SearchAll(searchQuery, pager)
-
-		if err != nil {
+		if books, err = repoInfo.FindIn(libName, searchQuery, pager); err != nil {
 			c.NoContent(http.StatusBadRequest)
 			return
 		}
 
-		addDetails(books, repoBooks)
+		libsNames := make([]string, 0, len(libs))
+		for lib := range libs {
+			libsNames = append(libsNames, lib)
+		}
 
-		return c.Render(http.StatusOK, "books-list.html", pongo2.Context{
-			"search_query":       searchQuery,
-			"search_placeholder": "Автор, название книги, серии, ISBN и т.д.",
-			"search_type":        "all",
-
-			"books": books,
-			"pager": pager,
+		return c.Render(http.StatusOK, "pages/search.html", pongo2.Context{
+			"page_h1":      "Поиск в библиотеке " + libName,
+			"search_query": searchQuery,
+			"cur_lib":      libName,
+			"libs":         libsNames,
+			"books":        books,
+			"pager":        pager,
 		})
 	}
-}
-
-func addDetails(books []entities.BookInfo, repo entities.IBooksLibraryRepo) (err error) {
-	var book fb2parse.FB2File
-	var wg sync.WaitGroup
-
-	for k, info := range books {
-		wg.Add(1)
-		go func(k int, info entities.BookInfo) {
-			defer wg.Done()
-			if book, err = repo.GetFB2(info); err != nil {
-				return
-			}
-
-			books[k].ReadDetails(&book)
-
-			if len(books[k].Details.Images) > 0 {
-				books[k].Details.Images = books[k].Details.Images[0:1]
-			}
-		}(k, info)
-	}
-
-	wg.Wait()
-
-	return
 }

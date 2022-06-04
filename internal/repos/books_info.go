@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 
@@ -13,6 +14,8 @@ import (
 	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/pkg/pagination"
+	"github.com/egnd/go-fb2parse"
+	"github.com/patrickmn/go-cache"
 	"github.com/rs/zerolog"
 	"go.etcd.io/bbolt"
 )
@@ -32,11 +35,14 @@ type BooksInfo struct {
 	batchPipe chan entities.BookInfo
 	encode    entities.IMarshal
 	decode    entities.IUnmarshal
+	cache     *cache.Cache
+	repoLib   entities.IBooksLibraryRepo
 }
 
 func NewBooksInfo(batchSize int, highlight bool,
 	storage *bbolt.DB, index entities.ISearchIndex, logger zerolog.Logger,
-	encoder entities.IMarshal, decoder entities.IUnmarshal,
+	encoder entities.IMarshal, decoder entities.IUnmarshal, cache *cache.Cache,
+	repoLib entities.IBooksLibraryRepo,
 ) *BooksInfo {
 	if batchSize > storage.MaxBatchSize {
 		storage.MaxBatchSize = batchSize
@@ -50,6 +56,8 @@ func NewBooksInfo(batchSize int, highlight bool,
 		storage:   storage,
 		encode:    encoder,
 		decode:    decoder,
+		cache:     cache,
+		repoLib:   repoLib,
 	}
 
 	if repo.batching {
@@ -62,160 +70,30 @@ func NewBooksInfo(batchSize int, highlight bool,
 	return repo
 }
 
-func (r *BooksInfo) SearchAll(strQuery string, pager pagination.IPager) ([]entities.BookInfo, error) {
-	strQuery = strings.TrimSpace(strings.ToLower(strQuery))
-
-	var q query.Query
-	if strQuery == "" || strQuery == "*" {
-		q = bleve.NewMatchAllQuery()
-	} else {
-		queries := make([]query.Query, 0, 4)
-
-		if strings.Contains(strQuery, " ") {
-			queries = append(queries, bleve.NewMatchPhraseQuery(strQuery)) // phrase match
-		} else {
-			queries = append(queries, bleve.NewTermQuery(strQuery)) // exact word match
-		}
-
-		if strings.Contains(strQuery, "*") {
-			queries = append(queries, bleve.NewWildcardQuery(strQuery)) // wildcard search syntax (*)
-		} else {
-			queries = append(queries, bleve.NewQueryStringQuery(strQuery)) // extended search syntax https://blevesearch.com/docs/Query-String-Query/
-		}
-
-		q = bleve.NewDisjunctionQuery(queries...)
-	}
-
-	searchReq := bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
-	searchReq.Sort = append(searchReq.Sort, &search.SortField{
-		Field:   "year",
-		Desc:    true,
-		Type:    search.SortFieldAsNumber,
-		Missing: search.SortFieldMissingLast,
-	})
-
-	if r.highlight {
-		searchReq.Highlight = bleve.NewHighlightWithStyle("html")
-	}
-
-	return r.getBooks(searchReq, pager)
-}
-
-func (r *BooksInfo) SearchByAuthor(strQuery string, pager pagination.IPager) ([]entities.BookInfo, error) {
-	strQuery = strings.TrimSpace(regexpSpaces.ReplaceAllString(strings.ToLower(strQuery), " "))
-
-	var q query.Query
-	if strQuery == "" {
-		q = bleve.NewMatchAllQuery()
-	} else {
-		q = bleve.NewQueryStringQuery("+Authors:" + strings.ReplaceAll(strQuery, " ", " +Authors:"))
-	}
-
-	searchReq := bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
-	searchReq.Sort = append(searchReq.Sort, &search.SortField{
-		Field:   "year",
-		Desc:    true,
-		Type:    search.SortFieldAsNumber,
-		Missing: search.SortFieldMissingLast,
-	})
-
-	if r.highlight {
-		searchReq.Highlight = bleve.NewHighlightWithStyle("html")
-	}
-
-	return r.getBooks(searchReq, pager)
-}
-
-func (r *BooksInfo) SearchBySequence(strQuery string, pager pagination.IPager) ([]entities.BookInfo, error) {
-	strQuery = strings.TrimSpace(regexpSpaces.ReplaceAllString(strings.ToLower(strQuery), " "))
-
-	var q query.Query
-	if strQuery == "" {
-		q = bleve.NewMatchAllQuery()
-	} else {
-		q = bleve.NewQueryStringQuery("+Sequences:" + strings.ReplaceAll(strQuery, " ", " +Sequences:"))
-	}
-
-	searchReq := bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
-	searchReq.Sort = append(searchReq.Sort, &search.SortField{
-		Field:   "year",
-		Desc:    true,
-		Type:    search.SortFieldAsNumber,
-		Missing: search.SortFieldMissingLast,
-	})
-
-	if r.highlight {
-		searchReq.Highlight = bleve.NewHighlightWithStyle("html")
-	}
-
-	return r.getBooks(searchReq, pager)
-}
-
-func (r *BooksInfo) GetBook(bookID string) (entities.BookInfo, error) {
-	if bookID == "" {
-		return entities.BookInfo{}, errors.New("repo get book error: empty book id")
-	}
-
-	searchReq := bleve.NewSearchRequestOptions(
-		bleve.NewDocIDQuery([]string{bookID}), 1, 0, false,
-	)
-
-	items, err := r.getBooks(searchReq, nil)
-	if err != nil {
-		return entities.BookInfo{}, err
-	}
-
-	if len(items) == 0 {
-		return entities.BookInfo{}, fmt.Errorf("repo getbook error: %s not found", bookID)
-	}
-
-	return items[0], nil
-}
-
-func (r *BooksInfo) highlightItem(fragments search.FieldFragmentMap, book *entities.BookIndex) {
-	if len(fragments) == 0 {
-		return
-	}
-
-	if vals, ok := fragments["isbn"]; ok && len(vals) > 0 {
-		book.ISBN = vals[0]
-	}
-
-	if vals, ok := fragments["name"]; ok && len(vals) > 0 {
-		book.Titles = vals[0]
-	}
-
-	if vals, ok := fragments["auth"]; ok && len(vals) > 0 {
-		book.Authors = vals[0]
-	}
-
-	if vals, ok := fragments["seq"]; ok && len(vals) > 0 {
-		book.Sequences = vals[0]
-	}
-
-	if vals, ok := fragments["date"]; ok && len(vals) > 0 {
-		book.Date = vals[0]
-	}
-
-	if vals, ok := fragments["genr"]; ok && len(vals) > 0 {
-		book.Genres = vals[0]
-	}
-
-	if vals, ok := fragments["publ"]; ok && len(vals) > 0 {
-		book.Publisher = vals[0]
-	}
-
-	if vals, ok := fragments["lng"]; ok && len(vals) > 0 {
-		book.Lang = vals[0]
-	}
-}
-
-func (r *BooksInfo) getBooks(
-	searchReq *bleve.SearchRequest, pager pagination.IPager,
+func (r *BooksInfo) GetItems(q query.Query, pager pagination.IPager,
+	sort []search.SearchSort, highlight *bleve.HighlightRequest, fields ...string,
 ) ([]entities.BookInfo, error) {
-	searchReq.Fields = []string{"*"}
+	var req *bleve.SearchRequest
 
-	searchResults, err := r.index.Search(searchReq)
+	if pager == nil {
+		total, err := r.index.DocCount()
+		if err != nil {
+			return nil, err
+		}
+
+		req = bleve.NewSearchRequestOptions(q, int(total), 0, false)
+	} else {
+		req = bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
+	}
+
+	req.Fields = fields
+	req.Highlight = highlight
+
+	if len(sort) > 0 {
+		req.Sort = append(req.Sort, sort...)
+	}
+
+	searchResults, err := r.index.Search(req)
 	if err != nil {
 		return nil, err
 	}
@@ -225,36 +103,227 @@ func (r *BooksInfo) getBooks(
 	}
 
 	res := make([]entities.BookInfo, 0, len(searchResults.Hits))
+	var book entities.BookInfo
 
 	for _, item := range searchResults.Hits {
-		var book entities.BookInfo
 		if err := r.storage.View(func(tx *bbolt.Tx) error {
 			return r.decode(tx.Bucket([]byte(fmt.Sprintf("lib_%s", path.Base(item.Index)))).Get([]byte(item.ID)), &book)
 		}); err != nil {
-			continue
+			return nil, err
 		}
 
-		book.Index = entities.BookIndex{
-			ID:        item.ID,
-			Lang:      item.Fields["lng"].(string),
-			ISBN:      item.Fields["isbn"].(string),
-			Titles:    item.Fields["name"].(string),
-			Authors:   item.Fields["auth"].(string),
-			Sequences: item.Fields["seq"].(string),
-			Publisher: item.Fields["publ"].(string),
-			Date:      item.Fields["date"].(string),
-			Genres:    item.Fields["genr"].(string),
-		}
-
-		if searchReq.Highlight != nil {
-			r.highlightItem(item.Fragments, &book.Index)
-		}
-
+		book.Index = entities.NewBookIndex(item)
 		res = append(res, book)
 	}
 
 	return res, nil
 }
+
+func (r *BooksInfo) FindByID(id string) (entities.BookInfo, error) {
+	if id == "" {
+		return entities.BookInfo{}, errors.New("empty book id")
+	}
+
+	items, err := r.GetItems(bleve.NewDocIDQuery(
+		[]string{id}), nil, nil, nil,
+		"isbn", "title", "author", "transl", "serie", "date", "genre", "publ", "lang", "lib",
+	)
+	if err != nil {
+		return entities.BookInfo{}, err
+	}
+
+	if len(items) == 0 {
+		return entities.BookInfo{}, fmt.Errorf("book %s not found", id)
+	}
+
+	return items[0], nil
+}
+
+func (r *BooksInfo) FindIn(lib, queryStr string, pager pagination.IPager) ([]entities.BookInfo, error) {
+	highlight := bleve.NewHighlightWithStyle("html")
+	highlight.Fields = []string{"isbn", "title", "author", "transl", "serie", "date", "genre", "publ", "lang"}
+
+	queryStr = strings.TrimSpace(strings.ToLower(queryStr))
+
+	var searchQ query.Query
+	switch {
+	case queryStr == "" || queryStr == "*":
+		searchQ = bleve.NewMatchAllQuery()
+	default:
+		queries := make([]query.Query, 0, 2)
+		if strings.Contains(queryStr, " ") {
+			queries = append(queries, bleve.NewMatchPhraseQuery(queryStr)) // phrase match
+		} else {
+			queries = append(queries, bleve.NewTermQuery(queryStr)) // exact word match
+		}
+		if strings.Contains(queryStr, "*") {
+			queries = append(queries, bleve.NewWildcardQuery(queryStr)) // wildcard search syntax (*)
+		} else {
+			queries = append(queries, bleve.NewQueryStringQuery(queryStr)) // extended search syntax https://blevesearch.com/docs/Query-String-Query/
+		}
+		searchQ = bleve.NewDisjunctionQuery(queries...)
+	}
+
+	if lib != "" {
+		searchQ = bleve.NewConjunctionQuery(searchQ, bleve.NewQueryStringQuery(fmt.Sprintf("+lib:%s", lib)))
+	}
+
+	res, err := r.GetItems(searchQ, pager, []search.SearchSort{&search.SortField{
+		Field:   "year",
+		Desc:    true,
+		Type:    search.SortFieldAsNumber,
+		Missing: search.SortFieldMissingLast,
+	}}, highlight, append(highlight.Fields, "lib")...)
+
+	if err != nil || len(res) == 0 {
+		return nil, err
+	}
+
+	r.upgradeDetails(res)
+
+	return res, nil
+}
+
+func (r *BooksInfo) upgradeDetails(books []entities.BookInfo) {
+	if r.repoLib == nil {
+		return
+	}
+
+	var book fb2parse.FB2File
+	var err error
+	var wg sync.WaitGroup
+
+	for k, info := range books {
+		wg.Add(1)
+		go func(k int, info entities.BookInfo) {
+			defer wg.Done()
+			if book, err = r.repoLib.GetFB2(info); err != nil {
+				return
+			}
+
+			books[k].ReadDetails(&book)
+
+			if len(books[k].Details.Images) > 0 {
+				books[k].Details.Images = books[k].Details.Images[0:1]
+			}
+		}(k, info)
+	}
+
+	wg.Wait()
+}
+
+func (r *BooksInfo) GetGenresFreq(limit int) (entities.GenresIndex, error) {
+	if res, found := r.cache.Get(fmt.Sprintf("genres_%d", limit)); found {
+		return res.(entities.GenresIndex), nil
+	}
+
+	genresCnt := make(map[string]uint32, 100)
+
+	total, err := r.index.DocCount()
+	if err != nil {
+		return nil, err
+	}
+
+	searchReq := bleve.NewSearchRequestOptions(bleve.NewMatchAllQuery(), int(total), 0, false)
+	searchReq.Fields = []string{"genr"}
+	res, err := r.index.Search(searchReq)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, item := range res.Hits {
+		if _, ok := item.Fields["genr"].(string); !ok {
+			continue
+		}
+
+		for _, val := range strings.Split(item.Fields["genr"].(string), entities.IndexFieldSep) {
+			genresCnt[val]++
+		}
+	}
+
+	genres := make(entities.GenresIndex, 0, len(genresCnt))
+	for genre, cnt := range genresCnt {
+		genres = append(genres, entities.GenreFreq{Name: genre, Cnt: cnt})
+	}
+
+	if sort.Sort(sort.Reverse(genres)); limit > 0 && len(genres) > limit {
+		genres = genres[:limit]
+	}
+
+	r.cache.Set(fmt.Sprintf("genres_%d", limit), genres, 0)
+
+	return genres, nil
+}
+
+// func (r *BooksInfo) SearchByAuthor(strQuery string, pager pagination.IPager) ([]entities.BookInfo, error) {
+// 	strQuery = strings.TrimSpace(regexpSpaces.ReplaceAllString(strings.ToLower(strQuery), " "))
+
+// 	var q query.Query
+// 	if strQuery == "" {
+// 		q = bleve.NewMatchAllQuery()
+// 	} else {
+// 		q = bleve.NewQueryStringQuery("+auth:" + strings.ReplaceAll(strQuery, " ", " +auth:"))
+// 	}
+
+// 	var searchReq *bleve.SearchRequest
+// 	if pager == nil {
+// 		total, err := r.index.DocCount()
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		searchReq = bleve.NewSearchRequestOptions(q, int(total), 0, false)
+// 	} else {
+// 		searchReq = bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
+// 	}
+
+// 	searchReq.Sort = append(searchReq.Sort, &search.SortField{
+// 		Field:   "year",
+// 		Desc:    true,
+// 		Type:    search.SortFieldAsNumber,
+// 		Missing: search.SortFieldMissingLast,
+// 	})
+
+// 	if r.highlight {
+// 		searchReq.Highlight = bleve.NewHighlightWithStyle("html")
+// 	}
+
+// 	return r.getBooks(searchReq, pager)
+// }
+
+// func (r *BooksInfo) SearchBySequence(strQuery string, pager pagination.IPager) ([]entities.BookInfo, error) {
+// 	strQuery = strings.TrimSpace(regexpSpaces.ReplaceAllString(strings.ToLower(strQuery), " "))
+
+// 	var q query.Query
+// 	if strQuery == "" {
+// 		q = bleve.NewMatchAllQuery()
+// 	} else {
+// 		q = bleve.NewQueryStringQuery("+seq:" + strings.ReplaceAll(strQuery, " ", " +seq:"))
+// 	}
+
+// 	var searchReq *bleve.SearchRequest
+// 	if pager == nil {
+// 		total, err := r.index.DocCount()
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		searchReq = bleve.NewSearchRequestOptions(q, int(total), 0, false)
+// 	} else {
+// 		searchReq = bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
+// 	}
+
+// 	searchReq.Sort = append(searchReq.Sort, &search.SortField{
+// 		Field:   "year",
+// 		Desc:    true,
+// 		Type:    search.SortFieldAsNumber,
+// 		Missing: search.SortFieldMissingLast,
+// 	})
+
+// 	if r.highlight {
+// 		searchReq.Highlight = bleve.NewHighlightWithStyle("html")
+// 	}
+
+// 	return r.getBooks(searchReq, pager)
+// }
 
 func (r *BooksInfo) SaveBook(book entities.BookInfo) (err error) {
 	if r.batching {

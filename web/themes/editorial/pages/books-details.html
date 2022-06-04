@@ -4,7 +4,8 @@
 
 {% macro showStrings(title, values, showHref=false) %}
 {% if values|trimspace %}
-<div>{{title}}:<br>
+<div class="col-12">
+    <span class="button" style="box-shadow: none;padding: 0;color: black !important;">{{title}}:</span>
     {% for value in values|split:"; " %}<a class="button"{% if showHref %} href="/?q={{value|safe}}"{% endif %}>{{value}}</a>{% endfor %}
 </div>
 {% endif %}
@@ -19,16 +20,18 @@
         {% endfor %}
         {{book.Details.Annotation|safe}}
     </div>
-    <br>
-    <a href="/download/{{book.Index.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{book.Size|filesize}})</a>
-    <a href="/download/{{book.Index.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
-    <br>
-    <div class="book-descr" style="clear: both;">
+    <div class="row book-descr" style="clear: both;">
+        <div class="col-12">
+            <a class="button" title="Коллекция" href="/?q={{book.Index.Lib}}">{{book.Index.Lib}}</a>
+            <a href="/download/{{book.Index.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{book.Size|filesize}})</a>
+            <a href="/download/{{book.Index.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
+            <a href="/delete/{{book.Index.ID}}" class="button primary"><span class="fa fa-trash"></span></a>
+        </div>
         {{ showStrings("ISBN", book.Index.ISBN, true) }}
         {{ showStrings("Названия", book.Index.Titles, true) }}
         {{ showStrings("Авторы/Переводчики", book.Index.Authors, true) }}
         {{ showStrings("Серии", book.Index.Sequences, true) }}
-        {{ showStrings("Дата", book.Index.Date, true) }}
+        {{ showStrings("Даты", book.Index.Date, true) }}
         {{ showStrings("Жанры", book.Index.Genres, true) }}
         {{ showStrings("Издатели", book.Index.Publisher, true) }}
         {{ showStrings("Язык", book.Index.Lang, true) }}

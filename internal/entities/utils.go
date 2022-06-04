@@ -105,7 +105,7 @@ func appendUniqStr(current *string, items ...string) {
 			continue
 		}
 
-		*current = fmt.Sprintf("%s%s%s", *current, indexFieldSep, item)
+		*current = fmt.Sprintf("%s%s%s", *current, IndexFieldSep, item)
 	}
 }
 
@@ -158,18 +158,26 @@ func appendUniqFB2Seq(current *string, items []fb2parse.FB2Sequence) {
 			continue
 		}
 
-		buf.WriteString(item.Name)
-
+		var num string
 		if item.Number != "" && item.Number != "0" {
-			buf.WriteRune(' ')
-			buf.WriteRune('(')
-			buf.WriteString(item.Number)
-			buf.WriteRune(')')
-
+			num = fmt.Sprintf("(%s)", item.Number)
 		}
 
-		seqs = append(seqs, buf.String())
-		buf.Reset()
+		for _, subitem := range strings.Split(item.Name, ",") {
+			if subitem = strings.TrimSpace(subitem); subitem == "" {
+				continue
+			}
+
+			buf.Reset()
+			buf.WriteString(subitem)
+
+			if num != "" {
+				buf.WriteRune(' ')
+				buf.WriteString(num)
+			}
+
+			seqs = append(seqs, buf.String())
+		}
 	}
 
 	appendUniqStr(current, seqs...)
@@ -215,7 +223,7 @@ func BuildBookURL(path, urlPrefix, pathPrefix string) string {
 func TransformStr(val string) string {
 	val = booksNamePattern.ReplaceAllString(
 		strings.ToLower(
-			translit.EncodeToICAO(strings.Split(val, indexFieldSep)[0]),
+			translit.EncodeToICAO(strings.Split(val, IndexFieldSep)[0]),
 		),
 		"-",
 	)
@@ -228,9 +236,9 @@ func TransformStr(val string) string {
 }
 
 func BuildBookName(book BookIndex) (res string) {
-	res = TransformStr(book.Titles)
+	res = TransformStr(book.Title)
 
-	if authors := TransformStr(book.Authors); authors != "" {
+	if authors := TransformStr(book.Author); authors != "" {
 		res += "." + authors
 	}
 

@@ -4,6 +4,8 @@ server:
 logs:
   debug: false
   pretty: false
+  color: false
+  caller: false
   duration_unit: 1s
   dir: var/logs
 bleve:
@@ -15,13 +17,19 @@ converter:
   dir: var/converter
 renderer:
   tpl_dir: web/themes/editorial
+  sidebar:
+    genres_size: 10
   globals:
-    gtitle: fb2library
+    page_title: FB2 Библиотека
+    page_h1: FB2 Библиотека
+    limits_books: 20,40,100
+    section_name: home
 pprof:
   dir: var/pprof
 libraries:
   default:
-    # disabled: false
+    # disabled: true
+    # order: 1
     dir: var/libs/default
     encoder: parser # or marshaler
     types: ["fb2", "zip"]
