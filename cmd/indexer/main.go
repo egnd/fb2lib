@@ -159,7 +159,7 @@ func GetInfoRepos(batchSize int, libs entities.Libraries, logger zerolog.Logger,
 			logger,
 			jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
 			jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal,
-			nil, nil,
+			nil, nil, nil,
 		)
 	}
 

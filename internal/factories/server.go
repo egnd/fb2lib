@@ -44,9 +44,8 @@ func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Log
 	server.GET("/", handlers.SearchHandler(cfg, libs, repoInfo, repoBooks))
 	server.GET("/lib/:lib_name", handlers.SearchHandler(cfg, libs, repoInfo, repoBooks))
 	server.GET("/download/:book", handlers.DownloadHandler(libs, repoInfo, cfg, logger))
-
-	// server.GET("/book/:id", handlers.SearchHandler())
-	// server.GET("/book/:id/remove", handlers.SearchHandler())
+	server.GET("/book/:id", handlers.BookDetailsHandler(repoInfo))
+	server.GET("/book/:id/remove", handlers.RemoveBookHandler(repoInfo))
 
 	// server.GET("/genres/", handlers.SearchHandler())
 	// server.GET("/genres/:name", handlers.SearchHandler())
@@ -55,11 +54,9 @@ func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Log
 	// server.GET("/series/", handlers.SearchHandler())
 	// server.GET("/series/:name", handlers.SearchHandler())
 
-	// server.GET("/", handlers.SearchHandler(cfg.GetInt("renderer.sidebar.genres_size"), repoInfo, repoBooks))
 	// server.GET("/genres/", handlers.GenresHandler(cfg.GetInt("renderer.sidebar.genres_size"), repoInfo, repoBooks))
 	// server.GET("/by_authors/", handlers.ByAuthorsHandler(cfg.GetInt("renderer.sidebar.genres_size"), repoInfo, repoBooks))
 	// server.GET("/by_series/", handlers.BySeriesHandler(cfg.GetInt("renderer.sidebar.genres_size"), repoInfo, repoBooks))
-	// server.GET("/details/:book_id", handlers.DetailsHandler(cfg.GetInt("renderer.sidebar.genres_size"), repoInfo, repoBooks, logger))
 
 	return server, nil
 }

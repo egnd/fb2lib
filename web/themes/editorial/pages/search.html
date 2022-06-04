@@ -4,7 +4,7 @@
 {% macro bookFeature(title, values, searchHref=false) %}
     {% if values|trimspace %}
         {% for value in values|split:"; " %}
-        <a class="button"{% if searchHref %} href="?q={{value|safe|striptags|urlencode}}"{% endif %} title="{{title}}">{{value|safe}}</a>
+        <a class="button"{% if searchHref %} href="?q={{value|split:"("|first|safe|striptags|urlencode}}"{% endif %} title="{{title}}">{{value|safe}}</a>
         {% endfor %}
     {% endif %}
 {% endmacro %}
@@ -55,10 +55,14 @@
     <div class="row search-items">
         {% for book in books %}
         <div class="col-6 col-12-xsmall item">
-            <h4><a href="/book/{{book.Index.ID}}">{{pager.GetOffset()+forloop.Counter}}. {{book.Index.Title|safe}}</a></h4>
-            {% for img in book.Details.Images %}
-            <a href="/book/{{book.Index.ID}}"><img src="data:{{img.Type}};base64,{{img.Data}}"/></a>
-            {% endfor %}
+            {% if book.Details.Images %}
+            {% for img in book.Details.Images %}<a href="/book/{{book.Index.ID}}"><img src="data:{{img.Type}};base64,{{img.Data}}"/></a>{% endfor %}
+            {% else %}
+            <a href="/book/{{book.Index.ID}}"><img src="/assets/images/noimg.png"/></a>
+            {% endif %}
+
+            <h4 class="col-12-xsmall"><a href="/book/{{book.Index.ID}}">{{pager.GetOffset()+forloop.Counter}}. {{book.Index.Title|safe}}</a></h4>
+
             <a href="/download/{{book.Index.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{book.Size|filesize}})</a>
             <a href="/download/{{book.Index.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
             {{ bookFeature("Коллекция", book.Index.Lib, true) }}

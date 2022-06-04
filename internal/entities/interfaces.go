@@ -14,6 +14,7 @@ type ISearchIndex interface {
 	Name() string
 	NewBatch() *bleve.Batch
 	Batch(b *bleve.Batch) error
+	Delete(string) error
 }
 
 type IMarshal func(any) ([]byte, error)

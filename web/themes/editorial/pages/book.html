@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+{% macro showStrings(title, values, showHref=false) %}
+{% if values|trimspace %}
+<div class="col-12-xsmall">
+    <span class="button" style="box-shadow: none;padding: 0;color: black !important;">{{title}}:</span>
+    {% for value in values|split:"; " %}<a class="button"{% if showHref %} href="/?q={{value|split:"("|first|safe|striptags|urlencode}}"{% endif %}>{{value}}</a>{% endfor %}
+</div>
+{% endif %}
+{% endmacro %}
+
+<div class="book-details">
+    <div class="row book-controls">
+        <div class="col-12">
+            <a href="/download/{{book.Index.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{book.Size|filesize}})</a>
+            <a href="/download/{{book.Index.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
+            <a class="button" title="Коллекция" href="/lib/{{book.Index.Lib}}">{{book.Index.Lib}}</a>
+            <a href="/book/{{book.Index.ID}}/remove" class="button primary"><span class="fa fa-trash"></span></a>
+        </div>
+    </div>
+
+    {% if book.Details.Annotation || book.Details.Images %}
+    <br>
+    <div class="row description">
+        <div class="col-12">
+            {% for img in book.Details.Images %}
+            <img src="data:{{img.Type}};base64,{{img.Data}}" style="max-width: 100%; float: left;margin: 0 15px 20px 0;"/>
+            {% endfor %}
+            {{book.Details.Annotation|safe}}
+        </div>
+    </div>
+    {% endif %}
+    
+    <br>
+    <div class="row book-tags">
+        {{ showStrings("ISBN", book.Index.ISBN, true) }}
+        {{ showStrings("Названия", book.Index.Title, true) }}
+        {{ showStrings("Авторы", book.Index.Author, true) }}
+        {{ showStrings("Переводчики", book.Index.Translator, true) }}
+        {{ showStrings("Серии", book.Index.Serie, true) }}
+        {{ showStrings("Даты", book.Index.Date, true) }}
+        {{ showStrings("Жанры", book.Index.Genre, true) }}
+        {{ showStrings("Издатели", book.Index.Publisher, true) }}
+        {{ showStrings("Язык", book.Index.Lang, true) }}
+    </div>
+
+    {% include "blocks/books-simple.html" with books=other_series_books columns_cnt=3 block_title="Другие книги серии" %}
+    {% include "blocks/series-simple.html" with series=other_series block_title="Другие серии автора" %}
+    {% include "blocks/books-simple.html" with books=other_books columns_cnt=3 block_title="Другие книги автора" %}
+</div>
+{% endblock %}

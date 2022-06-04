@@ -53,7 +53,7 @@ func main() {
 	repoInfo := repos.NewBooksInfo(0, cfg.GetBool("bleve.highlight"), storage, index, logger,
 		jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
 		jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal,
-		cache.New(time.Hour, 30*time.Minute), repoLibrary,
+		cache.New(time.Hour, 30*time.Minute), repoLibrary, libs,
 	)
 
 	server, err := factories.NewEchoServer(libs, cfg, logger, repoInfo, repoLibrary)

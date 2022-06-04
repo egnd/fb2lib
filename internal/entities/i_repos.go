@@ -17,6 +17,10 @@ type IBooksInfoRepo interface {
 	FindIn(libName, queryStr string, pager pagination.IPager) ([]BookInfo, error)
 	SaveBook(BookInfo) error
 	GetGenresFreq(limit int) (GenresIndex, error)
+	Remove(string) error
+	GetSeriesBooks(string, *BookInfo) ([]BookInfo, error)
+	GetOtherAuthorBooks(string, *BookInfo) ([]BookInfo, error)
+	GetOtherAuthorSeries(authors, curSeries string) (map[string]int, error)
 	// SearchAll(string, pagination.IPager) ([]BookInfo, error)
 	// SearchByAuthor(string, pagination.IPager) ([]BookInfo, error)
 	// SearchBySequence(string, pagination.IPager) ([]BookInfo, error)

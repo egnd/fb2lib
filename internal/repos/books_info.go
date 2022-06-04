@@ -1,6 +1,7 @@
 package repos
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"path"
@@ -37,12 +38,13 @@ type BooksInfo struct {
 	decode    entities.IUnmarshal
 	cache     *cache.Cache
 	repoLib   entities.IBooksLibraryRepo
+	libs      entities.Libraries
 }
 
 func NewBooksInfo(batchSize int, highlight bool,
 	storage *bbolt.DB, index entities.ISearchIndex, logger zerolog.Logger,
 	encoder entities.IMarshal, decoder entities.IUnmarshal, cache *cache.Cache,
-	repoLib entities.IBooksLibraryRepo,
+	repoLib entities.IBooksLibraryRepo, libs entities.Libraries,
 ) *BooksInfo {
 	if batchSize > storage.MaxBatchSize {
 		storage.MaxBatchSize = batchSize
@@ -58,6 +60,7 @@ func NewBooksInfo(batchSize int, highlight bool,
 		decode:    decoder,
 		cache:     cache,
 		repoLib:   repoLib,
+		libs:      libs,
 	}
 
 	if repo.batching {
@@ -136,6 +139,9 @@ func (r *BooksInfo) FindByID(id string) (entities.BookInfo, error) {
 		return entities.BookInfo{}, fmt.Errorf("book %s not found", id)
 	}
 
+	items = items[:1]
+	r.upgradeDetails(items)
+
 	return items[0], nil
 }
 
@@ -210,6 +216,127 @@ func (r *BooksInfo) upgradeDetails(books []entities.BookInfo) {
 	}
 
 	wg.Wait()
+}
+
+func (r *BooksInfo) Remove(bookID string) error { //@TODO: remove book file too
+	if err := r.index.Delete(bookID); err != nil {
+		return err
+	}
+
+	return r.storage.Update(func(tx *bbolt.Tx) error {
+		for lib := range r.libs {
+			bucket := tx.Bucket([]byte(lib))
+			if bucket == nil {
+				continue
+			}
+
+			if err := bucket.Delete([]byte(bookID)); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+func (r *BooksInfo) GetSeriesBooks(series string, curBook *entities.BookInfo) (res []entities.BookInfo, err error) {
+	if series == "" {
+		return
+	}
+
+	var searchQ query.Query
+	var conditions []query.Query
+	for _, item := range strings.Split(series, entities.IndexFieldSep) {
+		conditions = append(conditions, bleve.NewQueryStringQuery(
+			fmt.Sprintf(`+serie:"%s"`, strings.TrimSpace(strings.Split(item, "(")[0])),
+		))
+	}
+
+	searchQ = bleve.NewDisjunctionQuery(conditions...)
+
+	if curBook != nil {
+		searchQ = bleve.NewConjunctionQuery(searchQ, bleve.NewQueryStringQuery(fmt.Sprintf(`-ID:%s`, curBook.Index.ID)))
+	}
+
+	if res, err = r.GetItems(searchQ, nil, []search.SearchSort{&search.SortField{
+		Field: "serie", Type: search.SortFieldAsString,
+	}}, nil, "isbn", "title", "author", "transl", "serie", "date", "genre", "publ", "lang", "lib"); err != nil {
+		return nil, err
+	}
+
+	r.upgradeDetails(res)
+
+	return res, nil
+}
+
+func (r *BooksInfo) GetOtherAuthorBooks(authors string, curBook *entities.BookInfo) (res []entities.BookInfo, err error) {
+	if authors == "" {
+		return
+	}
+
+	var searchQ query.Query
+	var conditions []query.Query
+	for _, item := range strings.Split(authors, entities.IndexFieldSep) {
+		conditions = append(conditions, bleve.NewQueryStringQuery(
+			fmt.Sprintf(`+author:"%s"`, strings.TrimSpace(item)),
+		))
+	}
+
+	searchQ = bleve.NewDisjunctionQuery(conditions...)
+
+	if curBook != nil {
+		var buf bytes.Buffer
+		for _, item := range strings.Split(curBook.Index.Serie, entities.IndexFieldSep) {
+			buf.WriteString(`-serie:"`)
+			buf.WriteString(strings.TrimSpace(strings.Split(item, "(")[0]))
+			buf.WriteString(`" `)
+		}
+		searchQ = bleve.NewConjunctionQuery(searchQ, bleve.NewQueryStringQuery(buf.String()))
+	}
+
+	if res, err = r.GetItems(searchQ, nil, nil, nil,
+		"isbn", "title", "author", "transl", "serie", "date", "genre", "publ", "lang", "lib",
+	); err != nil {
+		return nil, err
+	}
+
+	r.upgradeDetails(res)
+
+	return res, nil
+}
+
+func (r *BooksInfo) GetOtherAuthorSeries(authors, curSeries string) (res map[string]int, err error) {
+	if authors == "" {
+		return
+	}
+
+	var searchQ query.Query
+	var conditions []query.Query
+	for _, item := range strings.Split(authors, entities.IndexFieldSep) {
+		conditions = append(conditions, bleve.NewQueryStringQuery(
+			fmt.Sprintf(`+author:"%s"`, strings.TrimSpace(item)),
+		))
+	}
+	searchQ = bleve.NewDisjunctionQuery(conditions...)
+
+	var books []entities.BookInfo
+	if books, err = r.GetItems(searchQ, nil, nil, nil, "serie"); err != nil {
+		return
+	}
+
+	res = map[string]int{}
+	for _, item := range books {
+		for _, serie := range strings.Split(item.Index.Serie, entities.IndexFieldSep) {
+			serie = strings.Split(serie, "(")[0]
+			if strings.Contains(curSeries, serie) {
+				continue
+			}
+
+			res[serie]++
+		}
+	}
+
+	return res, nil
 }
 
 func (r *BooksInfo) GetGenresFreq(limit int) (entities.GenresIndex, error) {

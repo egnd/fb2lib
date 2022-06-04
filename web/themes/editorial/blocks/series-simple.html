@@ -1,0 +1,11 @@
+{% if series %}
+<hr>
+<h3>{{block_title}}</h3>
+<div class="row series-simple">
+    <div class="col-12">
+        {% for name, cnt in series %}
+        <a class="button" href="/series/{{name|safe|striptags|urlencode}}">{{name}} ({{cnt}})</a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
