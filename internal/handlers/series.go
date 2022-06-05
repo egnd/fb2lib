@@ -7,10 +7,9 @@ import (
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/flosch/pongo2/v5"
 	"github.com/labstack/echo/v4"
-	"github.com/spf13/viper"
 )
 
-func SeriesHandler(cfg *viper.Viper, repo entities.IBooksInfoRepo) echo.HandlerFunc {
+func SeriesHandler(repo entities.IBooksInfoRepo) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		letter := c.Param("letter")
 

@@ -73,12 +73,14 @@
 
 .book-details.book-tags .button,
 .book-details.book-controls .button,
-.series-simple .button {
+.series-simple .button,
+.authors-simple .button {
     margin-right: 10px;
     margin-bottom: 10px;
 }
 
-.series-simple {
+.series-simple,
+.authors-simple {
     text-align: center;
 }
 

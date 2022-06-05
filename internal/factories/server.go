@@ -48,11 +48,11 @@ func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Log
 	server.GET("/book/:id", handlers.BookDetailsHandler(repoInfo))
 	server.GET("/book/:id/remove", handlers.RemoveBookHandler(repoInfo))
 	server.GET("/genres/", handlers.GenresHandler(cfg, repoInfo))
-	server.GET("/series/", handlers.SeriesHandler(cfg, repoInfo))
-	server.GET("/series/:letter/", handlers.SeriesHandler(cfg, repoInfo))
-
-	// server.GET("/authors/", handlers.SearchHandler())
-	// server.GET("/authors/:name", handlers.SearchHandler())
+	server.GET("/series/", handlers.SeriesHandler(repoInfo))
+	server.GET("/series/:letter/", handlers.SeriesHandler(repoInfo))
+	server.GET("/authors/", handlers.AuthorsHandler(repoInfo))
+	server.GET("/authors/:letter/", handlers.AuthorsHandler(repoInfo))
+	server.GET("/authors/:letter/:name", handlers.AuthorsHandler(repoInfo))
 
 	return server, nil
 }

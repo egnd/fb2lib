@@ -488,7 +488,7 @@ func (r *BooksInfo) GetSeriesByLetter(letter string) ([]string, error) {
 	for _, item := range items {
 		for _, serie := range strings.Split(item.Index.Serie, entities.IndexFieldSep) {
 			serie = strings.Split(serie, " (")[0]
-			if _, ok := dupl[serie]; ok || !strings.HasPrefix(strings.ToLower(serie), strings.ToLower(letter)) {
+			if _, ok := dupl[serie]; ok || !strings.HasPrefix(strings.ToLower(serie), letter) {
 				continue
 			}
 			dupl[serie] = struct{}{}
@@ -497,6 +497,42 @@ func (r *BooksInfo) GetSeriesByLetter(letter string) ([]string, error) {
 	}
 
 	r.cache.Set(fmt.Sprintf("series_starts_%s", letter), res, 0)
+
+	return res, nil
+}
+
+func (r *BooksInfo) GetAuthorsByLetter(letter string) ([]string, error) {
+	letter = strings.TrimSpace(strings.ToLower(letter))
+
+	if letter == "" {
+		return nil, nil
+	}
+
+	if cachedRes, found := r.cache.Get(fmt.Sprintf("authors_starts_%s", letter)); found {
+		return cachedRes.([]string), nil
+	}
+
+	items, err := r.GetItems(bleve.NewQueryStringQuery(fmt.Sprintf("+%s:%s*", entities.IdxFieldAuthor, letter)), nil,
+		[]search.SearchSort{&search.SortField{Field: entities.IdxFieldAuthor, Type: search.SortFieldAsString}},
+		nil, entities.IdxFieldAuthor)
+	if err != nil {
+		return nil, err
+	}
+
+	dupl := make(map[string]struct{}, len(items))
+	res := make([]string, 0, len(items))
+
+	for _, item := range items {
+		for _, author := range strings.Split(item.Index.Author, entities.IndexFieldSep) {
+			if _, ok := dupl[author]; ok || !strings.HasPrefix(strings.ToLower(author), letter) {
+				continue
+			}
+			dupl[author] = struct{}{}
+			res = append(res, author)
+		}
+	}
+
+	r.cache.Set(fmt.Sprintf("authors_starts_%s", letter), res, 0)
 
 	return res, nil
 }
