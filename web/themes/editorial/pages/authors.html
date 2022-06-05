@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+{% include "blocks/alphabet.html" with cur_letter=cur_letter url_prefix="/authors" %}
+{% include "blocks/authors-simple.html" with authors=authors url_prefix="/authors/"+cur_letter cur_name=cur_name %}
+{% include "blocks/series-simple.html" with series=series block_title="Cерии автора" %}
+{% include "blocks/books-simple.html" with books=books columns_cnt=3 block_title="Книги автора" %}
+
+{% endblock %}

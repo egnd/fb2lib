@@ -116,7 +116,7 @@ func main() {
 
 	var num int
 	total := len(libItems)
-	for libItem, libTitle := range libItems {
+	for _, v := range libItems {
 		wg.Add(1)
 		num++
 
@@ -135,7 +135,7 @@ func main() {
 					)
 				},
 			).Do()
-		}(num, libItem, libTitle)
+		}(num, v.Item, v.Lib)
 	}
 
 	wg.Wait()
@@ -159,6 +159,7 @@ func GetInfoRepos(batchSize int, libs entities.Libraries, logger zerolog.Logger,
 			logger,
 			jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
 			jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal,
+			nil, nil, nil,
 		)
 	}
 

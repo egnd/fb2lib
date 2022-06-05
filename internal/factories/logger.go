@@ -15,16 +15,20 @@ func NewZerologLogger(cfg *viper.Viper, writer io.Writer) zerolog.Logger {
 		return time.Now().In(time.Local)
 	}
 
-	logger := zerolog.New(writer).With().Timestamp().
-		Logger().Level(zerolog.InfoLevel)
-
-	if cfg.GetBool("logs.debug") {
-		logger = logger.Level(zerolog.DebugLevel).
-			With().Caller().Logger()
+	if cfg.GetBool("logs.pretty") {
+		writer = zerolog.ConsoleWriter{Out: writer,
+			NoColor: !cfg.GetBool("logs.color"),
+		}
 	}
 
-	if cfg.GetBool("logs.pretty") {
-		logger = logger.Output(zerolog.ConsoleWriter{Out: writer})
+	logger := zerolog.New(writer).With().Timestamp().Logger().Level(zerolog.InfoLevel)
+
+	if cfg.GetBool("logs.caller") {
+		logger = logger.With().Caller().Logger()
+	}
+
+	if cfg.GetBool("logs.debug") {
+		logger = logger.Level(zerolog.DebugLevel)
 	}
 
 	return logger

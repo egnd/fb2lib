@@ -1,0 +1,67 @@
+{% macro bookTag(title, values, tag_name) %}
+    {% if values|trimspace %}
+        {% for value in values|split:"; " %}
+            {% if tag_name %} 
+                {% if cur_tag %}
+                <a class="button" title="{{title}}" href="?q={{value|striptags|split:"("|first|urlencode}}">{{value|safe}}</a>
+                {% else %}
+                <a class="button" title="{{title}}" href="/books/{{tag_name}}/{{value|striptags|split:"("|first|urlencode}}/">{{value|safe}}</a>
+                {% endif %}
+            {% else %}
+            <a class="button" title="{{title}}">{{value|safe}}</a>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endmacro %}
+
+{% if pager.GetTotal() > pager.GetPageSize() %}
+<div class="row books-detailed-head">
+    <div class="col-10 col-8-xsmall books-detailed-head-title">
+        {% if pager.HasNext() %}
+        <h4>Книги {{pager.GetOffset()+1}}-{{pager.GetOffset()+pager.GetPageSize()}} из {{pager.GetTotal()}}</h4>
+        {% else %}
+        <h4>Книги {{pager.GetOffset()+1}}-{{pager.GetTotal()}} из {{pager.GetTotal()}}</h4>
+        {% endif %}
+    </div>
+    <div class="col-2 col-4-xsmall books-detailed-head-size">
+        <select id="demo-category" onchange="if (this.value) window.location.href=this.value">
+            {% for size in books_sizes|split:"," %}
+            <option value="{{pager.GetLink(1,size|integer)}}"{% if pager.GetPageSize() == size|integer %} selected{%endif%}>{{size}}</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+{% endif %}
+
+<div class="row books-detailed">
+    {% if books %}
+    {% for book in books %}
+    <div class="col-6 col-12-xsmall books-detailed-item">
+        {% if book.Details.Images %}
+        {% for img in book.Details.Images %}<a href="/book/{{book.Index.ID}}"><img src="data:{{img.Type}};base64,{{img.Data}}"/></a>{% endfor %}
+        {% else %}
+        <a href="/book/{{book.Index.ID}}"><img src="/assets/images/noimg.png"/></a>
+        {% endif %}
+
+        <h4 class="col-12-xsmall"><a href="/book/{{book.Index.ID}}">
+            {% if pager %}{{pager.GetOffset()+forloop.Counter}}. {% endif %}{{book.Index.Title|safe}}</a>
+        </h4>
+
+        <a href="/download/{{book.Index.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{book.Size|filesize}})</a>
+        <a href="/download/{{book.Index.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
+
+        {{ bookTag("Коллекция", book.Index.Lib, "lib") }}
+        {{ bookTag("ISBN", book.Index.ISBN, "isbn") }}
+        {{ bookTag("Дата", book.Index.Date, "date") }}
+        {{ bookTag("Язык", book.Index.Lang, "lang") }}
+        {{ bookTag("Жанр", book.Index.Genre, "genre") }}
+        {{ bookTag("Автор", book.Index.Author, "author") }}
+        {{ bookTag("Переводчик", book.Index.Translator, "transl") }}
+        {{ bookTag("Издательство", book.Index.Publisher, "publ") }}
+        {{ bookTag("Серия", book.Index.Serie, "serie") }}
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="col-12"><span>Книги не найдены</span></div>
+    {% endif %}
+</div>

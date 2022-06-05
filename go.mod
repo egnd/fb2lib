@@ -11,6 +11,7 @@ require (
 	github.com/flosch/pongo2/v5 v5.0.0
 	github.com/json-iterator/go v1.1.12
 	github.com/labstack/echo/v4 v4.7.2
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/profile v1.6.0
 	github.com/rs/zerolog v1.26.1
 	github.com/spf13/viper v1.12.0

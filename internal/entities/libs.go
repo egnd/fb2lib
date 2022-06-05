@@ -26,17 +26,25 @@ func (l *Libraries) GetSize() (res int64) {
 	return
 }
 
-func (l *Libraries) GetItems() (map[string]string, error) {
-	res := map[string]string{}
+func (l *Libraries) GetItems() (res []LibItem, err error) {
+	var selected int
 
-	for _, lib := range *l {
-		items, err := lib.GetItems()
-		if err != nil {
-			return nil, err
-		}
+	for order := 0; selected != len(*l); order++ {
+		for _, lib := range *l {
+			if lib.Order != order {
+				continue
+			}
 
-		for _, libItem := range items {
-			res[libItem] = lib.Name
+			items, err := lib.GetItems()
+			if err != nil {
+				return nil, err
+			}
+
+			for _, libItem := range items {
+				res = append(res, LibItem{Item: libItem, Lib: lib.Name})
+			}
+
+			selected++
 		}
 	}
 
@@ -47,6 +55,7 @@ type Library struct {
 	Disabled bool   `mapstructure:"disabled"`
 	Dir      string `mapstructure:"dir"`
 	Name     string
+	Order    int           `mapstructure:"order"`
 	Types    []string      `mapstructure:"types"`
 	Encoder  LibEncodeType `mapstructure:"encoder"`
 }
@@ -106,4 +115,9 @@ func (l *Library) GetSize() int64 {
 	}
 
 	return res
+}
+
+type LibItem struct {
+	Item string
+	Lib  string
 }

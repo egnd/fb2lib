@@ -1,0 +1,34 @@
+{% if pager && pager.HasPages() %}
+<br>
+<ul class="pagination">
+    {%if pager.HasPrev() %}
+    <li>
+        <a href="{{pager.GetLinkFirst()}}" class="button">Начало</a>
+        <a href="{{pager.GetLinkPrev()}}" class="button">Назад</a>
+    </li>
+    {% else %}
+    <li>
+        <span class="button disabled">Начало</span>
+        <span class="button disabled">Назад</span>
+    </li>
+    {% endif %}
+    {% for page in pager.GetPages()%}
+        {%if pager.IsCurPage(page) %}
+        <li><span class="page active">{{page}}</span></li>
+        {% else %}
+        <li><a href="{{pager.GetLink(page,0)}}" class="page">{{page}}</a></li>
+        {% endif %}
+    {% endfor %}    
+    {%if pager.HasNext() %}
+    <li>
+        <a href="{{pager.GetLinkNext()}}" class="button">Вперед</a>
+        <a href="{{pager.GetLinkLast()}}" class="button">Конец</a>
+    </li>
+    {% else %}
+    <li>
+        <span class="button disabled">Вперед</span>
+        <span class="button disabled">Конец</span>
+    </li>
+    {% endif %}
+</ul>
+{%endif%}

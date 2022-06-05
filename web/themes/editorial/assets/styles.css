@@ -1,26 +1,42 @@
-#menu ul a.active {
-    color: #f56a6a;
+#sidebar {
+    width: 15em;
 }
 
-.books-list {
-    margin-bottom: 30px;
+#sidebar.inactive {
+    margin-left: -15em;
 }
 
+#sidebar > .inner {
+    width: 15em;
+}
 
-.books-list-item {
+#sidebar .toggle {
+    left: 15em;
+}
+
+.sidebar-menu .active {
+    border-bottom-color: #f56a6a;
+    color: #f56a6a !important;
+}
+
+.books-detailed .books-detailed-item {
+    overflow: hidden;
+    min-height:300px;
+    margin-bottom: 25px;
+}
+
+.books-detailed .books-detailed-item img {
+    float: left;
+    max-height:300px;
+    margin: 0 10px 10px 0;
+}
+
+.books-detailed .books-detailed-item .button {
+    margin-right: 5px;
     margin-bottom: 10px;
 }
 
-.books-list-item .button {
-    overflow: hidden;
-    max-width: 100%;
-}
-
-.books-list-item h4 {
-    margin-bottom: 5px;
-}
-
-.books-list-item mark {
+.books-detailed .books-detailed-item mark {
     background-color: #fdff74;
 }
 
@@ -28,17 +44,68 @@
     text-align: center;
 }
 
-@media screen and (max-width: 480px) {
-    .pagination .button {
-        text-align: center;
-        width: 70px;
-        padding-left: 0;
-        padding-right: 0;
-    }
+.book-details {
+    padding-top: 25px !important;
 }
 
-.book-descr .button {
-    overflow: hidden;
-    max-width: 100%;
-    margin-right: 5px;
+.book-details img {
+    max-height: 500px;
+    max-width: 100%; 
+    float: left;
+    margin: 0 15px 20px 0;
+}
+
+.book-details.book-tags .button {
+    margin-bottom: 10px;
+}
+
+.books-simple .books-simple-item {
+    text-align: center;
+}
+
+.books-simple .books-simple-item img {
+    max-height: 200px;
+}
+
+.book-details.book-controls {
+    text-align: center;
+}
+
+.book-details.book-tags .button,
+.book-details.book-controls .button,
+.series-simple .button,
+.authors-simple .button {
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+.series-simple,
+.authors-simple {
+    text-align: center;
+}
+
+.genres-list {
+    text-align: center;
+}
+
+.genres-list .button {
+    margin-right: 10px;
+    margin-bottom: 15px;
+}
+
+.alphabet-filter {
+    text-align: center;
+}
+
+.alphabet-filter .button {
+    padding: 0px 10px;
+    height: auto;
+    line-height: 2.5em;
+    margin: 5px 3px;
+}
+
+@media screen and (max-width: 480px) {
+    .books-detailed .books-detailed-item h4 {
+        clear: both;
+    }
 }

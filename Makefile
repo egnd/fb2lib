@@ -42,9 +42,6 @@ compose: compose-stop ## Run app
 	docker-compose up --build --abort-on-container-exit --renew-anon-volumes
 
 compose-stop: ## Stop app
-ifeq ($(wildcard .env),)
-	cp .env.dist .env
-endif
 	docker-compose down --remove-orphans --volumes
 
 compose-index:

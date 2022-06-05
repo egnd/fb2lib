@@ -24,17 +24,17 @@ func DownloadHandler(libs entities.Libraries,
 
 	return func(c echo.Context) (err error) {
 		var bookID string
-		bookType := strings.Trim(path.Ext(c.Param("book_id")), ".")
+		bookType := strings.Trim(path.Ext(c.Param("book")), ".")
 		switch bookType {
 		case "epub", "fb2":
-			bookID = strings.TrimSuffix(c.Param("book_id"), "."+bookType)
+			bookID = strings.TrimSuffix(c.Param("book"), "."+bookType)
 		default:
 			c.NoContent(http.StatusBadRequest)
 			return
 		}
 
 		var book entities.BookInfo
-		if book, err = repo.GetBook(bookID); err != nil {
+		if book, err = repo.FindByID(bookID); err != nil {
 			c.NoContent(http.StatusNotFound)
 			return
 		}
