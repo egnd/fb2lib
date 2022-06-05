@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -12,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func SearchHandler(cfg *viper.Viper, libs entities.Libraries,
+func BooksHandler(cfg *viper.Viper, libs entities.Libraries,
 	repoInfo entities.IBooksInfoRepo,
 	repoBooks entities.IBooksLibraryRepo,
 ) echo.HandlerFunc {
@@ -22,9 +24,15 @@ func SearchHandler(cfg *viper.Viper, libs entities.Libraries,
 	}
 
 	return func(c echo.Context) (err error) {
-		libName := c.Param("lib_name")
-		if _, ok := libs[libName]; libName != "" && !ok {
-			c.NoContent(http.StatusNotFound)
+		tag, err := url.PathUnescape(c.Param("tag"))
+		if err != nil {
+			c.NoContent(http.StatusBadRequest)
+			return
+		}
+
+		tagValue, err := url.QueryUnescape(c.Param("tag_value"))
+		if err != nil {
+			c.NoContent(http.StatusBadRequest)
 			return
 		}
 
@@ -33,23 +41,47 @@ func SearchHandler(cfg *viper.Viper, libs entities.Libraries,
 			ReadPageSize().ReadCurPage()
 
 		var books []entities.BookInfo
-		if books, err = repoInfo.FindIn(libName, searchQuery, pager); err != nil {
+		if books, err = repoInfo.FindBooks(searchQuery, tag, tagValue, pager); err != nil {
 			c.NoContent(http.StatusBadRequest)
 			return
 		}
 
-		libsNames := make([]string, 0, len(libs))
-		for lib := range libs {
-			libsNames = append(libsNames, lib)
+		var title string
+		switch tag {
+		case "author":
+			title = fmt.Sprintf(`Поиск в книгах автора "%s"`, tagValue)
+		case "transl":
+			title = fmt.Sprintf(`Поиск книг в переводе "%s"`, tagValue)
+		case "serie":
+			title = fmt.Sprintf(`Поиск в книгах серии "%s"`, tagValue)
+		case "genre":
+			title = fmt.Sprintf(`Поиск книг в жанре "%s"`, tagValue)
+		case "publ":
+			title = fmt.Sprintf(`Поиск в книгах издателя "%s"`, tagValue)
+		case "lang":
+			title = fmt.Sprintf(`Поиск книг на языке %s`, tagValue)
+		case "lib":
+			title = fmt.Sprintf(`Поиск книг в коллекции "%s"`, tagValue)
+		default:
+			title = "Поиск по книгам"
 		}
 
-		return c.Render(http.StatusOK, "pages/search.html", pongo2.Context{
-			"page_h1":      "Поиск в библиотеке " + libName,
+		return c.Render(http.StatusOK, "pages/books.html", pongo2.Context{
+			"section_name": "books",
+			"page_title":   title,
+			"page_h1":      title,
+
 			"search_query": searchQuery,
-			"cur_lib":      libName,
-			"libs":         libsNames,
+			"cur_tag":      tag,
+			"cur_tag_val":  tagValue,
 			"books":        books,
 			"pager":        pager,
+			"libs": func() (res []string) {
+				for lib := range libs {
+					res = append(res, lib)
+				}
+				return
+			}(),
 		})
 	}
 }

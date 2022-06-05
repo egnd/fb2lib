@@ -86,7 +86,11 @@ func cacheWarmup(logger zerolog.Logger, cfg *viper.Viper,
 		return err
 	}
 
-	if _, err := repoInfo.FindIn("", "", pagination.NewPager(nil).SetPageSize(defPageSize)); err != nil {
+	if _, err := repoInfo.FindBooks("", "", "", pagination.NewPager(nil).SetPageSize(defPageSize)); err != nil {
+		return err
+	}
+
+	if _, err := repoInfo.GetStats(); err != nil {
 		return err
 	}
 

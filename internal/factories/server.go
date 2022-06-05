@@ -24,7 +24,7 @@ func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Log
 	server.HideBanner = true
 	server.HidePort = true
 
-	if server.Renderer, err = NewEchoRender(cfg, server); err != nil {
+	if server.Renderer, err = NewEchoRender(cfg, server, repoInfo); err != nil {
 		return nil, err
 	}
 
@@ -41,8 +41,9 @@ func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Log
 		return c.String(http.StatusOK, "OK")
 	})
 
-	server.GET("/", handlers.SearchHandler(cfg, libs, repoInfo, repoBooks))
-	server.GET("/lib/:lib_name", handlers.SearchHandler(cfg, libs, repoInfo, repoBooks))
+	server.GET("/", func(c echo.Context) error { return c.Redirect(http.StatusMovedPermanently, "/books/") })
+	server.GET("/books/", handlers.BooksHandler(cfg, libs, repoInfo, repoBooks))
+	server.GET("/books/:tag/:tag_value/", handlers.BooksHandler(cfg, libs, repoInfo, repoBooks))
 	server.GET("/download/:book", handlers.DownloadHandler(libs, repoInfo, cfg, logger))
 	server.GET("/book/:id", handlers.BookDetailsHandler(repoInfo))
 	server.GET("/book/:id/remove", handlers.RemoveBookHandler(repoInfo))
@@ -61,11 +62,19 @@ func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Log
 	return server, nil
 }
 
-func NewEchoRender(cfg *viper.Viper, server *echo.Echo) (echo.Renderer, error) {
+func NewEchoRender(cfg *viper.Viper, server *echo.Echo, repo entities.IBooksInfoRepo) (echo.Renderer, error) {
+	stats, err := repo.GetStats()
+	if err != nil {
+		return nil, err
+	}
+
+	globals := cfg.GetStringMap("renderer.globals")
+	globals["sidebar_stats"] = stats
+
 	return echoext.NewPongoRenderer(echoext.PongoRendererCfg{
 		Debug:   server.Debug,
 		TplsDir: cfg.GetString("renderer.tpl_dir"),
-	}, cfg.GetStringMap("renderer.globals"), map[string]pongo2.FilterFunction{
+	}, globals, map[string]pongo2.FilterFunction{
 		"filesize":  echoext.PongoFilterFileSize,
 		"trimspace": echoext.PongoFilterTrimSpace,
 	})

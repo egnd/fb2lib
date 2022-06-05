@@ -145,17 +145,22 @@ func (r *BooksInfo) FindByID(id string) (entities.BookInfo, error) {
 	return items[0], nil
 }
 
-func (r *BooksInfo) FindIn(lib, queryStr string, pager pagination.IPager) ([]entities.BookInfo, error) {
+func (r *BooksInfo) FindBooks(queryStr, tagName, tagValue string, pager pagination.IPager) ([]entities.BookInfo, error) {
 	highlight := bleve.NewHighlightWithStyle("html")
-	highlight.Fields = []string{"isbn", "title", "author", "transl", "serie", "date", "genre", "publ", "lang"}
-
 	queryStr = strings.TrimSpace(strings.ToLower(queryStr))
+	sortFields := []search.SearchSort{&search.SortField{
+		Field:   "year",
+		Desc:    true,
+		Type:    search.SortFieldAsNumber,
+		Missing: search.SortFieldMissingLast,
+	}}
 
 	var searchQ query.Query
 	switch {
 	case queryStr == "" || queryStr == "*":
 		searchQ = bleve.NewMatchAllQuery()
 	default:
+		sortFields = nil
 		queries := make([]query.Query, 0, 2)
 		if strings.Contains(queryStr, " ") {
 			queries = append(queries, bleve.NewMatchPhraseQuery(queryStr)) // phrase match
@@ -170,16 +175,19 @@ func (r *BooksInfo) FindIn(lib, queryStr string, pager pagination.IPager) ([]ent
 		searchQ = bleve.NewDisjunctionQuery(queries...)
 	}
 
-	if lib != "" {
-		searchQ = bleve.NewConjunctionQuery(searchQ, bleve.NewQueryStringQuery(fmt.Sprintf("+lib:%s", lib)))
+	fields := []string{"isbn", "title", "author", "transl", "serie", "date", "genre", "publ", "lang", "lib"}
+
+	if tagName != "" && tagValue != "" {
+		searchQ = bleve.NewConjunctionQuery(searchQ, bleve.NewQueryStringQuery(fmt.Sprintf(`+%s:"%s"`, tagName, tagValue)))
+		for _, item := range fields {
+			if item == tagName {
+				continue
+			}
+			highlight.Fields = append(highlight.Fields, item)
+		}
 	}
 
-	res, err := r.GetItems(searchQ, pager, []search.SearchSort{&search.SortField{
-		Field:   "year",
-		Desc:    true,
-		Type:    search.SortFieldAsNumber,
-		Missing: search.SortFieldMissingLast,
-	}}, highlight, append(highlight.Fields, "lib")...)
+	res, err := r.GetItems(searchQ, pager, sortFields, highlight, fields...)
 
 	if err != nil || len(res) == 0 {
 		return nil, err
@@ -380,6 +388,61 @@ func (r *BooksInfo) GetGenresFreq(limit int) (entities.GenresIndex, error) {
 	r.cache.Set(fmt.Sprintf("genres_%d", limit), genres, 0)
 
 	return genres, nil
+}
+
+func (r *BooksInfo) GetStats() (map[string]uint64, error) {
+	if cachedRes, found := r.cache.Get("index_stats"); found {
+		return cachedRes.(map[string]uint64), nil
+	}
+
+	var res map[string]uint64
+
+	defer r.cache.Add("index_stats", res, 0)
+
+	total, err := r.index.DocCount()
+	if err != nil {
+		return nil, err
+	}
+
+	searchReq := bleve.NewSearchRequestOptions(bleve.NewMatchAllQuery(), int(total), 0, false)
+	searchReq.Fields = []string{"genre", "author", "serie"}
+	items, err := r.index.Search(searchReq)
+	if err != nil {
+		return nil, err
+	}
+
+	genres := map[string]uint32{}
+	authors := map[string]uint32{}
+	series := map[string]uint32{}
+
+	for _, item := range items.Hits {
+		if genre, ok := item.Fields["genre"].(string); ok {
+			for _, val := range strings.Split(genre, entities.IndexFieldSep) {
+				genres[val]++
+			}
+		}
+
+		if author, ok := item.Fields["author"].(string); ok {
+			for _, val := range strings.Split(author, entities.IndexFieldSep) {
+				authors[val]++
+			}
+		}
+
+		if serie, ok := item.Fields["serie"].(string); ok {
+			for _, val := range strings.Split(serie, entities.IndexFieldSep) {
+				series[strings.Split(val, " (")[0]]++
+			}
+		}
+	}
+
+	res = map[string]uint64{
+		"books":   total,
+		"genres":  uint64(len(genres)),
+		"authors": uint64(len(authors)),
+		"series":  uint64(len(series)),
+	}
+
+	return res, err
 }
 
 // func (r *BooksInfo) SearchByAuthor(strQuery string, pager pagination.IPager) ([]entities.BookInfo, error) {

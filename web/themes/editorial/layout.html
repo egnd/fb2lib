@@ -20,18 +20,16 @@
         </div>
         <div id="sidebar">
           <div class="inner">
-              <section id="search" class="alt">
-                <form method="get" action="/"><input type="text" name="q"/></form>
-              </section>
-              <nav id="menu">
-                <header class="major">
-                  <h2>Меню</h2>
-                </header>
+            {% if section_name != "books" %}
+              <section id="search" class="alt"><form method="get" action="/books/"><input type="text" name="q"/></form></section>
+              {% endif %}
+              <nav id="menu" class="sidebar-menu">
+                <header class="major"><h2>Разделы:</h2></header>
                 <ul>
-                  <li><a href="/"{% if section_name == "home" %} class="active"{% endif %}>Главная</a></li>
-                  <li><a href="/genres/"{% if section_name == "genres" %} class="active"{% endif %}>Жанры</a></li>
-                  <li><a href="/authors/"{% if section_name == "authors" %} class="active"{% endif %}>Авторы</a></li>
-                  <li><a href="/series/"{% if section_name == "series" %} class="active"{% endif %}>Серии</a></li>
+                  <li><a href="/books/"{% if section_name == "books" %} class="active"{% endif %}>Книги ({{sidebar_stats.books}})</a></li>
+                  <li><a href="/genres/"{% if section_name == "genres" %} class="active"{% endif %}>Жанры ({{sidebar_stats.genres}})</a></li>
+                  <li><a href="/authors/"{% if section_name == "authors" %} class="active"{% endif %}>Авторы ({{sidebar_stats.authors}})</a></li>
+                  <li><a href="/series/"{% if section_name == "series" %} class="active"{% endif %}>Серии ({{sidebar_stats.series}})</a></li>
                 </ul>
               </nav>
           </div>

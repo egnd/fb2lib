@@ -14,13 +14,14 @@ type IBooksInfoRepo interface {
 	io.Closer
 	GetItems(query.Query, pagination.IPager, []search.SearchSort, *bleve.HighlightRequest, ...string) ([]BookInfo, error)
 	FindByID(string) (BookInfo, error)
-	FindIn(libName, queryStr string, pager pagination.IPager) ([]BookInfo, error)
+	FindBooks(queryStr, tagName, tagValue string, pager pagination.IPager) ([]BookInfo, error)
 	SaveBook(BookInfo) error
 	GetGenresFreq(limit int) (GenresIndex, error)
 	Remove(string) error
 	GetSeriesBooks(string, *BookInfo) ([]BookInfo, error)
 	GetOtherAuthorBooks(string, *BookInfo) ([]BookInfo, error)
 	GetOtherAuthorSeries(authors, curSeries string) (map[string]int, error)
+	GetStats() (map[string]uint64, error)
 	// SearchAll(string, pagination.IPager) ([]BookInfo, error)
 	// SearchByAuthor(string, pagination.IPager) ([]BookInfo, error)
 	// SearchBySequence(string, pagination.IPager) ([]BookInfo, error)
