@@ -149,7 +149,7 @@ func (r *BooksInfo) FindByID(id string) (entities.BookInfo, error) {
 func (r *BooksInfo) FindBooks(queryStr, tagName, tagValue string, pager pagination.IPager) ([]entities.BookInfo, error) {
 	highlight := bleve.NewHighlightWithStyle("html")
 	queryStr = strings.TrimSpace(strings.ToLower(queryStr))
-	sortFields := []search.SearchSort{&search.SortField{
+	sortFields := []search.SearchSort{&search.SortField{ // @TODO: sort by title
 		Field:   entities.IdxFieldYear,
 		Desc:    true,
 		Type:    search.SortFieldAsNumber,
