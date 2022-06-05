@@ -11,6 +11,18 @@ import (
 
 const (
 	IndexFieldSep = "; "
+
+	IdxFieldYear       = "year"
+	IdxFieldISBN       = "isbn"
+	IdxFieldTitle      = "title"
+	IdxFieldAuthor     = "author"
+	IdxFieldTranslator = "transl"
+	IdxFieldSerie      = "serie"
+	IdxFieldDate       = "date"
+	IdxFieldGenre      = "genre"
+	IdxFieldPublisher  = "publ"
+	IdxFieldLang       = "lang"
+	IdxFieldLib        = "lib"
 )
 
 type BookIndex struct {
@@ -84,16 +96,16 @@ func NewBookIndex(match *search.DocumentMatch) BookIndex {
 
 	return BookIndex{
 		ID:         match.ID,
-		ISBN:       getVal("isbn"),
-		Title:      getVal("title"),
-		Author:     getVal("author"),
-		Translator: getVal("transl"),
-		Serie:      getVal("serie"),
-		Date:       getVal("date"),
-		Genre:      getVal("genre"),
-		Publisher:  getVal("publ"),
-		Lang:       getVal("lang"),
-		Lib:        getVal("lib"),
+		ISBN:       getVal(IdxFieldISBN),
+		Title:      getVal(IdxFieldTitle),
+		Author:     getVal(IdxFieldAuthor),
+		Translator: getVal(IdxFieldTranslator),
+		Serie:      getVal(IdxFieldSerie),
+		Date:       getVal(IdxFieldDate),
+		Genre:      getVal(IdxFieldGenre),
+		Publisher:  getVal(IdxFieldPublisher),
+		Lang:       getVal(IdxFieldLang),
+		Lib:        getVal(IdxFieldLib),
 	}
 }
 
@@ -104,19 +116,19 @@ func NewBookIndexMapping() *mapping.IndexMappingImpl {
 	sortField.IncludeInAll = false
 	sortField.DocValues = false
 	sortField.Index = true
-	books.AddFieldMappingsAt("year", sortField)
+	books.AddFieldMappingsAt(IdxFieldYear, sortField)
 
 	searchField := bleve.NewTextFieldMapping()
-	books.AddFieldMappingsAt("isbn", searchField)
-	books.AddFieldMappingsAt("title", searchField)
-	books.AddFieldMappingsAt("author", searchField)
-	books.AddFieldMappingsAt("transl", searchField)
-	books.AddFieldMappingsAt("serie", searchField)
-	books.AddFieldMappingsAt("date", searchField)
-	books.AddFieldMappingsAt("genre", searchField)
-	books.AddFieldMappingsAt("publ", searchField)
-	books.AddFieldMappingsAt("lang", searchField)
-	books.AddFieldMappingsAt("lib", searchField)
+	books.AddFieldMappingsAt(IdxFieldISBN, searchField)
+	books.AddFieldMappingsAt(IdxFieldTitle, searchField)
+	books.AddFieldMappingsAt(IdxFieldAuthor, searchField)
+	books.AddFieldMappingsAt(IdxFieldTranslator, searchField)
+	books.AddFieldMappingsAt(IdxFieldSerie, searchField)
+	books.AddFieldMappingsAt(IdxFieldDate, searchField)
+	books.AddFieldMappingsAt(IdxFieldGenre, searchField)
+	books.AddFieldMappingsAt(IdxFieldPublisher, searchField)
+	books.AddFieldMappingsAt(IdxFieldLang, searchField)
+	books.AddFieldMappingsAt(IdxFieldLib, searchField)
 
 	mapping := bleve.NewIndexMapping()
 	mapping.AddDocumentMapping("books", books)

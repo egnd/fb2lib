@@ -46,24 +46,22 @@ func BooksHandler(cfg *viper.Viper, libs entities.Libraries,
 			return
 		}
 
-		var title string
+		title := "Поиск по книгам"
 		switch tag {
-		case "author":
-			title = fmt.Sprintf(`Поиск в книгах автора "%s"`, tagValue)
-		case "transl":
-			title = fmt.Sprintf(`Поиск книг в переводе "%s"`, tagValue)
-		case "serie":
-			title = fmt.Sprintf(`Поиск в книгах серии "%s"`, tagValue)
-		case "genre":
-			title = fmt.Sprintf(`Поиск книг в жанре "%s"`, tagValue)
-		case "publ":
-			title = fmt.Sprintf(`Поиск в книгах издателя "%s"`, tagValue)
-		case "lang":
-			title = fmt.Sprintf(`Поиск книг на языке %s`, tagValue)
-		case "lib":
-			title = fmt.Sprintf(`Поиск книг в коллекции "%s"`, tagValue)
-		default:
-			title = "Поиск по книгам"
+		case entities.IdxFieldAuthor:
+			title += fmt.Sprintf(` автора "%s"`, tagValue)
+		case entities.IdxFieldTranslator:
+			title += fmt.Sprintf(` в переводе "%s"`, tagValue)
+		case entities.IdxFieldSerie:
+			title += fmt.Sprintf(` серии "%s"`, tagValue)
+		case entities.IdxFieldGenre:
+			title += fmt.Sprintf(` в жанре "%s"`, tagValue)
+		case entities.IdxFieldPublisher:
+			title += fmt.Sprintf(` издателя "%s"`, tagValue)
+		case entities.IdxFieldLang:
+			title += fmt.Sprintf(` на языке %s`, tagValue)
+		case entities.IdxFieldLib:
+			title += fmt.Sprintf(` в коллекции "%s"`, tagValue)
 		}
 
 		return c.Render(http.StatusOK, "pages/books.html", pongo2.Context{

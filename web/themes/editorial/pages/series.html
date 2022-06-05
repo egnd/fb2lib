@@ -1,0 +1,8 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+{% include "blocks/alphabet.html" with cur_letter=cur_letter url_prefix="/series" %}
+{% include "blocks/series-simple.html" with series=series %}
+
+{% endblock %}

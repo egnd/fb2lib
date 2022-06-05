@@ -22,6 +22,7 @@ type IBooksInfoRepo interface {
 	GetOtherAuthorBooks(string, *BookInfo) ([]BookInfo, error)
 	GetOtherAuthorSeries(authors, curSeries string) (map[string]int, error)
 	GetStats() (map[string]uint64, error)
+	GetSeriesByLetter(string) ([]string, error)
 	// SearchAll(string, pagination.IPager) ([]BookInfo, error)
 	// SearchByAuthor(string, pagination.IPager) ([]BookInfo, error)
 	// SearchBySequence(string, pagination.IPager) ([]BookInfo, error)

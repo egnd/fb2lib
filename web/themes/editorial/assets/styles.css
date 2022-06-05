@@ -91,6 +91,17 @@
     margin-bottom: 15px;
 }
 
+.alphabet-filter {
+    text-align: center;
+}
+
+.alphabet-filter .button {
+    padding: 0px 10px;
+    height: auto;
+    line-height: 2.5em;
+    margin: 5px 3px;
+}
+
 @media screen and (max-width: 480px) {
     .books-detailed .books-detailed-item h4 {
         clear: both;
