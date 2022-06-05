@@ -1,39 +1,34 @@
 package handlers
 
-// import (
-// 	"net/http"
+import (
+	"net/http"
 
-// 	"github.com/egnd/fb2lib/internal/entities"
-// 	"github.com/flosch/pongo2/v5"
-// 	"github.com/labstack/echo/v4"
-// )
+	"github.com/egnd/fb2lib/internal/entities"
+	"github.com/egnd/fb2lib/pkg/pagination"
+	"github.com/flosch/pongo2/v5"
+	"github.com/labstack/echo/v4"
+	"github.com/spf13/viper"
+)
 
-// func GenresHandler(genresLimit int,
-// 	repoInfo entities.IBooksInfoRepo,
-// 	repoBooks entities.IBooksLibraryRepo,
-// ) echo.HandlerFunc {
-// 	return func(c echo.Context) (err error) {
-// 		searchQuery := c.QueryParam("q")
+func GenresHandler(cfg *viper.Viper, repo entities.IBooksInfoRepo) echo.HandlerFunc {
+	defPageSize := cfg.GetInt("renderer.globals.genres_size")
 
-// 		var genresShort entities.GenresIndex
-// 		if genresShort, err = repoInfo.GetGenres(genresLimit); err != nil {
-// 			c.NoContent(http.StatusBadRequest)
-// 			return
-// 		}
+	return func(c echo.Context) (err error) {
+		pager := pagination.NewPager(c.Request()).SetPageSize(defPageSize).ReadPageSize().ReadCurPage()
 
-// 		var genres entities.GenresIndex
-// 		if genres, err = repoInfo.GetGenres(0); err != nil {
-// 			c.NoContent(http.StatusBadRequest)
-// 			return
-// 		}
+		genres, err := repo.GetGenres(pager)
+		if err != nil {
+			c.NoContent(http.StatusBadRequest)
+			return
+		}
 
-// 		return c.Render(http.StatusOK, "books-genres.html", pongo2.Context{
-// 			"search_form_action": "/",
-// 			"search_query":       searchQuery,
-// 			"search_type":        "genres",
-// 			"genres_short":       genresShort,
+		return c.Render(http.StatusOK, "pages/genres.html", pongo2.Context{
+			"section_name": "genres",
+			"page_title":   "Список жанров",
+			"page_h1":      "Список жанров",
 
-// 			"genres": genres,
-// 		})
-// 	}
-// }
+			"genres": genres,
+			"pager":  pager,
+		})
+	}
+}

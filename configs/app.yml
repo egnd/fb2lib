@@ -22,7 +22,8 @@ renderer:
   globals:
     page_title: FB2 Библиотека
     page_h1: FB2 Библиотека
-    limits_books: 20,40,100
+    books_sizes: 20,40,100
+    genres_size: 50
     section_name: home
 pprof:
   dir: var/pprof

@@ -16,7 +16,7 @@ type IBooksInfoRepo interface {
 	FindByID(string) (BookInfo, error)
 	FindBooks(queryStr, tagName, tagValue string, pager pagination.IPager) ([]BookInfo, error)
 	SaveBook(BookInfo) error
-	GetGenresFreq(limit int) (GenresIndex, error)
+	GetGenres(pagination.IPager) (GenresIndex, error)
 	Remove(string) error
 	GetSeriesBooks(string, *BookInfo) ([]BookInfo, error)
 	GetOtherAuthorBooks(string, *BookInfo) ([]BookInfo, error)

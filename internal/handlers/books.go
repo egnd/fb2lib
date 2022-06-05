@@ -18,7 +18,7 @@ func BooksHandler(cfg *viper.Viper, libs entities.Libraries,
 	repoInfo entities.IBooksInfoRepo,
 	repoBooks entities.IBooksLibraryRepo,
 ) echo.HandlerFunc {
-	defPageSize, err := strconv.Atoi(strings.Split(cfg.GetString("renderer.globals.limits_books"), ",")[0])
+	defPageSize, err := strconv.Atoi(strings.Split(cfg.GetString("renderer.globals.books_sizes"), ",")[0])
 	if err != nil {
 		panic(err)
 	}

@@ -81,7 +81,7 @@ func main() {
 func cacheWarmup(logger zerolog.Logger, cfg *viper.Viper,
 	repoInfo entities.IBooksInfoRepo,
 ) error {
-	defPageSize, err := strconv.Atoi(strings.Split(cfg.GetString("renderer.globals.limits_books"), ",")[0])
+	defPageSize, err := strconv.Atoi(strings.Split(cfg.GetString("renderer.globals.books_sizes"), ",")[0])
 	if err != nil {
 		return err
 	}
@@ -91,6 +91,10 @@ func cacheWarmup(logger zerolog.Logger, cfg *viper.Viper,
 	}
 
 	if _, err := repoInfo.GetStats(); err != nil {
+		return err
+	}
+
+	if _, err := repoInfo.GetGenres(nil); err != nil {
 		return err
 	}
 

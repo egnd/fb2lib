@@ -47,17 +47,11 @@ func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Log
 	server.GET("/download/:book", handlers.DownloadHandler(libs, repoInfo, cfg, logger))
 	server.GET("/book/:id", handlers.BookDetailsHandler(repoInfo))
 	server.GET("/book/:id/remove", handlers.RemoveBookHandler(repoInfo))
+	server.GET("/genres/", handlers.GenresHandler(cfg, repoInfo))
+	// server.GET("/series/", handlers.SearchHandler())
 
-	// server.GET("/genres/", handlers.SearchHandler())
-	// server.GET("/genres/:name", handlers.SearchHandler())
 	// server.GET("/authors/", handlers.SearchHandler())
 	// server.GET("/authors/:name", handlers.SearchHandler())
-	// server.GET("/series/", handlers.SearchHandler())
-	// server.GET("/series/:name", handlers.SearchHandler())
-
-	// server.GET("/genres/", handlers.GenresHandler(cfg.GetInt("renderer.sidebar.genres_size"), repoInfo, repoBooks))
-	// server.GET("/by_authors/", handlers.ByAuthorsHandler(cfg.GetInt("renderer.sidebar.genres_size"), repoInfo, repoBooks))
-	// server.GET("/by_series/", handlers.BySeriesHandler(cfg.GetInt("renderer.sidebar.genres_size"), repoInfo, repoBooks))
 
 	return server, nil
 }

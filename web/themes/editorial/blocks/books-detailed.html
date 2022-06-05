@@ -14,8 +14,8 @@
     {% endif %}
 {% endmacro %}
 
+{% if pager.GetTotal() > pager.GetPageSize() %}
 <div class="row books-detailed-head">
-    {% if pager.GetTotal() > 0 %}
     <div class="col-10 col-8-xsmall books-detailed-head-title">
         {% if pager.HasNext() %}
         <h4>Книги {{pager.GetOffset()+1}}-{{pager.GetOffset()+pager.GetPageSize()}} из {{pager.GetTotal()}}</h4>
@@ -25,17 +25,16 @@
     </div>
     <div class="col-2 col-4-xsmall books-detailed-head-size">
         <select id="demo-category" onchange="if (this.value) window.location.href=this.value">
-            {% for size in limits_books|split:"," %}
+            {% for size in books_sizes|split:"," %}
             <option value="{{pager.GetLink(1,size|integer)}}"{% if pager.GetPageSize() == size|integer %} selected{%endif%}>{{size}}</option>
             {% endfor %}
         </select>
     </div>
-    {% else %}
-    <div class="col-12"><h4>Ничего не нашлось</h4></div>
-    {% endif %}
 </div>
+{% endif %}
 
 <div class="row books-detailed">
+    {% if books %}
     {% for book in books %}
     <div class="col-6 col-12-xsmall books-detailed-item">
         {% if book.Details.Images %}
@@ -61,4 +60,7 @@
         {{ bookTag("Серия", book.Index.Serie, "serie") }}
     </div>
     {% endfor %}
+    {% else %}
+    <div class="col-12"><span>Книги не найдены</span></div>
+    {% endif %}
 </div>
