@@ -52,10 +52,11 @@ func (l *Libraries) GetItems() (res []LibItem, err error) {
 }
 
 type Library struct {
-	Disabled bool   `mapstructure:"disabled"`
-	Dir      string `mapstructure:"dir"`
+	Disabled bool `mapstructure:"disabled"`
+	Order    int  `mapstructure:"order"`
 	Name     string
-	Order    int           `mapstructure:"order"`
+	Dir      string        `mapstructure:"dir"`
+	Index    string        `mapstructure:"index"`
 	Types    []string      `mapstructure:"types"`
 	Encoder  LibEncodeType `mapstructure:"encoder"`
 }
@@ -74,6 +75,10 @@ func NewLibraries(cfgKey string, cfg *viper.Viper) (Libraries, error) {
 		}
 
 		lib.Name = name
+		if lib.Index == "" {
+			lib.Index = lib.Name
+		}
+
 		libs[name] = lib
 	}
 

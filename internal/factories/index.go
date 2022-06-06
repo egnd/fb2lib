@@ -31,8 +31,8 @@ func NewCompositeBleveIndex(dir string,
 ) bleve.Index {
 	indexes := make([]bleve.Index, 0, len(libs))
 
-	for libName := range libs {
-		indexes = append(indexes, NewBleveIndex(dir, libName, mapping))
+	for _, lib := range libs {
+		indexes = append(indexes, NewBleveIndex(dir, lib.Index, mapping))
 	}
 
 	return bleve.NewIndexAlias(indexes...)

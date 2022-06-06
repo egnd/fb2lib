@@ -33,6 +33,7 @@ libraries:
   default:
     # disabled: true
     # order: 1
+    # index: default
     dir: var/libs/default
     encoder: parser # or marshaler
     types: ["fb2", "zip"]

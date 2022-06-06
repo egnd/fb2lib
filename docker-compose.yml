@@ -1,10 +1,10 @@
 version: "3.8"
 services:
-  server:
-    image: ${DC_APP_IMG:-fb2lib:local}
+  fb2lib:
+    image: ${DC_APP_IMG:-fb2lib:debug}
     ports:
       - ${DC_APP_PORT:-80}:8080
     volumes:
-      - ./var/libs/default:/var/libs/default:ro
-      - ./var/index/default:/var/index/default:rw
+      - ./var/libs:/var/libs:ro
+      - ./var/index:/var/index:rw
       - ./var/storage:/var/storage:rw

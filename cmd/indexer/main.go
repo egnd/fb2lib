@@ -153,9 +153,9 @@ func main() {
 func GetInfoRepos(batchSize int, libs entities.Libraries, logger zerolog.Logger, cfg *viper.Viper, storage *bbolt.DB) map[string]entities.IBooksInfoRepo {
 	res := make(map[string]entities.IBooksInfoRepo, len(libs))
 
-	for libName := range libs {
-		res[libName] = repos.NewBooksInfo(batchSize, false, storage,
-			factories.NewBleveIndex(cfg.GetString("bleve.path"), libName, entities.NewBookIndexMapping()),
+	for _, lib := range libs {
+		res[lib.Name] = repos.NewBooksInfo(batchSize, false, storage,
+			factories.NewBleveIndex(cfg.GetString("bleve.path"), lib.Index, entities.NewBookIndexMapping()),
 			logger,
 			jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
 			jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal,
