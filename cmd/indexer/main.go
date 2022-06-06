@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/blevesearch/bleve/v2"
 	"github.com/egnd/go-wpool/v2"
 	"github.com/egnd/go-wpool/v2/interfaces"
 	jsoniter "github.com/json-iterator/go"
@@ -152,11 +153,14 @@ func main() {
 
 func GetInfoRepos(batchSize int, libs entities.Libraries, logger zerolog.Logger, cfg *viper.Viper, storage *bbolt.DB) map[string]entities.IBooksInfoRepo {
 	res := make(map[string]entities.IBooksInfoRepo, len(libs))
+	indexList := map[string]bleve.Index{}
 
 	for _, lib := range libs {
-		res[lib.Name] = repos.NewBooksInfo(batchSize, false, storage,
-			factories.NewBleveIndex(cfg.GetString("bleve.path"), lib.Index, entities.NewBookIndexMapping()),
-			logger,
+		if _, ok := indexList[lib.Index]; !ok {
+			indexList[lib.Index] = factories.NewBleveIndex(cfg.GetString("bleve.path"), lib.Index, entities.NewBookIndexMapping())
+		}
+
+		res[lib.Name] = repos.NewBooksInfo(batchSize, false, storage, indexList[lib.Index], logger,
 			jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
 			jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal,
 			nil, nil, nil,
