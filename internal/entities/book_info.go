@@ -3,7 +3,7 @@ package entities
 import (
 	"strings"
 
-	"github.com/egnd/go-fb2parse"
+	"github.com/egnd/go-xmlparse/fb2"
 )
 
 type BookInfo struct {
@@ -14,20 +14,20 @@ type BookInfo struct {
 	Src            string    `json:"src"`
 	Index          BookIndex `json:"-"`
 	Details        struct {
-		Images     []fb2parse.FB2Binary
+		Images     []fb2.Binary
 		Annotation string
 	} `json:"-"`
 }
 
-func (b *BookInfo) ReadDetails(fb2 *fb2parse.FB2File) {
-	b.Details.Images = make([]fb2parse.FB2Binary, 0, len(fb2.Binary))
-	index := make(map[string]*fb2parse.FB2Binary, len(fb2.Binary))
+func (b *BookInfo) ReadDetails(fb2File *fb2.File) {
+	b.Details.Images = make([]fb2.Binary, 0, len(fb2File.Binary))
+	index := make(map[string]*fb2.Binary, len(fb2File.Binary))
 
-	for k := range fb2.Binary {
-		index[fb2.Binary[k].ID] = &fb2.Binary[k]
+	for k := range fb2File.Binary {
+		index[fb2File.Binary[k].ID] = &fb2File.Binary[k]
 	}
 
-	for _, descr := range fb2.Description {
+	for _, descr := range fb2File.Description {
 		for _, title := range descr.TitleInfo {
 			for _, cover := range title.Coverpage {
 				for _, img := range cover.Images {

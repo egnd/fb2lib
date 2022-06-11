@@ -1,17 +1,21 @@
-package fb2parse
+package fb2
 
-import "encoding/xml"
+import (
+	"encoding/xml"
 
-// FB2Binary struct of fb2 binary data.
+	"github.com/egnd/go-xmlparse"
+)
+
+// Binary struct of fb2 binary data.
 // http://www.fictionbook.org/index.php/Элемент_binary
-type FB2Binary struct {
+type Binary struct {
 	ContentType string `xml:"content-type,attr"`
 	ID          string `xml:"id,attr"`
 	Data        string `xml:",innerxml"`
 }
 
-// NewFB2Binary factory for FB2Binary.
-func NewFB2Binary(token xml.StartElement, reader xml.TokenReader) (res FB2Binary, err error) {
+// NewBinary factory for Binary.
+func NewBinary(token xml.StartElement, reader xmlparse.TokenReader) (res Binary, err error) {
 	for _, attr := range token.Attr {
 		switch attr.Name.Local {
 		case "content-type":
@@ -21,7 +25,7 @@ func NewFB2Binary(token xml.StartElement, reader xml.TokenReader) (res FB2Binary
 		}
 	}
 
-	res.Data, err = GetContent(token.Name.Local, reader)
+	res.Data, err = xmlparse.TokenRead(token.Name.Local, reader)
 
 	return
 }

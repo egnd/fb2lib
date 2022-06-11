@@ -1,6 +1,6 @@
 version: "3.8"
 services:
-  server:
+  fb2lib:
     build:
       context: .
       args:
@@ -11,5 +11,5 @@ services:
       - ./var/converter:/var/converter:rw
       - ./var/logs:/var/logs:rw
       - ./var/pprof:/var/pprof:rw
-    entrypoint: ["indexer"]
-    command: ["-hidebar"]
+    # entrypoint: ["indexer"]
+    # command: ["-hidebar"]

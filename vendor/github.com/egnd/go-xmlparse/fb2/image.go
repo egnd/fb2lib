@@ -1,12 +1,12 @@
-package fb2parse
+package fb2
 
 import (
 	"encoding/xml"
 )
 
-// FB2Image struct of fb2 image.
+// Image struct of fb2 image.
 // http://www.fictionbook.org/index.php/Элемент_image
-type FB2Image struct {
+type Image struct {
 	Type  string `xml:"type,attr"`
 	Href  string `xml:"href,attr"`
 	Alt   string `xml:"alt,attr"`
@@ -14,8 +14,8 @@ type FB2Image struct {
 	ID    string `xml:"id,attr"`
 }
 
-// NewFB2Image factory for FB2Image.
-func NewFB2Image(token xml.StartElement) (res FB2Image, err error) {
+// NewImage factory for Image.
+func NewImage(token xml.StartElement) (res Image) {
 	for _, attr := range token.Attr {
 		switch attr.Name.Local {
 		case "type":

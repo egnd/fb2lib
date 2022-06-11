@@ -7,7 +7,7 @@ import (
 	"github.com/blevesearch/bleve/v2/search"
 	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/egnd/fb2lib/pkg/pagination"
-	"github.com/egnd/go-fb2parse"
+	"github.com/egnd/go-xmlparse/fb2"
 )
 
 type IBooksInfoRepo interface {
@@ -32,7 +32,7 @@ type IBooksInfoRepo interface {
 }
 
 type IBooksLibraryRepo interface {
-	GetFB2(BookInfo) (fb2parse.FB2File, error)
+	GetFB2(BookInfo) (fb2.File, error)
 }
 
 type ILibMarksRepo interface {

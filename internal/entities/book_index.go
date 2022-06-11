@@ -6,7 +6,7 @@ import (
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search"
-	"github.com/egnd/go-fb2parse"
+	"github.com/egnd/go-xmlparse/fb2"
 )
 
 const (
@@ -40,7 +40,7 @@ type BookIndex struct {
 	Lib        string `json:"lib"`
 }
 
-func NewFB2Index(fb2 *fb2parse.FB2File) (res BookIndex) {
+func NewFB2Index(fb2 *fb2.File) (res BookIndex) {
 	for _, descr := range fb2.Description {
 		for _, title := range descr.TitleInfo {
 			appendUniqStr(&res.Title, title.BookTitle...)

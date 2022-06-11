@@ -9,7 +9,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/egnd/go-fb2parse"
+	"github.com/egnd/go-xmlparse/fb2"
 
 	"github.com/egnd/fb2lib/internal/entities"
 )
@@ -24,7 +24,7 @@ func NewLibraryFiles(libs entities.Libraries) *LibraryFiles {
 	}
 }
 
-func (r *LibraryFiles) GetFB2(book entities.BookInfo) (res fb2parse.FB2File, err error) {
+func (r *LibraryFiles) GetFB2(book entities.BookInfo) (res fb2.File, err error) {
 	if book.Src == "" {
 		err = errors.New("repo getfb2 error: empty src")
 		return
@@ -48,7 +48,7 @@ func (r *LibraryFiles) GetFB2(book entities.BookInfo) (res fb2parse.FB2File, err
 
 func (r *LibraryFiles) extractZippedFB2(
 	archivePath string, offset int64, limit int64, encoder entities.LibEncodeType,
-) (res fb2parse.FB2File, err error) {
+) (res fb2.File, err error) {
 	var zipFile *os.File
 	if zipFile, err = os.Open(archivePath); err != nil {
 		return
@@ -63,7 +63,7 @@ func (r *LibraryFiles) extractZippedFB2(
 
 func (r *LibraryFiles) extractFB2(
 	filePath string, encoder entities.LibEncodeType,
-) (res fb2parse.FB2File, err error) {
+) (res fb2.File, err error) {
 	var fb2Stream io.ReadCloser
 	if fb2Stream, err = os.Open(filePath); err != nil {
 		return

@@ -53,9 +53,13 @@ profiles:
 	go test -bench=Benchmark_Parsing \
 		-cpuprofile profiles/cpu.out \
 		-memprofile profiles/mem.out
-	go tool pprof -svg go-fb2parse.test profiles/cpu.out > profiles/cpu.svg
-	go tool pprof -alloc_space -svg go-fb2parse.test profiles/mem.out > profiles/mem.svg
-	go tool pprof -alloc_objects -svg go-fb2parse.test profiles/mem.out > profiles/obj.svg
+	go tool pprof -svg go-xmlparse.test profiles/cpu.out > profiles/cpu.svg
+	go tool pprof -alloc_space -svg go-xmlparse.test profiles/mem.out > profiles/mem.svg
+	go tool pprof -alloc_objects -svg go-xmlparse.test profiles/mem.out > profiles/obj.svg
+
+mocks: ## Generate mocks
+	@rm -rf mocks
+	mockery --name=.
 
 ########################################################################################################################
 
@@ -78,3 +82,6 @@ docker-profiles:
 
 docker-benchmarks:
 	docker run --rm -it -v $$(pwd):/src -w /src --entrypoint make golang:1.18 benchmarks
+
+docker-mocks:
+	docker run --rm -it -v $$(pwd):/src -w /src --entrypoint sh vektra/mockery:v2 -c "apk add -q make && make mocks"

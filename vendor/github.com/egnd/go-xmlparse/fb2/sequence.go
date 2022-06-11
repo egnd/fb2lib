@@ -1,4 +1,4 @@
-package fb2parse
+package fb2
 
 import (
 	"encoding/xml"
@@ -6,23 +6,21 @@ import (
 	"strconv"
 )
 
-// FB2Sequence struct of fb2 sequence info.
+// Sequence struct of fb2 sequence info.
 // http://www.fictionbook.org/index.php/Элемент_sequence
-type FB2Sequence struct {
+type Sequence struct {
 	Number string `xml:"number,attr"`
 	Name   string `xml:"name,attr"`
 }
 
-// NewFB2Sequence factory for FB2Sequence.
-func NewFB2Sequence(token xml.StartElement) (res FB2Sequence, err error) {
+// NewSequence factory for Sequence.
+func NewSequence(token xml.StartElement) (res Sequence, err error) {
 	for _, attr := range token.Attr {
 		switch attr.Name.Local {
 		case "name":
 			res.Name = attr.Value
 		case "number":
-			res.Number = attr.Value
-
-			if num, err := strconv.Atoi(attr.Value); err == nil {
+			if num, err := strconv.Atoi(attr.Value); err == nil && num > 0 {
 				res.Number = fmt.Sprint(num)
 			}
 		}

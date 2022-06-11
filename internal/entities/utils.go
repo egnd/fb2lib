@@ -12,7 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/egnd/go-fb2parse"
+	"github.com/egnd/go-xmlparse"
+	"github.com/egnd/go-xmlparse/fb2"
 	"github.com/essentialkaos/translit/v2"
 )
 
@@ -82,13 +83,13 @@ func GetFirstStr(items []string) string {
 }
 
 func ParseFB2(reader io.Reader, encoder LibEncodeType,
-	rules ...fb2parse.HandlingRule,
-) (res fb2parse.FB2File, err error) {
+	rules ...xmlparse.Rule,
+) (res fb2.File, err error) {
 	switch encoder {
 	case LibEncodeParser:
-		res, err = fb2parse.NewFB2File(fb2parse.NewDecoder(reader), rules...)
+		res, err = fb2.NewFile(xmlparse.NewDecoder(reader), rules...)
 	default:
-		err = fb2parse.NewDecoder(reader).Decode(&res)
+		err = xmlparse.NewDecoder(reader).Decode(&res)
 	}
 
 	return
@@ -109,7 +110,7 @@ func appendUniqStr(current *string, items ...string) {
 	}
 }
 
-func appendUniqFB2Author(current *string, items []fb2parse.FB2Author) {
+func appendUniqFB2Author(current *string, items []fb2.Author) {
 	var buf bytes.Buffer
 	var strVal string
 
@@ -148,7 +149,7 @@ func appendUniqFB2Author(current *string, items []fb2parse.FB2Author) {
 	appendUniqStr(current, authors...)
 }
 
-func appendUniqFB2Seq(current *string, items []fb2parse.FB2Sequence) {
+func appendUniqFB2Seq(current *string, items []fb2.Sequence) {
 	var buf bytes.Buffer
 
 	seqs := make([]string, 0, len(items))
@@ -183,7 +184,7 @@ func appendUniqFB2Seq(current *string, items []fb2parse.FB2Sequence) {
 	appendUniqStr(current, seqs...)
 }
 
-func appendUniqFB2Publisher(current *string, items []fb2parse.FB2Publisher) {
+func appendUniqFB2Publisher(current *string, items []fb2.Publisher) {
 	var buf bytes.Buffer
 	var strVal string
 

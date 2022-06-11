@@ -15,7 +15,7 @@ import (
 	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/pkg/pagination"
-	"github.com/egnd/go-fb2parse"
+	"github.com/egnd/go-xmlparse/fb2"
 	"github.com/patrickmn/go-cache"
 	"github.com/rs/zerolog"
 	"go.etcd.io/bbolt"
@@ -199,7 +199,7 @@ func (r *BooksInfo) upgradeDetails(books []entities.BookInfo) {
 		return
 	}
 
-	var book fb2parse.FB2File
+	var book fb2.File
 	var err error
 	var wg sync.WaitGroup
 
