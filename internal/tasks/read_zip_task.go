@@ -12,7 +12,8 @@ import (
 	"sync"
 
 	"github.com/egnd/fb2lib/internal/entities"
-	"github.com/egnd/go-wpool/v2/interfaces"
+	"github.com/egnd/go-pipeline"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/vbauerster/mpb/v7"
 	"github.com/vbauerster/mpb/v7/decor"
@@ -26,8 +27,8 @@ type ReadZipTask struct {
 	lib       entities.Library
 	repoMarks entities.ILibMarksRepo
 	logger    zerolog.Logger
-	readPool  interfaces.Pool
-	indexPool interfaces.Pool
+	readPool  pipeline.Dispatcher
+	indexPool pipeline.Dispatcher
 	wg        *sync.WaitGroup
 	taskIndex IndexTaskFactory
 	counter   *entities.CntAtomic32
@@ -41,8 +42,8 @@ func NewReadZipTask(
 	lib entities.Library,
 	repoMarks entities.ILibMarksRepo,
 	logger zerolog.Logger,
-	readPool interfaces.Pool,
-	indexPool interfaces.Pool,
+	readPool pipeline.Dispatcher,
+	indexPool pipeline.Dispatcher,
 	wg *sync.WaitGroup,
 	counter *entities.CntAtomic32,
 	bars *mpb.Progress,
@@ -65,22 +66,20 @@ func NewReadZipTask(
 	}
 }
 
-func (t *ReadZipTask) GetID() string {
+func (t *ReadZipTask) ID() string {
 	return fmt.Sprintf("read_zip %s", t.item.Name())
 }
 
-func (t *ReadZipTask) Do() {
+func (t *ReadZipTask) Do() error {
 	archive, err := os.Open(t.path)
 	if err != nil {
-		t.logger.Error().Err(err).Msg("open zip file")
-		return
+		return errors.Wrap(err, "open zip file")
 	}
 	// defer archive.Close()
 
 	itemReader, err := zip.OpenReader(t.path)
 	if err != nil {
-		t.logger.Error().Err(err).Msg("read zip file")
-		return
+		return errors.Wrap(err, "read zip file")
 	}
 	defer itemReader.Close()
 
@@ -91,7 +90,7 @@ func (t *ReadZipTask) Do() {
 	}
 
 	for _, book := range itemReader.File {
-		func() {
+		if err := func() error {
 			if bar != nil {
 				defer bar.IncrInt64(int64(book.CompressedSize64))
 			}
@@ -101,26 +100,29 @@ func (t *ReadZipTask) Do() {
 
 			offset, err := book.DataOffset()
 			if err != nil {
-				logger.Error().Err(err).Msg("get offset")
-				return
+				return errors.Wrap(err, "get offset")
 			}
 
 			reader, err := t.initReader(book, archive, offset)
 			if err != nil {
-				logger.Error().Err(err).Msg("open subitem")
-				return
+				return errors.Wrap(err, "open subitem")
 			}
 
 			t.wg.Add(1)
 
-			if err := t.readPool.AddTask(t.readerTask(reader, book, offset, logger)); err != nil {
-				logger.Error().Err(err).Msg("send fb2 to pool")
-				return
+			if err := t.readPool.Push(t.readerTask(reader, book, offset, logger)); err != nil {
+				return errors.Wrap(err, "send fb2 to pool")
 			}
 
 			logger.Debug().Msg("iterate")
-		}()
+
+			return nil
+		}(); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func (t *ReadZipTask) initBar() *mpb.Bar {
@@ -150,7 +152,7 @@ func (t *ReadZipTask) initReader(file *zip.File, archive io.ReaderAt, from int64
 	return
 }
 
-func (t *ReadZipTask) readerTask(reader io.ReadCloser, file *zip.File, offset int64, logger zerolog.Logger) interfaces.Task {
+func (t *ReadZipTask) readerTask(reader io.ReadCloser, file *zip.File, offset int64, logger zerolog.Logger) pipeline.Task {
 	return NewReaderTask(reader, entities.BookInfo{
 		Offset:         uint64(offset),
 		Size:           file.UncompressedSize64,

@@ -7,7 +7,8 @@ import (
 	"sync"
 
 	"github.com/egnd/fb2lib/internal/entities"
-	"github.com/egnd/go-wpool/v2/interfaces"
+	"github.com/egnd/go-pipeline"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/vbauerster/mpb/v7"
 )
@@ -18,8 +19,8 @@ type HandleLibItemTask struct {
 	item      string
 	lib       entities.Library
 	logger    zerolog.Logger
-	readPool  interfaces.Pool
-	indexPool interfaces.Pool
+	readPool  pipeline.Dispatcher
+	indexPool pipeline.Dispatcher
 	wg        *sync.WaitGroup
 	taskIndex IndexTaskFactory
 	repoMarks entities.ILibMarksRepo
@@ -32,8 +33,8 @@ func NewHandleLibItemTask(
 	item string,
 	lib entities.Library,
 	logger zerolog.Logger,
-	readPool interfaces.Pool,
-	indexPool interfaces.Pool,
+	readPool pipeline.Dispatcher,
+	indexPool pipeline.Dispatcher,
 	wg *sync.WaitGroup,
 	repoMarks entities.ILibMarksRepo,
 	counter *entities.CntAtomic32,
@@ -57,15 +58,14 @@ func NewHandleLibItemTask(
 	}
 }
 
-func (t *HandleLibItemTask) GetID() string {
+func (t *HandleLibItemTask) ID() string {
 	return "handle_lib_item"
 }
 
-func (t *HandleLibItemTask) Do() {
+func (t *HandleLibItemTask) Do() error {
 	finfo, err := os.Stat(t.item)
 	if err != nil {
-		t.logger.Error().Err(err).Msg("stat lib item")
-		return
+		return errors.Wrap(err, "stat lib item")
 	}
 
 	if t.repoMarks.MarkExists(t.item) {
@@ -75,7 +75,7 @@ func (t *HandleLibItemTask) Do() {
 		// 	t.bar.IncrInt64(finfo.Size())
 		// }
 
-		return
+		return nil
 	}
 
 	switch path.Ext(t.item) {
@@ -93,23 +93,23 @@ func (t *HandleLibItemTask) Do() {
 
 		reader, err := os.Open(t.item)
 		if err != nil {
-			t.logger.Error().Err(err).Msg("open fb2 file")
-			return
+			return errors.Wrap(err, "open fb2 file")
 		}
 
-		if err := t.readPool.AddTask(
+		if err := t.readPool.Push(
 			NewReaderTask(reader, entities.BookInfo{
 				LibName: t.lib.Name,
 				Size:    uint64(finfo.Size()),
 				Src:     strings.TrimPrefix(t.item, t.lib.Dir),
 			}, t.wg, t.logger, t.indexPool, t.taskIndex),
 		); err != nil {
-			t.logger.Error().Err(err).Msg("send fb2 to pool")
-			return
+			return errors.Wrap(err, "send fb2 to pool")
 		}
 
 		t.logger.Debug().Msg("iterate")
 	default:
 		t.logger.Warn().Str("type", path.Ext(t.item)).Msg("invalid lib item type")
 	}
+
+	return nil
 }

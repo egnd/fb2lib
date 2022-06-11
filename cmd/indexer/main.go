@@ -10,8 +10,9 @@ import (
 	"time"
 
 	"github.com/blevesearch/bleve/v2"
-	"github.com/egnd/go-wpool/v2"
-	"github.com/egnd/go-wpool/v2/interfaces"
+	"github.com/egnd/go-pipeline"
+	"github.com/egnd/go-pipeline/pool"
+	"github.com/egnd/go-pipeline/semaphore"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/profile"
 	"github.com/rs/zerolog"
@@ -95,20 +96,20 @@ func main() {
 	reposInfo := GetInfoRepos(*batchSize, libs, logger, cfg, storage)
 	repoMarks := repos.NewLibMarks("indexed_items", storage)
 
-	parsingPipeline := make(chan interfaces.Worker, *parseBuffSize)
+	parsingPipeline := make(chan pipeline.Doer, *parseBuffSize)
 	defer close(parsingPipeline)
 
 	parsingPool := GetPool(*readThreads, parsingPipeline, logger)
 	defer parsingPool.Close()
 
-	readingPipeline := make(chan interfaces.Worker, *readBuffSize)
+	readingPipeline := make(chan pipeline.Doer, *readBuffSize)
 	defer close(readingPipeline)
 
 	readingPool := GetPool(*parseThreads, readingPipeline, logger)
 	defer readingPool.Close()
 
-	semaphore := make(chan struct{}, *libItemsThreads)
-	defer close(semaphore)
+	pipe := semaphore.NewSemaphore(*libItemsThreads)
+	defer pipe.Close()
 
 	libItems, err := libs.GetItems()
 	if err != nil {
@@ -121,22 +122,14 @@ func main() {
 		wg.Add(1)
 		num++
 
-		semaphore <- struct{}{}
-		go func(num int, libItem, libTitle string) {
-			defer func() {
-				<-semaphore
-				wg.Done()
-			}()
-
-			tasks.NewHandleLibItemTask(num, total, libItem, libs[libTitle],
-				logger, readingPool, parsingPool, &wg, repoMarks, &cntTotal, bars,
-				func(data io.Reader, book entities.BookInfo, logger zerolog.Logger) interfaces.Task {
-					return tasks.NewIndexFB2DataTask(data, book,
-						libs[libTitle].Encoder, reposInfo[libTitle], logger, &wg, &cntIndexed, barTotal,
-					)
-				},
-			).Do()
-		}(num, v.Item, v.Lib)
+		pipe.Push(tasks.NewHandleLibItemTask(num, total, v.Item, libs[v.Lib],
+			logger, readingPool, parsingPool, &wg, repoMarks, &cntTotal, bars,
+			func(data io.Reader, book entities.BookInfo, logger zerolog.Logger) pipeline.Task {
+				return tasks.NewIndexFB2DataTask(data, book,
+					libs[v.Lib].Encoder, reposInfo[v.Lib], logger, &wg, &cntIndexed, barTotal,
+				)
+			},
+		))
 	}
 
 	wg.Wait()
@@ -248,12 +241,11 @@ func RunProfiler(profType string, cfg *viper.Viper) interface{ Stop() } {
 	return profile.Start(pprofopts...)
 }
 
-func GetPool(workersCNt int, pipeline chan interfaces.Worker, logger zerolog.Logger) interfaces.Pool {
-	pool := wpool.NewPipelinePool(pipeline, wpool.NewZerologAdapter(logger))
-
-	for i := 0; i < workersCNt; i++ {
-		pool.AddWorker(wpool.NewPipelineWorker(pipeline))
+func GetPool(workersCnt int, bus chan pipeline.Doer, logger zerolog.Logger) pipeline.Dispatcher {
+	workers := []pipeline.Doer{}
+	for i := 0; i < workersCnt; i++ {
+		workers = append(workers, pool.NewWorker(bus))
 	}
 
-	return pool
+	return pool.NewPool(bus, workers...)
 }

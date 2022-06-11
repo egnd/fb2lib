@@ -6,7 +6,8 @@ import (
 	"sync"
 
 	"github.com/egnd/fb2lib/internal/entities"
-	"github.com/egnd/go-wpool/v2/interfaces"
+	"github.com/egnd/go-pipeline"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )
 
@@ -15,7 +16,7 @@ type ReaderTask struct {
 	book      entities.BookInfo
 	wg        *sync.WaitGroup
 	logger    zerolog.Logger
-	indexPool interfaces.Pool
+	indexPool pipeline.Dispatcher
 	taskIndex IndexTaskFactory
 }
 
@@ -24,7 +25,7 @@ func NewReaderTask(
 	book entities.BookInfo,
 	wg *sync.WaitGroup,
 	logger zerolog.Logger,
-	indexPool interfaces.Pool,
+	indexPool pipeline.Dispatcher,
 	taskIndex IndexTaskFactory,
 ) *ReaderTask {
 	return &ReaderTask{
@@ -37,26 +38,26 @@ func NewReaderTask(
 	}
 }
 
-func (t *ReaderTask) GetID() string {
+func (t *ReaderTask) ID() string {
 	return "reader"
 }
 
-func (t *ReaderTask) Do() {
+func (t *ReaderTask) Do() error {
 	defer t.wg.Done()
 	defer t.reader.Close()
 
 	data, err := io.ReadAll(t.reader)
 	if err != nil {
-		t.logger.Error().Err(err).Msg("read lib item file")
-		return
+		return errors.Wrap(err, "read lib item file")
 	}
 
 	t.wg.Add(1)
 
-	if err = t.indexPool.AddTask(t.taskIndex(bytes.NewBuffer(data), t.book, t.logger)); err != nil {
-		t.logger.Error().Err(err).Msg("send data to index pool")
-		return
+	if err = t.indexPool.Push(t.taskIndex(bytes.NewBuffer(data), t.book, t.logger)); err != nil {
+		return errors.Wrap(err, "send data to index pool")
 	}
 
 	t.logger.Debug().Msg("read")
+
+	return nil
 }

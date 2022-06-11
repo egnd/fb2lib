@@ -1,0 +1,4 @@
+/profiles
+/*.test
+/debug*.go
+.DS_Store

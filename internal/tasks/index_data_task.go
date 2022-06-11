@@ -5,6 +5,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/vbauerster/mpb/v7"
 
@@ -44,11 +45,11 @@ func NewIndexFB2DataTask(
 	}
 }
 
-func (t *IndexFB2DataTask) GetID() string {
+func (t *IndexFB2DataTask) ID() string {
 	return fmt.Sprintf("index_fb2_data [%s] %s", t.book.LibName, t.book.Src)
 }
 
-func (t *IndexFB2DataTask) Do() {
+func (t *IndexFB2DataTask) Do() error {
 	defer t.wg.Done()
 
 	if t.bar != nil {
@@ -63,18 +64,18 @@ func (t *IndexFB2DataTask) Do() {
 		SkipFB2Binaries, SkipFB2DocInfo, SkipFB2CustomInfo, SkipFB2Cover,
 	)
 	if err != nil {
-		t.logger.Error().Err(err).Msg("parse fb2 data")
-		return
+		return errors.Wrap(err, "parse fb2 data")
 	}
 
 	t.book.Index = entities.NewFB2Index(&fb2File)
 	t.book.Index.Lib = t.book.LibName
 
 	if err = t.repo.SaveBook(t.book); err != nil {
-		t.logger.Error().Err(err).Msg("index fb2 data")
-		return
+		return errors.Wrap(err, "index fb2 data")
 	}
 
 	t.counter.Inc(1)
 	t.logger.Debug().Msg("index")
+
+	return nil
 }

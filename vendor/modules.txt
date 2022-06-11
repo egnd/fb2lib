@@ -93,19 +93,14 @@ github.com/blevesearch/zapx/v14
 # github.com/blevesearch/zapx/v15 v15.3.3
 ## explicit; go 1.13
 github.com/blevesearch/zapx/v15
-# github.com/cespare/xxhash v1.1.0
-## explicit
-github.com/cespare/xxhash
-# github.com/davecgh/go-spew v1.1.1
-## explicit
-github.com/davecgh/go-spew/spew
 # github.com/dustin/go-humanize v1.0.0
 ## explicit
 github.com/dustin/go-humanize
-# github.com/egnd/go-wpool/v2 v2.0.0
+# github.com/egnd/go-pipeline v1.0.0
 ## explicit; go 1.18
-github.com/egnd/go-wpool/v2
-github.com/egnd/go-wpool/v2/interfaces
+github.com/egnd/go-pipeline
+github.com/egnd/go-pipeline/pool
+github.com/egnd/go-pipeline/semaphore
 # github.com/egnd/go-xmlparse v1.0.0
 ## explicit; go 1.18
 github.com/egnd/go-xmlparse
@@ -189,12 +184,12 @@ github.com/pelletier/go-toml/v2
 github.com/pelletier/go-toml/v2/internal/ast
 github.com/pelletier/go-toml/v2/internal/danger
 github.com/pelletier/go-toml/v2/internal/tracker
+# github.com/pkg/errors v0.9.1
+## explicit
+github.com/pkg/errors
 # github.com/pkg/profile v1.6.0
 ## explicit; go 1.13
 github.com/pkg/profile
-# github.com/pmezard/go-difflib v1.0.0
-## explicit
-github.com/pmezard/go-difflib/difflib
 # github.com/rivo/uniseg v0.2.0
 ## explicit; go 1.12
 github.com/rivo/uniseg
@@ -228,13 +223,6 @@ github.com/spf13/viper/internal/encoding/javaproperties
 github.com/spf13/viper/internal/encoding/json
 github.com/spf13/viper/internal/encoding/toml
 github.com/spf13/viper/internal/encoding/yaml
-# github.com/stretchr/objx v0.1.0
-## explicit
-github.com/stretchr/objx
-# github.com/stretchr/testify v1.7.2
-## explicit; go 1.13
-github.com/stretchr/testify/assert
-github.com/stretchr/testify/mock
 # github.com/subosito/gotenv v1.3.0
 ## explicit; go 1.18
 github.com/subosito/gotenv

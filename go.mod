@@ -5,13 +5,14 @@ go 1.18
 require (
 	github.com/blevesearch/bleve/v2 v2.3.2
 	github.com/dustin/go-humanize v1.0.0
-	github.com/egnd/go-wpool/v2 v2.0.0
+	github.com/egnd/go-pipeline v1.0.0
 	github.com/egnd/go-xmlparse v1.0.0
 	github.com/essentialkaos/translit/v2 v2.0.4
 	github.com/flosch/pongo2/v5 v5.0.0
 	github.com/json-iterator/go v1.1.12
 	github.com/labstack/echo/v4 v4.7.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/pkg/errors v0.9.1
 	github.com/pkg/profile v1.6.0
 	github.com/rs/zerolog v1.27.0
 	github.com/spf13/viper v1.12.0
@@ -38,8 +39,6 @@ require (
 	github.com/blevesearch/zapx/v13 v13.3.3 // indirect
 	github.com/blevesearch/zapx/v14 v14.3.3 // indirect
 	github.com/blevesearch/zapx/v15 v15.3.3 // indirect
-	github.com/cespare/xxhash v1.1.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -56,14 +55,11 @@ require (
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.1.0 // indirect
-	github.com/stretchr/testify v1.7.2 // indirect
 	github.com/subosito/gotenv v1.3.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.1 // indirect
