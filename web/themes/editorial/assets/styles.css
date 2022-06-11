@@ -19,6 +19,10 @@
     color: #f56a6a !important;
 }
 
+.books-detailed-head {
+    margin-bottom: 25px;
+}
+
 .books-detailed .books-detailed-item {
     overflow: hidden;
     min-height:300px;

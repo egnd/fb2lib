@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"path"
 	"regexp"
 	"sort"
 	"strings"
@@ -89,7 +88,7 @@ func (r *BooksInfo) GetItems(q query.Query, pager pagination.IPager,
 		req = bleve.NewSearchRequestOptions(q, pager.GetPageSize(), pager.GetOffset(), false)
 	}
 
-	req.Fields = fields
+	req.Fields = append(fields, "lib")
 	req.Highlight = highlight
 
 	if len(sort) > 0 {
@@ -109,8 +108,10 @@ func (r *BooksInfo) GetItems(q query.Query, pager pagination.IPager,
 	var book entities.BookInfo
 
 	for _, item := range searchResults.Hits {
+		libName := item.Fields["lib"].(string)
+
 		if err := r.storage.View(func(tx *bbolt.Tx) error {
-			return r.decode(tx.Bucket([]byte(fmt.Sprintf("lib_%s", path.Base(item.Index)))).Get([]byte(item.ID)), &book)
+			return r.decode(tx.Bucket([]byte(fmt.Sprintf("lib_%s", libName))).Get([]byte(item.ID)), &book)
 		}); err != nil {
 			return nil, err
 		}
@@ -577,7 +578,7 @@ func (r *BooksInfo) Close() error {
 		close(r.batchPipe)
 	}
 
-	return r.index.Close()
+	return nil
 }
 
 func (r *BooksInfo) runBatching(batchSize int) {
@@ -614,29 +615,35 @@ func (r *BooksInfo) saveBatch(batch []entities.BookInfo, indexBatch *bleve.Batch
 
 	var wg sync.WaitGroup
 	wg.Add(2)
+	r.wg.Add(2)
 
-	logger := r.logger.With().Str("lib", batch[0].LibName).Logger()
+	logger := r.logger.With().
+		Int("len", len(batch)).
+		Str("repo", "BooksInfo").
+		Logger()
 
 	go func() {
+		defer r.wg.Done()
 		defer wg.Done()
 
 		for _, book := range batch {
 			if err := indexBatch.Index(book.Index.ID, book.Index); err != nil {
-				logger.Error().Err(err).Str("item", book.Src).Msg("info repo batch index item")
+				logger.Error().Err(err).Str("item", book.Src).Msg("append index batch")
 			}
 		}
 
 		if err := r.index.Batch(indexBatch); err != nil {
-			logger.Error().Err(err).Msg("info repo batch exec")
+			logger.Error().Err(err).Msg("save index batch")
 		}
 	}()
 
 	go r.storage.Update(func(tx *bbolt.Tx) (err error) {
+		defer r.wg.Done()
 		defer wg.Done()
 
 		bucket, err := tx.CreateBucketIfNotExists([]byte(fmt.Sprintf("lib_%s", batch[0].LibName)))
 		if err != nil {
-			logger.Error().Err(err).Msg("info repo batch get bucket")
+			logger.Error().Err(err).Msg("get bucket")
 			return
 		}
 
@@ -644,12 +651,12 @@ func (r *BooksInfo) saveBatch(batch []entities.BookInfo, indexBatch *bleve.Batch
 
 		for _, book := range batch {
 			if bookBytes, err = r.encode(book); err != nil {
-				logger.Error().Err(err).Str("item", book.Src).Msg("info repo batch encode info")
+				logger.Error().Err(err).Str("item", book.Src).Msg("book encoding")
 				continue
 			}
 
 			if err = bucket.Put([]byte(book.Index.ID), bookBytes); err != nil {
-				logger.Error().Err(err).Str("item", book.Src).Msg("info repo batch save info")
+				logger.Error().Err(err).Str("item", book.Src).Msg("append storage batch")
 			}
 		}
 
@@ -657,5 +664,5 @@ func (r *BooksInfo) saveBatch(batch []entities.BookInfo, indexBatch *bleve.Batch
 	})
 
 	wg.Wait()
-	logger.Debug().Msg("info repo batch saved")
+	logger.Debug().Msg("batch saved")
 }

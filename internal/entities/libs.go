@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -20,6 +21,10 @@ type Libraries map[string]Library
 
 func (l *Libraries) GetSize() (res int64) {
 	for _, item := range *l {
+		if item.Disabled {
+			continue
+		}
+
 		res += item.GetSize()
 	}
 
@@ -27,11 +32,17 @@ func (l *Libraries) GetSize() (res int64) {
 }
 
 func (l *Libraries) GetItems() (res []LibItem, err error) {
-	var selected int
+	var filtered int
 
-	for order := 0; selected != len(*l); order++ {
+	for order := 0; filtered != len(*l); order++ {
 		for _, lib := range *l {
 			if lib.Order != order {
+				continue
+			}
+
+			filtered++
+
+			if lib.Disabled {
 				continue
 			}
 
@@ -43,8 +54,6 @@ func (l *Libraries) GetItems() (res []LibItem, err error) {
 			for _, libItem := range items {
 				res = append(res, LibItem{Item: libItem, Lib: lib.Name})
 			}
-
-			selected++
 		}
 	}
 
@@ -69,11 +78,6 @@ func NewLibraries(cfgKey string, cfg *viper.Viper) (Libraries, error) {
 	}
 
 	for name, lib := range libs {
-		if lib.Disabled {
-			delete(libs, name)
-			continue
-		}
-
 		lib.Name = name
 		if lib.Index == "" {
 			lib.Index = lib.Name
@@ -86,9 +90,9 @@ func NewLibraries(cfgKey string, cfg *viper.Viper) (Libraries, error) {
 }
 
 func (l *Library) GetItems() (res []string, err error) {
-	err = filepath.Walk(l.Dir, func(pathStr string, info os.FileInfo, iterErr error) error {
-		if iterErr != nil {
-			return iterErr
+	err = filepath.Walk(l.Dir, func(pathStr string, info os.FileInfo, err error) error {
+		if err != nil {
+			return errors.Wrapf(err, "walk %s/%s error", l.Dir, pathStr)
 		}
 
 		if info.IsDir() || !SliceHasString(l.Types, strings.TrimPrefix(path.Ext(info.Name()), ".")) {

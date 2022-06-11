@@ -4,8 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -33,18 +35,10 @@ var (
 
 	showVersion = flag.Bool("version", false, "Show app version.")
 	hideBar     = flag.Bool("hidebar", false, "Hide progress bar.")
-
-	libItemsThreads = flag.Int("items_threads", 1, "Number of parallel threads for library files reading.")
-	readBuffSize    = flag.Int("read_buffer", 0, "Books reading queue size.")
-	readThreads     = flag.Int("read_threads", 0, "Number of parallel threads for library books reading (default items_threads*10).")
-	parseBuffSize   = flag.Int("parse_buffer", 0, "Books parsing queue size.")
-	parseThreads    = flag.Int("parse_threads", 0, "Number of parallel threads for library books parsing (default half of CPU cores count).")
-	batchSize       = flag.Int("batchsize", 200, "Books index batch size.")
-
-	cfgPath   = flag.String("config", "configs/app.yml", "Configuration file path.")
-	cfgPrefix = flag.String("env-prefix", "BS", "Prefix for env variables.")
-	libName   = flag.String("lib", "", "Handle only specific lib.")
-	profiler  = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
+	cfgPath     = flag.String("config", "configs/app.yml", "Configuration file path.")
+	cfgPrefix   = flag.String("env-prefix", "BS", "Prefix for env variables.")
+	libsNames   = flag.String("libs", "", "Limit libraries to process.")
+	profiler    = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
 )
 
 func main() {
@@ -59,26 +53,13 @@ func main() {
 
 	flag.Parse()
 
-	if *libItemsThreads == 0 {
-		*libItemsThreads = 1
-	}
-
-	if *readThreads == 0 {
-		*readThreads = *libItemsThreads * 10
-	}
-
-	if *parseThreads == 0 {
-		if *parseThreads = runtime.NumCPU() / 2; *parseThreads == 0 {
-			*parseThreads = 1
-		}
-	}
-
 	if *showVersion {
 		fmt.Println(appVersion)
 		return
 	}
 
-	cfg := factories.NewViperCfg(*cfgPath, *cfgPrefix)
+	cfg := InitConfig(*cfgPath, *cfgPrefix)
+
 	if *profiler != "" {
 		defer RunProfiler(*profiler, cfg).Stop()
 	}
@@ -86,30 +67,70 @@ func main() {
 	storage := factories.NewBoltDB(cfg.GetString("boltdb.path"))
 	defer storage.Close()
 
-	logger := factories.NewZerologLogger(cfg, os.Stderr)
-	libs := GetLibs(*libName, cfg, logger)
+	logger := factories.NewZerolog(cfg, os.Stderr)
+	libs := GetLibs(*libsNames, cfg, logger)
+
 	if !*hideBar {
 		bars = mpb.New(mpb.WithOutput(os.Stdout))
 		barTotal = GetProgressBar(bars, libs, cfg, &logger)
 	}
 
-	reposInfo := GetInfoRepos(*batchSize, libs, logger, cfg, storage)
+	indexList := map[string]bleve.Index{}
+	reposInfo := GetInfoRepos(cfg.GetInt("indexer.batch_size"), libs, logger, cfg, storage, indexList)
 	repoMarks := repos.NewLibMarks("indexed_items", storage)
 
-	parsingPipeline := make(chan pipeline.Doer, *parseBuffSize)
-	defer close(parsingPipeline)
+	pipe := semaphore.NewSemaphore(cfg.GetInt("indexer.threads_cnt"), func(next pipeline.Tasker) pipeline.Tasker {
+		return func(task pipeline.Task) error {
+			logger.Debug().Str("task", task.ID()).Msg("iterate")
 
-	parsingPool := GetPool(*readThreads, parsingPipeline, logger)
-	defer parsingPool.Close()
+			if err := next(task); err != nil {
+				logger.Error().Str("task", task.ID()).Err(err).Msg("iterate")
+			}
 
-	readingPipeline := make(chan pipeline.Doer, *readBuffSize)
+			wg.Done()
+
+			return nil
+		}
+	})
+	defer pipe.Close()
+
+	readingPipeline := make(chan pipeline.Doer, cfg.GetInt("indexer.read_buff"))
 	defer close(readingPipeline)
 
-	readingPool := GetPool(*parseThreads, readingPipeline, logger)
+	readingPool := GetPool(cfg.GetInt("indexer.parse_threads"), readingPipeline, func(next pipeline.Tasker) pipeline.Tasker {
+		return func(task pipeline.Task) error {
+			logger.Debug().Str("task", task.ID()).Msg("read")
+
+			if err := next(task); err != nil {
+				logger.Error().Str("task", task.ID()).Err(err).Msg("read")
+			}
+
+			wg.Done()
+
+			return nil
+		}
+	})
 	defer readingPool.Close()
 
-	pipe := semaphore.NewSemaphore(*libItemsThreads)
-	defer pipe.Close()
+	parsingPipeline := make(chan pipeline.Doer, cfg.GetInt("indexer.parse_buff"))
+	defer close(parsingPipeline)
+
+	parsingPool := GetPool(cfg.GetInt("indexer.read_threads"), parsingPipeline, func(next pipeline.Tasker) pipeline.Tasker {
+		return func(task pipeline.Task) error {
+			logger.Debug().Str("task", task.ID()).Msg("parse")
+
+			if err := next(task); err != nil {
+				logger.Error().Str("task", task.ID()).Err(err).Msg("parse")
+			} else {
+				cntIndexed.Inc(1)
+			}
+
+			wg.Done()
+
+			return nil
+		}
+	})
+	defer parsingPool.Close()
 
 	libItems, err := libs.GetItems()
 	if err != nil {
@@ -119,23 +140,39 @@ func main() {
 	var num int
 	total := len(libItems)
 	for _, v := range libItems {
-		wg.Add(1)
-		num++
+		lib := libs[v.Lib]
+		libItemPath := v.Item
+		readerTaskFactory := func(reader io.ReadCloser, book entities.BookInfo) error {
+			wg.Add(1)
+			cntTotal.Inc(1)
+			return readingPool.Push(tasks.NewReadTask(book.Src, book.LibName, reader, func(data io.Reader) error {
+				wg.Add(1)
+				return parsingPool.Push(tasks.NewParseFB2Task(data, book, lib.Encoder, reposInfo[lib.Name], barTotal))
+			}))
+		}
 
-		pipe.Push(tasks.NewHandleLibItemTask(num, total, v.Item, libs[v.Lib],
-			logger, readingPool, parsingPool, &wg, repoMarks, &cntTotal, bars,
-			func(data io.Reader, book entities.BookInfo, logger zerolog.Logger) pipeline.Task {
-				return tasks.NewIndexFB2DataTask(data, book,
-					libs[v.Lib].Encoder, reposInfo[v.Lib], logger, &wg, &cntIndexed, barTotal,
-				)
-			},
-		))
+		num++
+		wg.Add(1)
+		pipe.Push(tasks.NewDefineItemTask(libItemPath, lib, repoMarks, readerTaskFactory, func(finfo fs.FileInfo) error {
+			return tasks.NewReadZipTask(num, total, libItemPath, finfo, lib, bars, readerTaskFactory).Do()
+		}))
 	}
 
 	wg.Wait()
 
-	for _, repo := range reposInfo {
-		repo.Close()
+	closedRepos := make(map[entities.IBooksInfoRepo]struct{}, len(reposInfo))
+	for _, item := range reposInfo {
+		if _, ok := closedRepos[item]; ok {
+			continue
+		}
+		closedRepos[item] = struct{}{}
+		item.Close()
+	}
+
+	for _, item := range indexList {
+		if err := item.Close(); err != nil {
+			panic(err)
+		}
 	}
 
 	logger.Info().
@@ -144,67 +181,27 @@ func main() {
 		Dur("dur", time.Since(startTS)).Msg("indexing finished")
 }
 
-func GetInfoRepos(batchSize int, libs entities.Libraries, logger zerolog.Logger, cfg *viper.Viper, storage *bbolt.DB) map[string]entities.IBooksInfoRepo {
-	res := make(map[string]entities.IBooksInfoRepo, len(libs))
-	indexList := map[string]bleve.Index{}
+func InitConfig(path, prefix string) *viper.Viper {
+	cfg := factories.NewViperCfg(*cfgPath, *cfgPrefix)
 
-	for _, lib := range libs {
-		if _, ok := indexList[lib.Index]; !ok {
-			indexList[lib.Index] = factories.NewBleveIndex(cfg.GetString("bleve.path"), lib.Index, entities.NewBookIndexMapping())
+	if cfg.GetInt("indexer.threads_cnt") == 0 {
+		cfg.Set("indexer.threads_cnt", 1)
+	}
+
+	if cfg.GetInt("indexer.read_threads") == 0 {
+		cfg.Set("indexer.read_threads", cfg.GetInt("indexer.threads_cnt")*10)
+	}
+
+	if cfg.GetInt("indexer.parse_threads") == 0 {
+		cnt := runtime.NumCPU() / 2
+		if cnt == 0 {
+			cnt = 1
 		}
 
-		res[lib.Name] = repos.NewBooksInfo(batchSize, false, storage, indexList[lib.Index], logger,
-			jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
-			jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal,
-			nil, nil, nil,
-		)
+		cfg.Set("indexer.parse_threads", cnt)
 	}
 
-	return res
-}
-
-func GetLibs(singleLibName string, cfg *viper.Viper, logger zerolog.Logger) entities.Libraries {
-	res, err := entities.NewLibraries("libraries", cfg)
-	if err != nil {
-		panic(err)
-	}
-
-	if singleLibName != "" {
-		if lib, ok := res[singleLibName]; ok {
-			res = entities.Libraries{singleLibName: lib}
-		} else {
-			panic(fmt.Errorf("library %s not found", singleLibName))
-		}
-	}
-
-	return res
-}
-
-func GetProgressBar(bars *mpb.Progress, libs entities.Libraries, cfg *viper.Viper, logger *zerolog.Logger) *mpb.Bar {
-	if err := os.MkdirAll(cfg.GetString("logs.dir"), 0644); err != nil {
-		panic(err)
-	}
-
-	logOutput, err := os.OpenFile(fmt.Sprintf("%s/indexing.%d.log",
-		cfg.GetString("logs.dir"), time.Now().Unix(),
-	), os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		panic(err)
-	}
-
-	*logger = logger.Output(zerolog.ConsoleWriter{Out: logOutput, NoColor: true})
-
-	return bars.AddBar(libs.GetSize(),
-		// mpb.BarStyle().Lbound("╢").Filler("▌").Tip("▌").Padding("░").Rbound("╟"),
-		mpb.PrependDecorators(
-			decor.Elapsed(decor.ET_STYLE_GO),
-		),
-		mpb.AppendDecorators(
-			decor.CountersKibiByte("% .2f/% .2f"), decor.Name(", "),
-			decor.AverageSpeed(decor.UnitKB, "% .2f"), decor.Name(", "),
-			decor.AverageETA(decor.ET_STYLE_GO),
-		),
-	)
+	return cfg
 }
 
 func RunProfiler(profType string, cfg *viper.Viper) interface{ Stop() } {
@@ -241,10 +238,90 @@ func RunProfiler(profType string, cfg *viper.Viper) interface{ Stop() } {
 	return profile.Start(pprofopts...)
 }
 
-func GetPool(workersCnt int, bus chan pipeline.Doer, logger zerolog.Logger) pipeline.Dispatcher {
+func GetLibs(libsNames string, cfg *viper.Viper, logger zerolog.Logger) entities.Libraries {
+	res, err := entities.NewLibraries("libraries", cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	libs := strings.Split(libsNames, ",")
+	if len(libs) < 2 && strings.TrimSpace(libs[0]) == "" {
+		return res
+	}
+
+	for k, lib := range res {
+		lib.Disabled = true
+		res[k] = lib
+	}
+
+	for _, lib := range libs {
+		if lib = strings.TrimSpace(lib); lib == "" {
+			continue
+		}
+
+		libItem := res[lib]
+		libItem.Disabled = false
+		res[libItem.Name] = libItem
+	}
+
+	return res
+}
+
+func GetProgressBar(bars *mpb.Progress, libs entities.Libraries, cfg *viper.Viper, logger *zerolog.Logger) *mpb.Bar {
+	if err := os.MkdirAll(cfg.GetString("logs.dir"), 0644); err != nil {
+		panic(err)
+	}
+
+	logOutput, err := os.OpenFile(fmt.Sprintf("%s/indexing.%d.log",
+		cfg.GetString("logs.dir"), time.Now().Unix(),
+	), os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		panic(err)
+	}
+
+	*logger = logger.Output(zerolog.ConsoleWriter{Out: logOutput, NoColor: true})
+
+	return bars.AddBar(libs.GetSize(),
+		// mpb.BarStyle().Lbound("╢").Filler("▌").Tip("▌").Padding("░").Rbound("╟"),
+		mpb.PrependDecorators(
+			decor.Elapsed(decor.ET_STYLE_GO),
+		),
+		mpb.AppendDecorators(
+			decor.CountersKibiByte("% .2f/% .2f"), decor.Name(", "),
+			decor.AverageSpeed(decor.UnitKB, "% .2f"), decor.Name(", "),
+			decor.AverageETA(decor.ET_STYLE_GO),
+		),
+	)
+}
+
+func GetInfoRepos(batchSize int, libs entities.Libraries, logger zerolog.Logger, cfg *viper.Viper, storage *bbolt.DB, indexList map[string]bleve.Index) map[string]entities.IBooksInfoRepo {
+	res := make(map[string]entities.IBooksInfoRepo, len(libs))
+
+	for _, lib := range libs {
+		if lib.Disabled {
+			continue
+		}
+
+		if _, ok := indexList[lib.Index]; !ok {
+			indexList[lib.Index] = factories.NewBleveIndex(
+				cfg.GetString("bleve.path"), lib.Index, entities.NewBookIndexMapping(),
+			)
+		}
+
+		res[lib.Name] = repos.NewBooksInfo(batchSize, false, storage, indexList[lib.Index], logger,
+			jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
+			jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal,
+			nil, nil, nil,
+		)
+	}
+
+	return res
+}
+
+func GetPool(threads int, bus chan pipeline.Doer, rules ...pipeline.DoerDecorator) pipeline.Dispatcher {
 	workers := []pipeline.Doer{}
-	for i := 0; i < workersCnt; i++ {
-		workers = append(workers, pool.NewWorker(bus))
+	for i := 0; i < threads; i++ {
+		workers = append(workers, pool.NewWorker(bus, rules...))
 	}
 
 	return pool.NewPool(bus, workers...)

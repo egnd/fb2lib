@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func NewZerologLogger(cfg *viper.Viper, writer io.Writer) zerolog.Logger {
+func NewZerolog(cfg *viper.Viper, writer io.Writer) zerolog.Logger {
 	zerolog.DurationFieldUnit = cfg.GetDuration("logs.duration_unit")
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
 	zerolog.TimestampFunc = func() time.Time {

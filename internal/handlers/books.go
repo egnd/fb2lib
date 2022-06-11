@@ -75,8 +75,10 @@ func BooksHandler(cfg *viper.Viper, libs entities.Libraries,
 			"books":        books,
 			"pager":        pager,
 			"libs": func() (res []string) {
-				for lib := range libs {
-					res = append(res, lib)
+				for _, lib := range libs {
+					if !lib.Disabled {
+						res = append(res, lib.Name)
+					}
 				}
 				return
 			}(),

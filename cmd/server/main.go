@@ -36,7 +36,7 @@ func main() {
 	}
 
 	cfg := factories.NewViperCfg(*cfgPath, *cfgPrefix)
-	logger := factories.NewZerologLogger(cfg, os.Stderr)
+	logger := factories.NewZerolog(cfg, os.Stderr)
 
 	libs, err := entities.NewLibraries("libraries", cfg)
 	if err != nil {

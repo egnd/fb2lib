@@ -32,6 +32,10 @@ func NewCompositeBleveIndex(dir string,
 	indexes := make([]bleve.Index, 0, len(libs))
 
 	for _, lib := range libs {
+		if lib.Disabled {
+			continue
+		}
+
 		indexes = append(indexes, NewBleveIndex(dir, lib.Index, mapping))
 	}
 

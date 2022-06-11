@@ -37,3 +37,10 @@ libraries:
     dir: var/libs/default
     encoder: parser # or marshaler
     types: ["fb2", "zip"]
+indexer:
+  threads_cnt: 1
+  read_buff: 0
+  read_threads: 0
+  parse_buff: 0
+  parse_threads: 0
+  batch_size: 200
