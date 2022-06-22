@@ -8,15 +8,15 @@ logs:
   caller: false
   duration_unit: 1s
   dir: var/logs
-bleve:
-  highlight: true
-  path: var/index
-boltdb:
-  path: var/storage/db.bolt
+adapters:
+  bleve:
+    dir: var/index
+  badger:
+    dir: var/db
 converter:
   dir: var/converter
 renderer:
-  tpl_dir: web/themes/editorial
+  dir: web/themes/editorial
   sidebar:
     genres_size: 10
   globals:
@@ -33,7 +33,6 @@ libraries:
   default:
     # disabled: true
     # order: 1
-    # index: default
     dir: var/libs/default
     encoder: parser # or marshaler
     types: ["fb2", "zip"]

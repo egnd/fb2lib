@@ -4,19 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
-	"time"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/patrickmn/go-cache"
-	"github.com/rs/zerolog"
-	"github.com/spf13/viper"
 
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/internal/factories"
 	"github.com/egnd/fb2lib/internal/repos"
-	"github.com/egnd/fb2lib/pkg/pagination"
 )
 
 var (
@@ -43,28 +36,28 @@ func main() {
 		panic(err)
 	}
 
-	index := factories.NewCompositeBleveIndex(cfg.GetString("bleve.path"), libs, entities.NewBookIndexMapping())
-	defer index.Close()
-
-	storage := factories.NewBoltDB(cfg.GetString("boltdb.path"))
-	defer storage.Close()
-
 	repoLibrary := repos.NewLibraryFiles(libs)
-	repoInfo := repos.NewBooksInfo(0, cfg.GetBool("bleve.highlight"), storage, index, logger,
+	repoBooks := repos.NewBooksBadgerBleve(0,
+		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "books"),
+		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "authors"),
+		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "series"),
+		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "genres"),
+		factories.NewBleveIndex(cfg.GetString("adapters.bleve.dir"), "books", entities.NewBookIndexMapping()),
 		jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
 		jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal,
-		cache.New(time.Hour, 30*time.Minute), repoLibrary, libs,
+		logger,
 	)
+	defer repoBooks.Close()
 
-	server, err := factories.NewEchoServer(libs, cfg, logger, repoInfo, repoLibrary)
+	server, err := factories.NewEchoServer(libs, cfg, logger, repoBooks, repoLibrary)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("init http server")
 	}
 
-	logger.Info().Msg("warmup cache...")
-	if err := cacheWarmup(logger, cfg, repoInfo); err != nil {
-		panic(err)
-	}
+	// logger.Info().Msg("warmup cache...")
+	// if err := cacheWarmup(logger, cfg, repoBooks); err != nil {
+	// 	panic(err)
+	// }
 
 	logger.Info().
 		Int("port", cfg.GetInt("server.port")).
@@ -78,25 +71,25 @@ func main() {
 	logger.Info().Msg("server stopped")
 }
 
-func cacheWarmup(logger zerolog.Logger, cfg *viper.Viper,
-	repoInfo entities.IBooksInfoRepo,
-) error {
-	defPageSize, err := strconv.Atoi(strings.Split(cfg.GetString("renderer.globals.books_sizes"), ",")[0])
-	if err != nil {
-		return err
-	}
+// func cacheWarmup(logger zerolog.Logger, cfg *viper.Viper,
+// 	repoInfo entities.IBooksInfoRepo,
+// ) error {
+// 	defPageSize, err := strconv.Atoi(strings.Split(cfg.GetString("renderer.globals.books_sizes"), ",")[0])
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if _, err := repoInfo.FindBooks("", "", "", pagination.NewPager(nil).SetPageSize(defPageSize)); err != nil {
-		return err
-	}
+// 	if _, err := repoInfo.FindBooks("", "", "", pagination.NewPager(nil).SetPageSize(defPageSize)); err != nil {
+// 		return err
+// 	}
 
-	if _, err := repoInfo.GetStats(); err != nil {
-		return err
-	}
+// 	if _, err := repoInfo.GetStats(); err != nil {
+// 		return err
+// 	}
 
-	if _, err := repoInfo.GetGenres(nil); err != nil {
-		return err
-	}
+// 	if _, err := repoInfo.GetGenres(nil); err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }

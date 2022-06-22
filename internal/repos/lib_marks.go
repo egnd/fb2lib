@@ -1,31 +1,27 @@
 package repos
 
 import (
-	"go.etcd.io/bbolt"
+	"github.com/dgraph-io/badger/v3"
 )
 
 type LibMarks struct {
-	bucketName string
-	storage    *bbolt.DB
+	db *badger.DB
 }
 
-func NewLibMarks(bucketName string, storage *bbolt.DB) *LibMarks {
-	if err := storage.Update(func(tx *bbolt.Tx) (txErr error) {
-		_, err := tx.CreateBucketIfNotExists([]byte(bucketName))
-		return err
-	}); err != nil {
-		panic(err)
-	}
-
+func NewLibMarks(db *badger.DB) *LibMarks {
 	return &LibMarks{
-		bucketName: bucketName,
-		storage:    storage,
+		db: db,
 	}
 }
 
 func (r *LibMarks) MarkExists(mark string) (res bool) {
-	if err := r.storage.View(func(tx *bbolt.Tx) (txErr error) {
-		res = string(tx.Bucket([]byte(r.bucketName)).Get([]byte(mark))) == "1"
+	if err := r.db.View(func(tx *badger.Txn) (txErr error) {
+		item, err := tx.Get([]byte(mark))
+		if err != nil {
+			return err
+		}
+
+		res = item.String() == "true"
 
 		return nil
 	}); err != nil {
@@ -36,7 +32,11 @@ func (r *LibMarks) MarkExists(mark string) (res bool) {
 }
 
 func (r *LibMarks) AddMark(mark string) error {
-	return r.storage.Update(func(tx *bbolt.Tx) (txErr error) {
-		return tx.Bucket([]byte(r.bucketName)).Put([]byte(mark), []byte("1"))
+	return r.db.Update(func(tx *badger.Txn) (txErr error) {
+		return tx.Set([]byte(mark), []byte("true"))
 	})
+}
+
+func (r *LibMarks) Close() error {
+	return r.db.Close()
 }

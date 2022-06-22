@@ -65,10 +65,10 @@ func (t *DefineItemTask) Do() error {
 			return errors.Wrap(err, "open fb2 error")
 		}
 
-		if err := t.doFB2Task(reader, entities.BookInfo{
-			LibName: t.lib.Name,
-			Size:    uint64(finfo.Size()),
-			Src:     strings.TrimPrefix(t.item, t.lib.Dir),
+		if err := t.doFB2Task(reader, entities.Book{
+			Lib:  t.lib.Name,
+			Size: uint64(finfo.Size()),
+			Src:  strings.TrimPrefix(t.item, t.lib.Dir),
 		}); err != nil {
 			return errors.Wrap(err, "do fb2 error")
 		}

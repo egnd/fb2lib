@@ -1,6 +1,7 @@
 package fb2
 
 import (
+	"bytes"
 	"encoding/xml"
 
 	"github.com/egnd/go-xmlparse"
@@ -16,6 +17,28 @@ type Publisher struct {
 	Year       []string   `xml:"year"`
 	ISBN       []string   `xml:"isbn"`
 	Sequence   []Sequence `xml:"sequence"`
+}
+
+func (p Publisher) String() string {
+	var buf bytes.Buffer
+
+	var strVal string
+
+	if strVal = xmlparse.GetStrFrom(p.Publisher); strVal != "" {
+		buf.WriteString(strVal)
+	}
+
+	if strVal = xmlparse.GetStrFrom(p.City); strVal != "" {
+		if buf.Len() > 0 {
+			buf.WriteString(" (")
+			buf.WriteString(strVal)
+			buf.WriteRune(')')
+		} else {
+			buf.WriteString(strVal)
+		}
+	}
+
+	return buf.String()
 }
 
 // NewPublisher factory for Publisher.

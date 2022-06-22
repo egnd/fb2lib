@@ -13,11 +13,11 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func ConvertFB2Epub(converterDir string, book entities.BookInfo,
+func ConvertFB2Epub(converterDir string, book entities.Book,
 	libs entities.Libraries, server echo.Context, logger zerolog.Logger,
 ) error {
 	filePath := book.Src
-	if lib, ok := libs[book.LibName]; ok {
+	if lib, ok := libs[book.Lib]; ok {
 		filePath = path.Join(lib.Dir, filePath)
 	} else {
 		server.NoContent(http.StatusInternalServerError)
@@ -38,5 +38,5 @@ func ConvertFB2Epub(converterDir string, book entities.BookInfo,
 		return err
 	}
 
-	return server.Attachment(epubPath, entities.BuildBookName(book.Index)+".epub")
+	return server.Attachment(epubPath, entities.BuildBookName(book)+".epub")
 }

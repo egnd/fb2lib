@@ -3,36 +3,30 @@ package entities
 import (
 	"io"
 
-	"github.com/blevesearch/bleve/v2"
-	"github.com/blevesearch/bleve/v2/search"
-	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/egnd/fb2lib/pkg/pagination"
 	"github.com/egnd/go-xmlparse/fb2"
 )
 
 type IBooksInfoRepo interface {
 	io.Closer
-	GetItems(query.Query, pagination.IPager, []search.SearchSort, *bleve.HighlightRequest, ...string) ([]BookInfo, error)
-	FindByID(string) (BookInfo, error)
-	FindBooks(queryStr, tagName, tagValue string, pager pagination.IPager) ([]BookInfo, error)
-	SaveBook(BookInfo) error
-	GetGenres(pagination.IPager) (GenresIndex, error)
-	Remove(string) error
-	GetSeriesBooks(string, *BookInfo) ([]BookInfo, error)
-	GetOtherAuthorBooks(string, *BookInfo) ([]BookInfo, error)
-	GetOtherAuthorSeries(authors, curSeries string) (map[string]int, error)
-	GetStats() (map[string]uint64, error)
-	GetSeriesByLetter(string) ([]string, error)
-	GetAuthorsByLetter(string) ([]string, error)
-	// SearchAll(string, pagination.IPager) ([]BookInfo, error)
-	// SearchByAuthor(string, pagination.IPager) ([]BookInfo, error)
-	// SearchBySequence(string, pagination.IPager) ([]BookInfo, error)
-	// GetBook(string) (BookInfo, error)
-	// GetGenres(int) (GenresIndex, error)
+	GetByID(bookID string) (*Book, error)
+	FindBooks(queryStr string, idxField IndexField, idxFieldVal string, pager pagination.IPager) ([]Book, error)
+	Remove(bookID string) error
+	GetSeriesBooks(limit int, series []string, except *Book) (res []Book, err error)
+	GetAuthorsBooks(limit int, authors []string, except *Book) (res []Book, err error)
+	GetAuthorsSeries(authors []string, except []string) (res map[string]int, err error)
+	GetBooksCnt() (uint64, error)
+	GetAuthorsCnt() (uint64, error)
+	GetGenresCnt() (uint64, error)
+	GetSeriesCnt() (uint64, error)
+	GetGenres(pager pagination.IPager) (FreqsItems, error)
+	GetSeriesByChar(char rune) (FreqsItems, error)
+	GetAuthorsByChar(char rune) (FreqsItems, error)
+	SaveBook(book *Book) error
 }
 
 type IBooksLibraryRepo interface {
-	GetFB2(BookInfo) (fb2.File, error)
+	GetFB2(Book) (fb2.File, error)
 }
 
 type ILibMarksRepo interface {

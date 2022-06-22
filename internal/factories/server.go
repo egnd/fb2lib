@@ -58,13 +58,25 @@ func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Log
 }
 
 func NewEchoRender(cfg *viper.Viper, server *echo.Echo, repo entities.IBooksInfoRepo) (echo.Renderer, error) {
-	stats, err := repo.GetStats()
+	books, err := repo.GetBooksCnt()
+	if err != nil {
+		return nil, err
+	}
+	genres, err := repo.GetGenresCnt()
+	if err != nil {
+		return nil, err
+	}
+	authors, err := repo.GetAuthorsCnt()
+	if err != nil {
+		return nil, err
+	}
+	series, err := repo.GetSeriesCnt()
 	if err != nil {
 		return nil, err
 	}
 
 	globals := cfg.GetStringMap("renderer.globals")
-	globals["sidebar_stats"] = stats
+	globals["sidebar_stats"] = map[string]uint64{"books": books, "authors": authors, "genres": genres, "series": series}
 
 	return echoext.NewPongoRenderer(echoext.PongoRendererCfg{
 		Debug:   server.Debug,

@@ -15,7 +15,7 @@ type PushParseTask func(io.Reader) error
 type ParseFB2Task struct {
 	id      string
 	data    io.Reader
-	book    entities.BookInfo
+	book    entities.Book
 	encoder entities.LibEncodeType
 	repo    entities.IBooksInfoRepo
 	bar     *mpb.Bar
@@ -23,13 +23,13 @@ type ParseFB2Task struct {
 
 func NewParseFB2Task(
 	data io.Reader,
-	book entities.BookInfo,
+	book entities.Book,
 	encoder entities.LibEncodeType,
 	repo entities.IBooksInfoRepo,
 	bar *mpb.Bar,
 ) *ParseFB2Task {
 	return &ParseFB2Task{
-		id:      fmt.Sprintf("parse [%s] %s", book.LibName, book.Src),
+		id:      fmt.Sprintf("parse [%s] %s", book.Lib, book.Src),
 		data:    data,
 		book:    book,
 		encoder: encoder,
@@ -57,10 +57,9 @@ func (t *ParseFB2Task) Do() error {
 		return errors.Wrap(err, "parse fb2 error")
 	}
 
-	t.book.Index = entities.NewFB2Index(&fb2File)
-	t.book.Index.Lib = t.book.LibName
+	t.book.ReadFB2(&fb2File)
 
-	if err = t.repo.SaveBook(t.book); err != nil {
+	if err = t.repo.SaveBook(&t.book); err != nil {
 		return errors.Wrap(err, "index fb2 error")
 	}
 

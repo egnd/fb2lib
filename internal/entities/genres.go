@@ -1,20 +1,20 @@
 package entities
 
-type GenreFreq struct {
-	Name string
-	Cnt  uint32
+type ItemFreq struct {
+	Val  string
+	Freq int
 }
 
-type GenresIndex []GenreFreq
+type FreqsItems []ItemFreq
 
-func (g GenresIndex) Len() int {
+func (g FreqsItems) Len() int {
 	return len(g)
 }
 
-func (g GenresIndex) Less(i, j int) bool {
-	return g[i].Cnt < g[j].Cnt
+func (g FreqsItems) Less(i, j int) bool {
+	return g[i].Freq < g[j].Freq
 }
 
-func (g GenresIndex) Swap(i, j int) {
+func (g FreqsItems) Swap(i, j int) {
 	g[i], g[j] = g[j], g[i]
 }

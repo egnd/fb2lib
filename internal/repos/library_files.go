@@ -24,15 +24,15 @@ func NewLibraryFiles(libs entities.Libraries) *LibraryFiles {
 	}
 }
 
-func (r *LibraryFiles) GetFB2(book entities.BookInfo) (res fb2.File, err error) {
+func (r *LibraryFiles) GetFB2(book entities.Book) (res fb2.File, err error) {
 	if book.Src == "" {
 		err = errors.New("repo getfb2 error: empty src")
 		return
 	}
 
-	lib, libExist := r.libs[book.LibName]
+	lib, libExist := r.libs[book.Lib]
 	if !libExist {
-		err = fmt.Errorf("repo getfb2 error: undefined book lib %s", book.LibName)
+		err = fmt.Errorf("repo getfb2 error: undefined book lib %s", book.Lib)
 		return
 	}
 

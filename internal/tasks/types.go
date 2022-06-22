@@ -8,4 +8,4 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type IndexTaskFactory func(io.Reader, entities.BookInfo, zerolog.Logger) pipeline.Task
+type IndexTaskFactory func(io.Reader, entities.Book, zerolog.Logger) pipeline.Task
