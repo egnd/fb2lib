@@ -9,14 +9,19 @@ import (
 
 // Semaphore is a struct for tasks parallel execution.
 type Semaphore struct {
-	wg      sync.WaitGroup
+	wg      *sync.WaitGroup
 	limiter chan struct{}
 	execute pipeline.TaskExecutor
 }
 
 // NewSemaphore is a factory for Semaphore.
-func NewSemaphore(threadsCnt int, decorators ...pipeline.TaskDecorator) *Semaphore {
-	return &Semaphore{ //nolint:exhaustivestruct
+func NewSemaphore(threadsCnt int, wg *sync.WaitGroup, decorators ...pipeline.TaskDecorator) *Semaphore {
+	if wg == nil {
+		wg = &sync.WaitGroup{}
+	}
+
+	return &Semaphore{
+		wg:      wg,
 		limiter: make(chan struct{}, threadsCnt),
 		execute: pipeline.NewTaskExecutor(decorators),
 	}
@@ -45,6 +50,11 @@ func (p *Semaphore) Push(task pipeline.Task) (err error) {
 	return
 }
 
+// Wait blocks until tasks are completed.
+func (p *Semaphore) Wait() {
+	p.wg.Wait()
+}
+
 // Close is stopping Semaphore.
 func (p *Semaphore) Close() (err error) {
 	defer func() {
@@ -53,7 +63,6 @@ func (p *Semaphore) Close() (err error) {
 		}
 	}()
 
-	p.wg.Wait()
 	close(p.limiter)
 
 	return

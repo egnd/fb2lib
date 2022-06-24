@@ -6,6 +6,7 @@ import (
 
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/internal/handlers"
+	"github.com/egnd/fb2lib/internal/repos"
 	"github.com/egnd/fb2lib/pkg/echoext"
 	"github.com/labstack/echo/v4"
 
@@ -16,7 +17,7 @@ import (
 )
 
 func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Logger,
-	repoInfo entities.IBooksInfoRepo, repoBooks entities.IBooksLibraryRepo,
+	repoInfo *repos.BooksBadgerBleve, repoBooks *repos.LibraryFs,
 ) (*echo.Echo, error) {
 	var err error
 	server := echo.New()
@@ -24,7 +25,7 @@ func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Log
 	server.HideBanner = true
 	server.HidePort = true
 
-	if server.Renderer, err = NewEchoRender(cfg, server, repoInfo); err != nil {
+	if server.Renderer, err = NewEchoRender(cfg, server, repoInfo, logger); err != nil {
 		return nil, err
 	}
 
@@ -35,8 +36,8 @@ func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Log
 		server.Use(middleware.Recover())
 	}
 
-	server.File("/favicon.ico", path.Join(cfg.GetString("renderer.tpl_dir"), "assets/favicon.ico"))
-	server.Static("/assets", path.Join(cfg.GetString("renderer.tpl_dir"), "assets"))
+	server.File("/favicon.ico", path.Join(cfg.GetString("renderer.dir"), "assets/favicon.ico"))
+	server.Static("/assets", path.Join(cfg.GetString("renderer.dir"), "assets"))
 	server.GET("/live", func(c echo.Context) error {
 		return c.String(http.StatusOK, "OK")
 	})
@@ -57,30 +58,26 @@ func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Log
 	return server, nil
 }
 
-func NewEchoRender(cfg *viper.Viper, server *echo.Echo, repo entities.IBooksInfoRepo) (echo.Renderer, error) {
-	books, err := repo.GetBooksCnt()
-	if err != nil {
-		return nil, err
-	}
-	genres, err := repo.GetGenresCnt()
-	if err != nil {
-		return nil, err
-	}
-	authors, err := repo.GetAuthorsCnt()
-	if err != nil {
-		return nil, err
-	}
-	series, err := repo.GetSeriesCnt()
-	if err != nil {
-		return nil, err
-	}
+func NewEchoRender(cfg *viper.Viper,
+	server *echo.Echo, repo *repos.BooksBadgerBleve, logger zerolog.Logger,
+) (echo.Renderer, error) {
+	books, _ := repo.GetBooksCnt()
+	genres, _ := repo.GetGenresCnt()
+	authors, _ := repo.GetAuthorsCnt()
+	series, _ := repo.GetSeriesCnt()
 
 	globals := cfg.GetStringMap("renderer.globals")
-	globals["sidebar_stats"] = map[string]uint64{"books": books, "authors": authors, "genres": genres, "series": series}
+	globals["sidebar_stats"] = map[string]uint64{
+		"books":   books,
+		"authors": authors,
+		"genres":  genres,
+		"series":  series,
+	}
+	globals["libslist"], _ = repo.GetLibs()
 
 	return echoext.NewPongoRenderer(echoext.PongoRendererCfg{
 		Debug:   server.Debug,
-		TplsDir: cfg.GetString("renderer.tpl_dir"),
+		TplsDir: cfg.GetString("renderer.dir"),
 	}, globals, map[string]pongo2.FilterFunction{
 		"filesize":  echoext.PongoFilterFileSize,
 		"trimspace": echoext.PongoFilterTrimSpace,

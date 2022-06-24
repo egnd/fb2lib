@@ -3,6 +3,7 @@ package pools
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/egnd/go-pipeline"
 	"github.com/egnd/go-pipeline/workers"
@@ -10,25 +11,31 @@ import (
 
 // BusPool is a pool of workers.
 type BusPool struct {
+	wg    *sync.WaitGroup
 	doers []pipeline.Doer
 	tasks chan pipeline.Task
 }
 
 // NewBusPool creates a pool of workers.
-func NewBusPool(threadsCnt, queueSize int, decorators ...pipeline.TaskDecorator) *BusPool {
+func NewBusPool(threadsCnt, queueSize int, wg *sync.WaitGroup, decorators ...pipeline.TaskDecorator) *BusPool {
 	if threadsCnt < 1 {
 		panic("BusPool requires at least 1 thread")
+	}
+
+	if wg == nil {
+		wg = &sync.WaitGroup{}
 	}
 
 	bus := make(chan pipeline.Doer)
 	executor := pipeline.NewTaskExecutor(decorators)
 	pool := &BusPool{
+		wg:    wg,
 		doers: make([]pipeline.Doer, threadsCnt),
 		tasks: make(chan pipeline.Task, queueSize),
 	}
 
 	for k := range pool.doers {
-		pool.doers[k] = workers.NewBusWorker(bus, executor)
+		pool.doers[k] = workers.NewBusWorker(bus, pool.wg, executor)
 	}
 
 	go func() {
@@ -54,9 +61,15 @@ func (p *BusPool) Push(task pipeline.Task) (err error) {
 		}
 	}()
 
+	p.wg.Add(1)
 	p.tasks <- task
 
 	return
+}
+
+// Wait blocks until tasks are completed.
+func (p *BusPool) Wait() {
+	p.wg.Wait()
 }
 
 // Close is stopping pool and workers.

@@ -32,7 +32,7 @@ var (
 	showVersion = flag.Bool("version", false, "Show app version.")
 	hideBar     = flag.Bool("hidebar", false, "Hide progress bar.")
 	cfgPath     = flag.String("config", "configs/app.yml", "Configuration file path.")
-	cfgPrefix   = flag.String("env-prefix", "BS", "Prefix for env variables.")
+	cfgPrefix   = flag.String("env-prefix", "FBL", "Prefix for env variables.")
 	profiler    = flag.String("pprof", "", "Enable profiler (mem,allocs,heap,cpu,trace,goroutine,mutex,block,thread).")
 )
 
@@ -54,13 +54,23 @@ func main() {
 	}
 
 	cfg := InitConfig(*cfgPath, *cfgPrefix)
+	logger := factories.NewZerolog(cfg, os.Stderr)
+
+	defer func() {
+		logger.Info().
+			Uint32("succeed", cntIndexed.Total()).
+			Uint32("failed", cntTotal.Total()-cntIndexed.Total()).
+			Dur("dur", time.Since(startTS)).Msg("indexing finished")
+	}()
 
 	if *profiler != "" {
 		defer RunProfiler(*profiler, cfg).Stop()
 	}
 
-	logger := factories.NewZerolog(cfg, os.Stderr)
-	libs := GetLibs(cfg, logger)
+	libs, err := entities.NewLibraries("libraries", cfg)
+	if err != nil {
+		panic(err)
+	}
 
 	if !*hideBar {
 		bars = mpb.New(mpb.WithOutput(os.Stdout))
@@ -72,6 +82,7 @@ func main() {
 		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "authors"),
 		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "series"),
 		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "genres"),
+		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "libs"),
 		factories.NewBleveIndex(cfg.GetString("adapters.bleve.dir"), "books", entities.NewBookIndexMapping()),
 		jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
 		jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal,
@@ -82,7 +93,7 @@ func main() {
 	repoMarks := repos.NewLibMarks(factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "marks"))
 	defer repoMarks.Close()
 
-	pipe := pools.NewSemaphore(cfg.GetInt("indexer.threads_cnt"), func(next pipeline.TaskExecutor) pipeline.TaskExecutor {
+	pipe := pools.NewSemaphore(cfg.GetInt("indexer.threads_cnt"), &wg, func(next pipeline.TaskExecutor) pipeline.TaskExecutor {
 		return func(task pipeline.Task) error {
 			logger.Debug().Str("task", task.ID()).Msg("iterate")
 
@@ -90,14 +101,12 @@ func main() {
 				logger.Error().Str("task", task.ID()).Err(err).Msg("iterate")
 			}
 
-			wg.Done()
-
 			return nil
 		}
 	})
 	defer pipe.Close()
 
-	readingPool := pools.NewBusPool(cfg.GetInt("indexer.read_threads"), cfg.GetInt("indexer.read_buff"),
+	readingPool := pools.NewBusPool(cfg.GetInt("indexer.read_threads"), cfg.GetInt("indexer.read_buff"), &wg,
 		func(next pipeline.TaskExecutor) pipeline.TaskExecutor {
 			return func(task pipeline.Task) error {
 				logger.Debug().Str("task", task.ID()).Msg("read")
@@ -106,15 +115,13 @@ func main() {
 					logger.Error().Str("task", task.ID()).Err(err).Msg("read")
 				}
 
-				wg.Done()
-
 				return nil
 			}
 		},
 	)
 	defer readingPool.Close()
 
-	parsingPool := pools.NewBusPool(cfg.GetInt("indexer.parse_threads"), cfg.GetInt("indexer.parse_buff"),
+	parsingPool := pools.NewBusPool(cfg.GetInt("indexer.parse_threads"), cfg.GetInt("indexer.parse_buff"), &wg,
 		func(next pipeline.TaskExecutor) pipeline.TaskExecutor {
 			return func(task pipeline.Task) error {
 				logger.Debug().Str("task", task.ID()).Msg("parse")
@@ -124,8 +131,6 @@ func main() {
 				} else {
 					cntIndexed.Inc(1)
 				}
-
-				wg.Done()
 
 				return nil
 			}
@@ -144,27 +149,19 @@ func main() {
 		lib := libs[v.Lib]
 		libItemPath := v.Item
 		readerTaskFactory := func(reader io.ReadCloser, book entities.Book) error {
-			wg.Add(1)
 			cntTotal.Inc(1)
 			return readingPool.Push(tasks.NewReadTask(book.Src, book.Lib, reader, func(data io.Reader) error {
-				wg.Add(1)
 				return parsingPool.Push(tasks.NewParseFB2Task(data, book, lib.Encoder, repoBooks, barTotal))
 			}))
 		}
 
 		num++
-		wg.Add(1)
 		pipe.Push(tasks.NewDefineItemTask(libItemPath, lib, repoMarks, readerTaskFactory, func(finfo fs.FileInfo) error {
 			return tasks.NewReadZipTask(num, total, libItemPath, finfo, lib, bars, readerTaskFactory).Do()
 		}))
 	}
 
 	wg.Wait()
-
-	logger.Info().
-		Uint32("succeed", cntIndexed.Total()).
-		Uint32("failed", cntTotal.Total()-cntIndexed.Total()).
-		Dur("dur", time.Since(startTS)).Msg("indexing finished")
 }
 
 func InitConfig(path, prefix string) *viper.Viper {
@@ -222,15 +219,6 @@ func RunProfiler(profType string, cfg *viper.Viper) interface{ Stop() } {
 	}
 
 	return profile.Start(pprofopts...)
-}
-
-func GetLibs(cfg *viper.Viper, logger zerolog.Logger) entities.Libraries {
-	res, err := entities.NewLibraries("libraries", cfg)
-	if err != nil {
-		panic(err)
-	}
-
-	return res
 }
 
 func GetProgressBar(bars *mpb.Progress, libs entities.Libraries, cfg *viper.Viper, logger *zerolog.Logger) *mpb.Bar {

@@ -3,14 +3,14 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/egnd/fb2lib/internal/entities"
+	"github.com/egnd/fb2lib/internal/repos"
 	"github.com/egnd/fb2lib/pkg/pagination"
 	"github.com/flosch/pongo2/v5"
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/viper"
 )
 
-func GenresHandler(cfg *viper.Viper, repo entities.IBooksInfoRepo) echo.HandlerFunc {
+func GenresHandler(cfg *viper.Viper, repo *repos.BooksBadgerBleve) echo.HandlerFunc {
 	defPageSize := cfg.GetInt("renderer.globals.genres_size")
 
 	return func(c echo.Context) (err error) {

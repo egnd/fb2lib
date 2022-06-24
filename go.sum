@@ -113,8 +113,8 @@ github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 h1:tdlZCpZ/P9DhczC
 github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2/go.mod h1:SqUrOPUnsFjfmXRMNPybcSiG0BgUW2AuFH8PAnS2iTw=
 github.com/dustin/go-humanize v1.0.0 h1:VSnTsYCnlFHaM2/igO1h6X3HA71jcobQuxemgkq4zYo=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
-github.com/egnd/go-pipeline v1.1.1 h1:8PSNqn+Kg7VY0JGNsktAZuRMPZs59aybJKwv/H+LzkE=
-github.com/egnd/go-pipeline v1.1.1/go.mod h1:TPErjLmKLyusO5ckIhRF9FaqdXx8OwH9ooJTJLnsunM=
+github.com/egnd/go-pipeline v1.2.0 h1:8vY2evXo0rTBWWM1arVkSqjbIw2MxsgREukZzC2z0mA=
+github.com/egnd/go-pipeline v1.2.0/go.mod h1:TPErjLmKLyusO5ckIhRF9FaqdXx8OwH9ooJTJLnsunM=
 github.com/egnd/go-xmlparse v1.1.1 h1:bAGdS8srz1Y9Iq/qI3tePqd69aQ+usWNKs7OKpv7w0U=
 github.com/egnd/go-xmlparse v1.1.1/go.mod h1:3OyCz65vLxKQD2C0PQ6aoJ6zjU6ZLKPLKquP1P7eu/g=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=

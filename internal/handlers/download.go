@@ -2,13 +2,14 @@ package handlers
 
 import (
 	"github.com/egnd/fb2lib/internal/entities"
+	"github.com/egnd/fb2lib/internal/repos"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
 func DownloadHandler(libs entities.Libraries,
-	repo entities.IBooksInfoRepo, cfg *viper.Viper, logger zerolog.Logger,
+	repo *repos.BooksBadgerBleve, cfg *viper.Viper, logger zerolog.Logger,
 ) echo.HandlerFunc {
 	// converterDir := cfg.GetString("converter.dir")
 	// if err := os.MkdirAll(converterDir, 0755); err != nil {

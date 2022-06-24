@@ -8,6 +8,7 @@ import (
 	"github.com/vbauerster/mpb/v7"
 
 	"github.com/egnd/fb2lib/internal/entities"
+	"github.com/egnd/fb2lib/internal/repos"
 )
 
 type PushParseTask func(io.Reader) error
@@ -17,7 +18,7 @@ type ParseFB2Task struct {
 	data    io.Reader
 	book    entities.Book
 	encoder entities.LibEncodeType
-	repo    entities.IBooksInfoRepo
+	repo    *repos.BooksBadgerBleve
 	bar     *mpb.Bar
 }
 
@@ -25,7 +26,7 @@ func NewParseFB2Task(
 	data io.Reader,
 	book entities.Book,
 	encoder entities.LibEncodeType,
-	repo entities.IBooksInfoRepo,
+	repo *repos.BooksBadgerBleve,
 	bar *mpb.Bar,
 ) *ParseFB2Task {
 	return &ParseFB2Task{
@@ -51,7 +52,7 @@ func (t *ParseFB2Task) Do() error {
 		}
 	}
 
-	fb2File, err := entities.ParseFB2(t.data, t.encoder, SkipFB2Binaries, SkipFB2DocInfo, SkipFB2CustomInfo, SkipFB2Cover)
+	fb2File, err := entities.ParseFB2(t.data, t.encoder, SkipFB2DocInfo, SkipFB2CustomInfo, SkipFB2Binaries)
 
 	if err != nil {
 		return errors.Wrap(err, "parse fb2 error")

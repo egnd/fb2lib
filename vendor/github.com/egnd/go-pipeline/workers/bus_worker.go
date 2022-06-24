@@ -4,6 +4,7 @@ package workers
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/egnd/go-pipeline"
 )
@@ -15,7 +16,11 @@ type BusWorker struct {
 }
 
 // NewBusWorker creates workers for pool pipeline.
-func NewBusWorker(bus chan<- pipeline.Doer, execute pipeline.TaskExecutor) *BusWorker {
+func NewBusWorker(bus chan<- pipeline.Doer, wg *sync.WaitGroup, execute pipeline.TaskExecutor) *BusWorker {
+	if wg == nil {
+		panic("worker requires WaitGroup")
+	}
+
 	worker := &BusWorker{
 		tasks: make(chan pipeline.Task, 1),
 		stop:  make(chan struct{}),
@@ -29,6 +34,8 @@ func NewBusWorker(bus chan<- pipeline.Doer, execute pipeline.TaskExecutor) *BusW
 
 			for task := range worker.tasks {
 				_ = execute(task)
+
+				wg.Done()
 
 				break
 			}

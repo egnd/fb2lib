@@ -2,6 +2,7 @@ package pools
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/egnd/go-pipeline"
 	"github.com/egnd/go-pipeline/workers"
@@ -9,24 +10,32 @@ import (
 
 // HashPool is a pool of "sticky" workers.
 type HashPool struct {
+	wg    *sync.WaitGroup
 	tasks chan pipeline.Task
 	doers []pipeline.Doer
 }
 
 // NewHashPool creates pool of "sticky" workers.
-func NewHashPool(threadsCnt, queueSize int, hasher pipeline.Hasher, decorators ...pipeline.TaskDecorator) *HashPool {
+func NewHashPool(threadsCnt, queueSize int,
+	wg *sync.WaitGroup, hasher pipeline.Hasher, decorators ...pipeline.TaskDecorator,
+) *HashPool {
 	if threadsCnt < 1 {
 		panic("HashPool requires at least 1 thread")
 	}
 
+	if wg == nil {
+		wg = &sync.WaitGroup{}
+	}
+
 	executor := pipeline.NewTaskExecutor(decorators)
 	pool := &HashPool{
+		wg:    wg,
 		doers: make([]pipeline.Doer, threadsCnt),
 		tasks: make(chan pipeline.Task, queueSize),
 	}
 
 	for k := range pool.doers {
-		pool.doers[k] = workers.NewWorker(0, executor)
+		pool.doers[k] = workers.NewWorker(0, pool.wg, executor)
 	}
 
 	go func() {
@@ -48,9 +57,15 @@ func (p *HashPool) Push(task pipeline.Task) (err error) {
 		}
 	}()
 
+	p.wg.Add(1)
 	p.tasks <- task
 
 	return
+}
+
+// Wait blocks until tasks are completed.
+func (p *HashPool) Wait() {
+	p.wg.Wait()
 }
 
 // Close is stopping pool and workers.

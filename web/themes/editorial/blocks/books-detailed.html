@@ -1,16 +1,22 @@
-{% macro bookTag(title, values, tag_name) %}
-    {% if values|trimspace %}
-        {% for value in values|split:"; " %}
-            {% if tag_name %} 
-                {% if cur_tag %}
-                <a class="button" title="{{title}}" href="?q={{value|striptags|split:"("|first|urlencode}}">{{value|safe}}</a>
-                {% else %}
-                <a class="button" title="{{title}}" href="/books/{{tag_name}}/{{value|striptags|split:"("|first|urlencode}}/">{{value|safe}}</a>
-                {% endif %}
+{% macro bookTags(title, values, tag) %}
+    {% for value in values %}
+        {% if value|trimspace %}
+            {% if tag %} 
+            <a class="button" title="{{title}}" href="/books/{{tag}}/{{value|striptags|split:"("|first|trimspace|urlencode}}/">{{value}}</a>
             {% else %}
-            <a class="button" title="{{title}}">{{value|safe}}</a>
+            <a class="button" title="{{title}}" href="?q={{value|striptags|split:"("|first|trimspace|urlencode}}">{{value}}</a>
             {% endif %}
-        {% endfor %}
+        {% endif %}
+    {% endfor %}
+{% endmacro %}
+
+{% macro bookTag(title, value, tag) %}
+    {% if value|trimspace %}
+        {% if tag %} 
+        <a class="button" title="{{title}}" href="/books/{{tag}}/{{value|striptags|split:"("|first|trimspace|urlencode}}/">{{value}}</a>
+        {% else %}
+        <a class="button" title="{{title}}" href="?q={{value|striptags|split:"("|first|trimspace|urlencode}}">{{value}}</a>
+        {% endif %}
     {% endif %}
 {% endmacro %}
 
@@ -37,28 +43,30 @@
     {% if books %}
     {% for book in books %}
     <div class="col-6 col-12-xsmall books-detailed-item">
-        {% if book.Details.Images %}
-        {% for img in book.Details.Images %}<a href="/book/{{book.Index.ID}}"><img src="data:{{img.Type}};base64,{{img.Data}}"/></a>{% endfor %}
-        {% else %}
-        <a href="/book/{{book.Index.ID}}"><img src="/assets/images/noimg.png"/></a>
-        {% endif %}
+        <a href="/book/{{book.ID}}">
+            {% if book.Info.Cover %}
+            <img src="data:{{book.Info.Cover.Type}};base64,{{book.Info.Cover.Data}}"/>
+            {% else %}
+            <img src="/assets/images/noimg.png"/>
+            {% endif %}
+        </a>
 
-        <h4 class="col-12-xsmall"><a href="/book/{{book.Index.ID}}">
-            {% if pager %}{{pager.GetOffset()+forloop.Counter}}. {% endif %}{{book.Index.Title|safe}}</a>
+        <h4 class="col-12-xsmall"><a href="/book/{{book.ID}}">
+            {% if pager %}{{pager.GetOffset()+forloop.Counter}}. {% endif %}{{book.Info.Title|safe}}</a>
         </h4>
 
-        <a href="/download/{{book.Index.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{book.Size|filesize}})</a>
-        <a href="/download/{{book.Index.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
+        <a href="/download/{{book.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{book.Size|filesize}})</a>
+        <a href="/download/{{book.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
 
-        {{ bookTag("Коллекция", book.Index.Lib, "lib") }}
-        {{ bookTag("ISBN", book.Index.ISBN, "isbn") }}
-        {{ bookTag("Дата", book.Index.Date, "date") }}
-        {{ bookTag("Язык", book.Index.Lang, "lang") }}
-        {{ bookTag("Жанр", book.Index.Genre, "genre") }}
-        {{ bookTag("Автор", book.Index.Author, "author") }}
-        {{ bookTag("Переводчик", book.Index.Translator, "transl") }}
-        {{ bookTag("Издательство", book.Index.Publisher, "publ") }}
-        {{ bookTag("Серия", book.Index.Serie, "serie") }}
+        {{ bookTag("Коллекция", book.Lib, "lib") }}
+        {% for publ in book.PublInfo %}{{ bookTag("ISBN", publ.ISBN) }}{% endfor %}
+        {{ bookTag("Дата", book.Info.Date) }}
+        {{ bookTag("Язык", book.Info.Lang, "lng") }}
+        {{ bookTags("Жанр", book.Info.Genres, "genre") }}
+        {{ bookTags("Автор", book.Info.Authors) }}
+        {{ bookTags("Переводчик", book.Info.Translators) }}        
+        {% for publ in book.PublInfo %}{{ bookTag("Издательство", publ.Publisher, "publ") }}{% endfor %}        
+        {{ bookTags("Серия", book.Info.Sequences, "seq") }}
     </div>
     {% endfor %}
     {% else %}

@@ -21,17 +21,27 @@
         <div id="sidebar">
           <div class="inner">
             {% if section_name != "books" %}
-              <section id="search" class="alt"><form method="get" action="/books/"><input type="text" name="q"/></form></section>
-              {% endif %}
-              <nav id="menu" class="sidebar-menu">
-                <header class="major"><h2>Разделы:</h2></header>
-                <ul>
-                  <li><a href="/books/"{% if section_name == "books" %} class="active"{% endif %}>Книги ({{sidebar_stats.books}})</a></li>
-                  <li><a href="/genres/"{% if section_name == "genres" %} class="active"{% endif %}>Жанры ({{sidebar_stats.genres}})</a></li>
-                  <li><a href="/series/"{% if section_name == "series" %} class="active"{% endif %}>Серии ({{sidebar_stats.series}})</a></li>
-                  <li><a href="/authors/"{% if section_name == "authors" %} class="active"{% endif %}>Авторы ({{sidebar_stats.authors}})</a></li>
-                </ul>
-              </nav>
+            <section id="search" class="alt"><form method="get" action="/books/"><input type="text" name="q"/></form></section>
+            {% endif %}
+            <nav id="menu" class="sidebar-menu">
+              <header class="major"><h2>Разделы:</h2></header>
+              <ul>
+                <li><a href="/books/"{% if section_name == "books" %} class="active"{% endif %}>Книги ({{sidebar_stats.books}} шт.)</a></li>
+                <li><a href="/genres/"{% if section_name == "genres" %} class="active"{% endif %}>Жанры ({{sidebar_stats.genres}} шт.)</a></li>
+                <li><a href="/series/"{% if section_name == "series" %} class="active"{% endif %}>Серии ({{sidebar_stats.series}} шт.)</a></li>
+                <li><a href="/authors/"{% if section_name == "authors" %} class="active"{% endif %}>Авторы ({{sidebar_stats.authors}} шт.)</a></li>
+              </ul>
+            </nav>
+            {% if libslist %}
+            <nav id="menu">
+              <header class="major"><h2>Коллекции:</h2></header>
+              <ul>
+                {% for lib in libslist %}
+                <li><a href="/books/lib/{{lib.Val|urlencode}}/">{{lib.Val}} ({{lib.Freq}} шт.)</a></li>
+                {% endfor %}
+              </ul>              
+            </nav>
+            {% endif %}
           </div>
         </div>
     </div>

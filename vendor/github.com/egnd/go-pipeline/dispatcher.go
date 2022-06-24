@@ -9,4 +9,5 @@ import (
 type Dispatcher interface {
 	io.Closer
 	Push(Task) error
+	Wait()
 }

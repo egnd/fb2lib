@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"github.com/egnd/fb2lib/internal/entities"
+	"github.com/egnd/fb2lib/internal/repos"
 	"github.com/labstack/echo/v4"
 )
 
-func SeriesHandler(repo entities.IBooksInfoRepo) echo.HandlerFunc {
+func SeriesHandler(repo *repos.BooksBadgerBleve) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		// letter := c.Param("letter")
 

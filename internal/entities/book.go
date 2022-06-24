@@ -251,7 +251,8 @@ type BookMeta struct {
 	Authors     []string    `json:"auth,omitempty"`
 	Translators []string    `json:"transl,omitempty"`
 	Sequences   []string    `json:"seq,omitempty"`
-	Cover       *fb2.Binary `json:"cover,omitempty"`
+	CoverID     string      `json:"cover,omitempty"`
+	Cover       *fb2.Binary `json:"-"`
 }
 
 func NewBookMeta(data []fb2.TitleInfo, bin []fb2.Binary) (res BookMeta) {
@@ -295,19 +296,15 @@ func NewBookMeta(data []fb2.TitleInfo, bin []fb2.Binary) (res BookMeta) {
 			res.SrcLang = xmlparse.GetStrFrom(item.SrcLang)
 		}
 
-		if res.Cover != nil {
+		if res.CoverID != "" {
 			continue
 		}
 
-		index := make(map[string]*fb2.Binary, len(bin))
-		for k := range bin {
-			index[bin[k].ID] = &bin[k]
-		}
+	loop:
 		for _, cover := range item.Coverpage {
 			for _, img := range cover.Images {
-				if _, ok := index[strings.TrimPrefix(img.Href, "#")]; ok {
-					res.Cover = index[strings.TrimPrefix(img.Href, "#")]
-				}
+				res.CoverID = strings.TrimPrefix(img.Href, "#")
+				break loop
 			}
 		}
 	}

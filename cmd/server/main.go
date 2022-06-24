@@ -10,6 +10,7 @@ import (
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/internal/factories"
 	"github.com/egnd/fb2lib/internal/repos"
+	"github.com/egnd/go-pipeline/pools"
 )
 
 var (
@@ -17,7 +18,7 @@ var (
 
 	showVersion = flag.Bool("version", false, "Show app version.")
 	cfgPath     = flag.String("config", "configs/app.yml", "Configuration file path.")
-	cfgPrefix   = flag.String("env-prefix", "BS", "Prefix for env variables.")
+	cfgPrefix   = flag.String("env-prefix", "FBL", "Prefix for env variables.")
 )
 
 func main() {
@@ -36,12 +37,13 @@ func main() {
 		panic(err)
 	}
 
-	repoLibrary := repos.NewLibraryFiles(libs)
+	repoLibrary := repos.NewLibraryFs(libs, pools.NewSemaphore(20, nil), logger)
 	repoBooks := repos.NewBooksBadgerBleve(0,
 		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "books"),
 		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "authors"),
 		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "series"),
 		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "genres"),
+		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "libs"),
 		factories.NewBleveIndex(cfg.GetString("adapters.bleve.dir"), "books", entities.NewBookIndexMapping()),
 		jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
 		jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal,

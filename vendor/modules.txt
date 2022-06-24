@@ -117,10 +117,11 @@ github.com/dgraph-io/ristretto/z/simd
 # github.com/dustin/go-humanize v1.0.0
 ## explicit
 github.com/dustin/go-humanize
-# github.com/egnd/go-pipeline v1.1.1
+# github.com/egnd/go-pipeline v1.2.0
 ## explicit; go 1.18
 github.com/egnd/go-pipeline
 github.com/egnd/go-pipeline/pools
+github.com/egnd/go-pipeline/tasks
 github.com/egnd/go-pipeline/workers
 # github.com/egnd/go-xmlparse v1.1.1
 ## explicit; go 1.18

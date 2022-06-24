@@ -2,6 +2,7 @@ package workers
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/egnd/go-pipeline"
 )
@@ -12,7 +13,11 @@ type Worker struct {
 }
 
 // NewWorker creates workers with tasks queue.
-func NewWorker(queueSize int, execute pipeline.TaskExecutor) *Worker {
+func NewWorker(queueSize int, wg *sync.WaitGroup, execute pipeline.TaskExecutor) *Worker {
+	if wg == nil {
+		panic("worker requires WaitGroup")
+	}
+
 	worker := &Worker{
 		tasks: make(chan pipeline.Task, queueSize),
 	}
@@ -20,6 +25,8 @@ func NewWorker(queueSize int, execute pipeline.TaskExecutor) *Worker {
 	go func() {
 		for task := range worker.tasks {
 			_ = execute(task)
+
+			wg.Done()
 		}
 	}()
 

@@ -6,7 +6,7 @@ require (
 	github.com/blevesearch/bleve/v2 v2.3.2
 	github.com/dgraph-io/badger/v3 v3.2103.2
 	github.com/dustin/go-humanize v1.0.0
-	github.com/egnd/go-pipeline v1.1.1
+	github.com/egnd/go-pipeline v1.2.0
 	github.com/egnd/go-xmlparse v1.1.1
 	github.com/essentialkaos/translit/v2 v2.0.4
 	github.com/flosch/pongo2/v5 v5.0.0

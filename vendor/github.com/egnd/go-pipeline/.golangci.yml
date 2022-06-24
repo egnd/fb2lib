@@ -16,11 +16,12 @@ output:
 linters:
   enable-all: true
   disable:
+   - golint # deprecated
+   - interfacer # deprecated
+   - maligned # deprecated
+   - scopelint # deprecated
    - goerr113
-   - golint
-   - interfacer
-   - maligned
-   - scopelint
+   - varnamelen
   fast: false
 issues:
   exclude-use-default: false

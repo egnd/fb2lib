@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"github.com/egnd/fb2lib/internal/entities"
+	"github.com/egnd/fb2lib/internal/repos"
 	"github.com/labstack/echo/v4"
 )
 
-func BookDetailsHandler(repo entities.IBooksInfoRepo) echo.HandlerFunc {
+func BookDetailsHandler(repo *repos.BooksBadgerBleve) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		// var book entities.BookInfo
 		// if book, err = repo.FindByID(c.Param("id")); err != nil {

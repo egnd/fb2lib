@@ -14,7 +14,9 @@ func NewBadgerDB(dir, name string) *badger.DB {
 		panic(err)
 	}
 
-	db, err := badger.Open(badger.DefaultOptions(dir))
+	opts := badger.DefaultOptions(dir)
+	opts.Logger = nil // @TODO:
+	db, err := badger.Open(opts)
 	if err != nil {
 		panic(err)
 	}
