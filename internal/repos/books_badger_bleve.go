@@ -126,6 +126,7 @@ func (r *BooksBadgerBleve) FindBooks(queryStr string,
 	default:
 		searchQ = bleve.NewDisjunctionQuery(
 			bleve.NewMatchPhraseQuery(queryStr), // phrase match
+			// bleve.NewWildcardQuery(queryStr),    // wildcards syntax
 			bleve.NewQueryStringQuery(queryStr), // extended search syntax https://blevesearch.com/docs/Query-String-Query/
 		)
 		sortField = &search.SortField{
@@ -143,6 +144,7 @@ func (r *BooksBadgerBleve) FindBooks(queryStr string,
 
 	req := bleve.NewSearchRequestOptions(searchQ, pager.GetPageSize(), pager.GetOffset(), false)
 	req.Sort = append(req.Sort, sortField)
+	req.Highlight = bleve.NewHighlightWithStyle("html")
 
 	searchResults, err := r.index.Search(req)
 	if err != nil {
@@ -152,11 +154,26 @@ func (r *BooksBadgerBleve) FindBooks(queryStr string,
 	pager.SetTotal(searchResults.Total)
 
 	ids := make([]string, 0, len(searchResults.Hits))
+	fragments := make(map[string]map[string]string, len(searchResults.Hits))
 	for _, item := range searchResults.Hits {
+		fragments[item.ID] = make(map[string]string, len(item.Fragments))
+		for k, vals := range item.Fragments {
+			fragments[item.ID][k] = vals[0]
+		}
+
 		ids = append(ids, item.ID)
 	}
 
-	return r.getBooks(ids)
+	res, err := r.getBooks(ids)
+	if err != nil {
+		return res, err
+	}
+
+	for k := range res {
+		res[k].Match = fragments[res[k].ID]
+	}
+
+	return res, err
 }
 
 func (r *BooksBadgerBleve) Remove(bookID string) error { //@TODO: remove book file too

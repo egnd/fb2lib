@@ -14,15 +14,16 @@ import (
 )
 
 type Book struct {
-	ID             string          `json:"id"`
-	Offset         uint64          `json:"from,omitempty"`
-	Size           uint64          `json:"size,omitempty"`
-	SizeCompressed uint64          `json:"sizec,omitempty"`
-	Lib            string          `json:"lib,omitempty"`
-	Src            string          `json:"src,omitempty"`
-	Info           BookMeta        `json:"info,omitempty"`
-	OrigInfo       *BookMeta       `json:"oinfo,omitempty"`
-	PublInfo       []BookPublisher `json:"pinfo,omitempty"`
+	ID             string            `json:"id"`
+	Offset         uint64            `json:"from,omitempty"`
+	Size           uint64            `json:"size,omitempty"`
+	SizeCompressed uint64            `json:"sizec,omitempty"`
+	Lib            string            `json:"lib,omitempty"`
+	Src            string            `json:"src,omitempty"`
+	Info           BookMeta          `json:"info,omitempty"`
+	OrigInfo       *BookMeta         `json:"oinfo,omitempty"`
+	PublInfo       []BookPublisher   `json:"pinfo,omitempty"`
+	Match          map[string]string `json:"-"`
 }
 
 func (b *Book) Index() (res BookIndex) {
@@ -379,7 +380,6 @@ func NewBookIndexMapping() *mapping.IndexMappingImpl {
 	books.AddFieldMappingsAt(string(IdxFID), sortField)
 
 	strField := bleve.NewTextFieldMapping()
-	strField.Store = false
 	books.AddFieldMappingsAt(string(IdxFISBN), strField)
 	books.AddFieldMappingsAt(string(IdxFTitle), strField)
 	books.AddFieldMappingsAt(string(IdxFAuthor), strField)

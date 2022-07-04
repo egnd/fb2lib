@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container-fluid page-books">
+  <div class="row">
+    {% if pager.GetTotal() > pager.GetPageSize() %}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body d-flex p-0">
+          {% if pager.HasNext() %}
+          <h3 class="card-title p-3">Книги {{pager.GetOffset()+1}}-{{pager.GetOffset()+pager.GetPageSize()}} из {{pager.GetTotal()}}</h3>
+          {% else %}
+          <h3 class="card-title p-3">Книги {{pager.GetOffset()+1}}-{{pager.GetTotal()}} из {{pager.GetTotal()}}</h3>
+          {% endif %}
+          <ul class="nav nav-pills ml-auto p-2">
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" aria-expanded="false">
+                {{pager.GetPageSize()}} <span class="caret"></span>
+              </a>
+              <div class="dropdown-menu">
+                {% for size in books_sizes|split:"," %}
+                <a class="dropdown-item" tabindex="-1" href="{{pager.GetLink(1,size|integer)}}">{{size}}</a>
+                {% endfor %}
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% include "blocks/books-list.html" with books=books cur_tag=cur_tag pager=pager %}
+    {% include "blocks/pagination.html" with pager=pager %}
+  </div>
+</div>
+{% endblock %}

@@ -87,7 +87,7 @@ func TransformStr(vals ...string) string {
 	return buf.String()
 }
 
-func BuildBookName(book Book) (res string) {
+func BuildBookName(book *Book) (res string) {
 	res = TransformStr(book.Info.Title)
 
 	if authors := TransformStr(book.Info.Authors...); authors != "" {

@@ -7,14 +7,21 @@ import (
 	"strings"
 
 	"github.com/egnd/fb2lib/internal/entities"
+	"github.com/egnd/fb2lib/internal/repos"
 	"github.com/pkg/errors"
 )
+
+type ErrAlreadyIndexed struct{}
+
+func (e ErrAlreadyIndexed) Error() string {
+	return "already indexed"
+}
 
 type DefineItemTask struct {
 	id        string
 	item      string
 	lib       entities.Library
-	repoMarks entities.ILibMarksRepo
+	repoMarks *repos.LibMarks
 	doFB2Task PushReadTask
 	doZIPTask DoReadZipTask
 }
@@ -22,7 +29,7 @@ type DefineItemTask struct {
 func NewDefineItemTask(
 	item string,
 	lib entities.Library,
-	repoMarks entities.ILibMarksRepo,
+	repoMarks *repos.LibMarks,
 	doFB2Task PushReadTask,
 	doZIPTask DoReadZipTask,
 ) *DefineItemTask {
@@ -47,7 +54,7 @@ func (t *DefineItemTask) Do() error {
 	}
 
 	if t.repoMarks.MarkExists(t.item) {
-		return fmt.Errorf("%s already indexed", t.item)
+		return &ErrAlreadyIndexed{}
 	}
 
 	switch path.Ext(t.item) {
@@ -57,7 +64,7 @@ func (t *DefineItemTask) Do() error {
 		}
 
 		if err := t.repoMarks.AddMark(t.item); err != nil {
-			return errors.Wrap(err, "memorize zip error")
+			return errors.Wrap(err, "memorize item error")
 		}
 	case ".fb2":
 		reader, err := os.Open(t.item)
@@ -71,6 +78,10 @@ func (t *DefineItemTask) Do() error {
 			Src:  strings.TrimPrefix(t.item, t.lib.Dir),
 		}); err != nil {
 			return errors.Wrap(err, "do fb2 error")
+		}
+
+		if err := t.repoMarks.AddMark(t.item); err != nil {
+			return errors.Wrap(err, "memorize item error")
 		}
 	default:
 		return fmt.Errorf("type error: unhandled type %s", path.Ext(t.item))

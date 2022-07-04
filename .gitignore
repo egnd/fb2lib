@@ -2,6 +2,7 @@
 /configs/*.override.y*ml
 /fb2c-*.zip
 /var
+/web/html
 /.env
 .DS_Store
 *.log

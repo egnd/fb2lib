@@ -21,7 +21,10 @@ func (r *LibMarks) MarkExists(mark string) (res bool) {
 			return err
 		}
 
-		res = item.String() == "true"
+		item.Value(func(val []byte) error {
+			res = string(val) == "true"
+			return nil
+		})
 
 		return nil
 	}); err != nil {

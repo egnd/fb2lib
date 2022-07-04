@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func ConvertFB2Epub(converterDir string, book entities.Book,
+func ConvertFB2Epub(converterDir string, book *entities.Book,
 	libs entities.Libraries, server echo.Context, logger zerolog.Logger,
 ) error {
 	filePath := book.Src

@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Logger,
+func NewEchoServer(version string, libs entities.Libraries, cfg *viper.Viper, logger zerolog.Logger,
 	repoInfo *repos.BooksBadgerBleve, repoBooks *repos.LibraryFs,
 ) (*echo.Echo, error) {
 	var err error
@@ -25,7 +25,7 @@ func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Log
 	server.HideBanner = true
 	server.HidePort = true
 
-	if server.Renderer, err = NewEchoRender(cfg, server, repoInfo, logger); err != nil {
+	if server.Renderer, err = NewEchoRender(version, cfg, server, repoInfo, logger); err != nil {
 		return nil, err
 	}
 
@@ -43,10 +43,10 @@ func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Log
 	})
 
 	server.GET("/", func(c echo.Context) error { return c.Redirect(http.StatusMovedPermanently, "/books/") })
-	server.GET("/books/", handlers.BooksHandler(cfg, libs, repoInfo, repoBooks))
-	server.GET("/books/:tag/:tag_value/", handlers.BooksHandler(cfg, libs, repoInfo, repoBooks))
+	server.GET("/books/", handlers.BooksHandler(cfg, libs, repoInfo, repoBooks, logger))
+	server.GET("/books/:tag/:tag_value/", handlers.BooksHandler(cfg, libs, repoInfo, repoBooks, logger))
 	server.GET("/download/:book", handlers.DownloadHandler(libs, repoInfo, cfg, logger))
-	server.GET("/book/:id", handlers.BookDetailsHandler(repoInfo))
+	server.GET("/book/:id", handlers.BookDetailsHandler(repoInfo, repoBooks))
 	server.GET("/book/:id/remove", handlers.RemoveBookHandler(repoInfo))
 	server.GET("/genres/", handlers.GenresHandler(cfg, repoInfo))
 	server.GET("/series/", handlers.SeriesHandler(repoInfo))
@@ -58,7 +58,7 @@ func NewEchoServer(libs entities.Libraries, cfg *viper.Viper, logger zerolog.Log
 	return server, nil
 }
 
-func NewEchoRender(cfg *viper.Viper,
+func NewEchoRender(version string, cfg *viper.Viper,
 	server *echo.Echo, repo *repos.BooksBadgerBleve, logger zerolog.Logger,
 ) (echo.Renderer, error) {
 	books, _ := repo.GetBooksCnt()
@@ -74,6 +74,8 @@ func NewEchoRender(cfg *viper.Viper,
 		"series":  series,
 	}
 	globals["libslist"], _ = repo.GetLibs()
+	globals["app_version"] = version
+	globals["debug"] = server.Debug
 
 	return echoext.NewPongoRenderer(echoext.PongoRendererCfg{
 		Debug:   server.Debug,

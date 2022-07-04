@@ -1,0 +1,59 @@
+{% macro renderTag(title, value, link, param) %}
+{% if param %}
+<a class="btn btn-outline-light" title="{{title}}" href="?q={{link|trimspace|urlencode}}">{{value}}</a>
+{% else %}
+<a class="btn btn-outline-light" title="{{title}}" href="{{link}}">{{value}}</a>
+{% endif %}
+{% endmacro %}
+
+{% macro showTag(title, value, tag, atURL) %}
+{% if value|trimspace %}
+  {% if tag && atURL %}
+  {{ renderTag(title, value, "/books/"+tag|trimspace|urlencode+"/"+value|striptags|split:"("|first|trimspace|urlencode+"/") }}
+  {% elif tag %}
+  {{ renderTag(title, value, "+"+tag+":\""+value|striptags|split:"("|first+"\"", true) }}
+  {% else %}
+  {{ renderTag(title, value, value|striptags|split:"("|first, true) }}
+  {% endif %}
+{% endif %}
+{% endmacro %}
+
+{% macro showTags(title, values, tag, atURL) %}
+{% for value in values %}{{showTag(title, value, tag, atURL)}}{% endfor %}
+{% endmacro %}
+
+{% for book in books %}
+<div class="col-md-4 books-list-item">
+  <div class="card">
+    <div class="card-header">
+      <a href="/book/{{book.ID}}">{% if pager %}{{pager.GetOffset()+forloop.Counter}}. {% endif %}{{book.Info.Title}}</a>
+    </div>
+    <div class="card-body">
+      <a href="/book/{{book.ID}}" class="book-cover">
+        {% if book.Info.Cover %}
+        <img src="data:{{book.Info.Cover.Type}};base64,{{book.Info.Cover.Data}}">
+        {% else %}
+        <img src="/assets/img/noimg.png"/>
+        {% endif %}
+      </a>
+      <a href="/download/{{book.ID}}.fb2" class="btn btn-primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{book.Size|filesize}})</a>
+      <a href="/download/{{book.ID}}.epub" class="btn btn-primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
+      {{ showTag("коллекция", book.Lib, "lib", true) }}
+      {% for publ in book.PublInfo %}{{ showTag("ISBN", publ.ISBN, "isbn") }}{% endfor %}
+      {{ showTag("дата", book.Info.Date) }}
+      {{ showTag("язык", book.Info.Lang, "lng", true) }}
+      {{ showTags("жанр", book.Info.Genres, "genre", true) }}
+      {{ showTags("автор", book.Info.Authors, "auth", true) }}
+      {{ showTags("переводчик", book.Info.Translators, "transl", true) }}        
+      {% for publ in book.PublInfo %}{{ bookTag("издательство", publ.Publisher, "publ", true) }}{% endfor %}        
+      {{ bookTags("серия", book.Info.Sequences, "seq", true) }}
+      {% if debug && book.Match %}
+      <a class="btn btn-outline-warning" data-toggle="collapse" href="#searchMatch{{book.ID}}" role="button">Match</a>
+      <div class="collapse" id="searchMatch{{book.ID}}" style="clear: both;">
+        {% for k,v in book.Match %}{{k}}: {{v|safe}}<br>{% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endfor %}

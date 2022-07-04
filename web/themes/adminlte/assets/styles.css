@@ -1,0 +1,44 @@
+/* .books-list-item a {
+    color: white;
+} */
+
+.books-list-item .book-cover {
+    float: left;
+    margin: 0 10px 20px 0;
+    overflow: hidden;
+}
+
+.books-list-item .book-cover img {
+    max-height: 300px;
+}
+
+.books-list-item .btn {
+    margin-bottom: 5px;
+}
+
+.pagination-block ul {
+    margin-bottom: 0;
+}
+
+@media screen and (max-width: 767px) {
+    .books-list-item .book-cover {
+        margin-right: 0;
+        width: 100%;
+        text-align: center;
+    }
+    
+    .books-list-item .book-cover img {
+        max-width: 100%;
+    }
+
+    .pagination-block .paginate_button.first,
+    .pagination-block .paginate_button.previous,
+    .pagination-block .paginate_button.next,
+    .pagination-block .paginate_button.last {
+        display: inline;
+    }
+  
+    .pagination-block li.paginate_button {
+        display: none;
+    }
+}

@@ -15,18 +15,6 @@ adapters:
     dir: var/db
 converter:
   dir: var/converter
-renderer:
-  dir: web/themes/editorial
-  sidebar:
-    genres_size: 10
-  globals:
-    page_title: FB2 Библиотека
-    page_h1: FB2 Библиотека
-    books_sizes: 20,40,100
-    genres_size: 50
-    section_name: home
-    alphabet_en: ABCDEFGHIJKLMNOPQRSTUWVXYZ
-    alphabet_ru: АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ
 pprof:
   dir: var/pprof
 libraries:
@@ -43,3 +31,18 @@ indexer:
   parse_buff: 0
   parse_threads: 0
   batch_size: 200
+renderer:
+  dir: web/themes/editorial
+  sidebar:
+    genres_size: 10
+  globals:
+    logo_text: FB2Lib
+    page_title: Библиотека
+    page_h1: Библиотека
+    books_sizes: 21,45,150
+    genres_size: 50
+    section_name: home
+    alphabet_en: ABCDEFGHIJKLMNOPQRSTUWVXYZ
+    alphabet_ru: АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ
+    app_version: v0.0.0
+    darkmode: true

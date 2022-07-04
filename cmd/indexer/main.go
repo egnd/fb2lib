@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -98,7 +99,12 @@ func main() {
 			logger.Debug().Str("task", task.ID()).Msg("iterate")
 
 			if err := next(task); err != nil {
-				logger.Error().Str("task", task.ID()).Err(err).Msg("iterate")
+				var indexed *tasks.ErrAlreadyIndexed
+				if errors.As(err, &indexed) {
+					logger.Info().Str("task", task.ID()).Msg(err.Error())
+				} else {
+					logger.Error().Str("task", task.ID()).Err(err).Msg("iterate")
+				}
 			}
 
 			return nil
@@ -146,18 +152,17 @@ func main() {
 	var num int
 	total := len(libItems)
 	for _, v := range libItems {
+		num++
 		lib := libs[v.Lib]
-		libItemPath := v.Item
+		itemPath := v.Item
 		readerTaskFactory := func(reader io.ReadCloser, book entities.Book) error {
 			cntTotal.Inc(1)
 			return readingPool.Push(tasks.NewReadTask(book.Src, book.Lib, reader, func(data io.Reader) error {
 				return parsingPool.Push(tasks.NewParseFB2Task(data, book, lib.Encoder, repoBooks, barTotal))
 			}))
 		}
-
-		num++
-		pipe.Push(tasks.NewDefineItemTask(libItemPath, lib, repoMarks, readerTaskFactory, func(finfo fs.FileInfo) error {
-			return tasks.NewReadZipTask(num, total, libItemPath, finfo, lib, bars, readerTaskFactory).Do()
+		pipe.Push(tasks.NewDefineItemTask(itemPath, lib, repoMarks, readerTaskFactory, func(finfo fs.FileInfo) error {
+			return tasks.NewReadZipTask(num, total, itemPath, finfo, lib, bars, readerTaskFactory).Do()
 		}))
 	}
 

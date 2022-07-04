@@ -9,7 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func BookAttachment(book entities.Book, libs entities.Libraries, server echo.Context) error {
+func BookAttachment(book *entities.Book, libs entities.Libraries, server echo.Context) error {
 	bookPath := book.Src
 	if lib, ok := libs[book.Lib]; ok {
 		bookPath = path.Join(lib.Dir, bookPath)

@@ -15,7 +15,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func ConvertFB2EpubZipOffset(converterDir string, book entities.Book,
+func ConvertFB2EpubZipOffset(converterDir string, book *entities.Book,
 	libs entities.Libraries, server echo.Context, logger zerolog.Logger,
 ) error {
 	epubPath := path.Join(converterDir, book.ID+".epub")

@@ -28,8 +28,3 @@ type IBooksInfoRepo interface {
 type IBooksLibraryRepo interface {
 	GetFB2(Book) (fb2.File, error)
 }
-
-type ILibMarksRepo interface {
-	MarkExists(string) bool
-	AddMark(string) error
-}

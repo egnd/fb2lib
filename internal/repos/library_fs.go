@@ -32,26 +32,30 @@ func NewLibraryFs(libs entities.Libraries, executor pipeline.Dispatcher, logger 
 	}
 }
 
-func (r *LibraryFs) AppendFromFB2(books []entities.Book) {
-	for k, book := range books {
+func (r *LibraryFs) AppendFB2Book(book *entities.Book) error {
+	fb2File, err := r.readFB2(book, getBookCoverRule(book))
+	if err != nil {
+		return err
+	}
+
+	for _, bin := range fb2File.Binary {
+		if bin.ID == book.Info.CoverID {
+			book.Info.Cover = &bin
+		}
+
+		if book.OrigInfo != nil && bin.ID == book.OrigInfo.CoverID {
+			book.OrigInfo.Cover = &bin
+		}
+	}
+
+	return nil
+}
+
+func (r *LibraryFs) AppendFB2Books(books []entities.Book) {
+	for k := range books {
 		k := k
-		book := book
 		r.executor.Push(tasks.NewFunc("", func() error {
-			fb2File, err := r.readFB2(&book, getBookCoverRule(&book))
-			if err != nil {
-				return err
-			}
-
-			for _, bin := range fb2File.Binary {
-				if bin.ID == book.Info.CoverID {
-					books[k].Info.Cover = &bin
-				}
-
-				if book.OrigInfo != nil && bin.ID == book.OrigInfo.CoverID {
-					books[k].OrigInfo.Cover = &bin
-				}
-			}
-			return nil
+			return r.AppendFB2Book(&books[k])
 		}))
 	}
 

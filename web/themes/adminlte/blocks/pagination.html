@@ -1,0 +1,53 @@
+{% if pager && pager.HasPages() %}
+<div class="col-md-12 pagination-block">
+  <div class="card">
+    <div class="card-body mx-auto">
+      <ul class="pagination">
+        {%if pager.HasPrev() %}
+        <li class="paginate_button page-item first">
+          <a href="{{pager.GetLinkFirst()}}" class="page-link">Начало</a>
+        </li>
+        <li class="paginate_button page-item previous">
+          <a href="{{pager.GetLinkPrev()}}" class="page-link">Назад</a>
+        </li>
+        {% else %}
+        <li class="paginate_button page-item first disabled">
+          <a href="{{pager.GetLinkFirst()}}" class="page-link">Начало</a>
+        </li>
+        <li class="paginate_button page-item previous disabled">
+          <a href="{{pager.GetLinkPrev()}}" class="page-link">Назад</a>
+        </li>        
+        {% endif %}
+
+        {% for page in pager.GetPages()%}
+          {%if pager.IsCurPage(page) %}          
+          <li class="paginate_button page-item active">
+            <a aria-controls="example1" class="page-link">{{page}}</a>
+          </li>
+          {% else %}
+          <li class="paginate_button page-item">
+            <a href="{{pager.GetLink(page,0)}}" class="page-link">{{page}}</a>
+          </li>
+          {% endif %}
+        {% endfor %}    
+        
+        {%if pager.HasNext() %}
+        <li class="paginate_button page-item next">
+          <a href="{{pager.GetLinkNext()}}" class="page-link">Вперед</a>
+        </li>
+        <li class="paginate_button page-item last">
+          <a href="{{pager.GetLinkLast()}}" class="page-link">Конец</a>
+        </li>
+        {% else %}
+        <li class="paginate_button page-item next disabled">
+          <a href="{{pager.GetLinkNext()}}" class="page-link">Вперед</a>
+        </li>
+        <li class="paginate_button page-item last disabled">
+          <a href="{{pager.GetLinkLast()}}" class="page-link">Конец</a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</div>
+{%endif%}

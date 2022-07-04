@@ -51,7 +51,7 @@ func main() {
 	)
 	defer repoBooks.Close()
 
-	server, err := factories.NewEchoServer(libs, cfg, logger, repoBooks, repoLibrary)
+	server, err := factories.NewEchoServer(appVersion, libs, cfg, logger, repoBooks, repoLibrary)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("init http server")
 	}

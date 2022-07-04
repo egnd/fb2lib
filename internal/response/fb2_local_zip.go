@@ -14,7 +14,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func FB2FromLocalZip(book entities.Book, libs entities.Libraries, server echo.Context) error {
+func FB2FromLocalZip(book *entities.Book, libs entities.Libraries, server echo.Context) error {
 	zipFilePath := strings.Split(book.Src, ".zip")[0] + ".zip"
 	if lib, ok := libs[book.Lib]; ok {
 		zipFilePath = path.Join(lib.Dir, zipFilePath)

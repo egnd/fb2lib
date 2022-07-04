@@ -43,6 +43,9 @@
     {% if books %}
     {% for book in books %}
     <div class="col-6 col-12-xsmall books-detailed-item">
+        <h4 class="col-12-xsmall"><a href="/book/{{book.ID}}">
+            {% if pager %}{{pager.GetOffset()+forloop.Counter}}. {% endif %}{{book.Info.Title|safe}}</a>
+        </h4>
         <a href="/book/{{book.ID}}">
             {% if book.Info.Cover %}
             <img src="data:{{book.Info.Cover.Type}};base64,{{book.Info.Cover.Data}}"/>
@@ -51,13 +54,8 @@
             {% endif %}
         </a>
 
-        <h4 class="col-12-xsmall"><a href="/book/{{book.ID}}">
-            {% if pager %}{{pager.GetOffset()+forloop.Counter}}. {% endif %}{{book.Info.Title|safe}}</a>
-        </h4>
-
         <a href="/download/{{book.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{book.Size|filesize}})</a>
         <a href="/download/{{book.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
-
         {{ bookTag("Коллекция", book.Lib, "lib") }}
         {% for publ in book.PublInfo %}{{ bookTag("ISBN", publ.ISBN) }}{% endfor %}
         {{ bookTag("Дата", book.Info.Date) }}

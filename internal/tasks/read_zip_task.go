@@ -63,7 +63,7 @@ func (t *ReadZipTask) Do() error {
 
 	itemReader, err := zip.OpenReader(t.path)
 	if err != nil {
-		return errors.Wrap(err, "read zip error")
+		return errors.Wrapf(err, "read %s error", t.path)
 	}
 	defer itemReader.Close()
 
