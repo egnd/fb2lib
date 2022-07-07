@@ -51,9 +51,9 @@ func NewEchoServer(version string, libs entities.Libraries, cfg *viper.Viper, lo
 	server.GET("/genres/", handlers.GenresHandler(cfg, repoInfo))
 	server.GET("/series/", handlers.SeriesHandler(repoInfo))
 	server.GET("/series/:letter/", handlers.SeriesHandler(repoInfo))
-	server.GET("/authors/", handlers.AuthorsHandler(repoInfo))
-	server.GET("/authors/:letter/", handlers.AuthorsHandler(repoInfo))
-	server.GET("/authors/:letter/:name", handlers.AuthorsHandler(repoInfo))
+	server.GET("/authors/", handlers.AuthorsHandler(repoInfo, repoBooks))
+	server.GET("/authors/:letter/", handlers.AuthorsHandler(repoInfo, repoBooks))
+	server.GET("/authors/:letter/:name", handlers.AuthorsHandler(repoInfo, repoBooks))
 
 	return server, nil
 }

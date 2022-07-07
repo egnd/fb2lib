@@ -283,23 +283,28 @@ func (r *BooksBadgerBleve) GetAuthorsBooks(limit int, authors []string, except *
 	return r.getBooks(ids)
 }
 
-func (r *BooksBadgerBleve) GetAuthorsSeries(authors []string, except []string) (res map[string]int, err error) {
+func (r *BooksBadgerBleve) GetAuthorsSeries(authors []string, except []string) (entities.FreqsItems, error) {
 	books, err := r.GetAuthorsBooks(1000, authors, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	res = map[string]int{}
+	index := map[string]int{}
 	for _, book := range books {
 		for _, serie := range r.clearSeqs(book.Series()) {
-			res[serie]++
+			index[serie]++
 		}
 	}
 
 	// @TODO: cache res map
 
 	for _, item := range except {
-		delete(res, item)
+		delete(index, item)
+	}
+
+	res := make(entities.FreqsItems, 0, len(index))
+	for k, v := range index {
+		res = append(res, entities.ItemFreq{Val: k, Freq: v})
 	}
 
 	return res, nil
@@ -422,9 +427,13 @@ func (r *BooksBadgerBleve) GetLibs() (entities.FreqsItems, error) {
 	return res, nil
 }
 
-func (r *BooksBadgerBleve) GetSeriesByChar(char rune) (entities.FreqsItems, error) {
+func (r *BooksBadgerBleve) GetSeriesByPrefix(prefix string) (entities.FreqsItems, error) {
+	if prefix == "" {
+		return nil, nil
+	}
+
 	res, err := r.getFreqs( // @TODO: cache res slice
-		r.dbSeries, strings.ToLower(string(char)),
+		r.dbSeries, strings.ToLower(prefix),
 	)
 	if err != nil {
 		return nil, err
@@ -435,9 +444,13 @@ func (r *BooksBadgerBleve) GetSeriesByChar(char rune) (entities.FreqsItems, erro
 	return res, nil
 }
 
-func (r *BooksBadgerBleve) GetAuthorsByChar(char rune) (entities.FreqsItems, error) {
+func (r *BooksBadgerBleve) GetAuthorsByPrefix(prefix string) (entities.FreqsItems, error) {
+	if prefix == "" {
+		return nil, nil
+	}
+
 	res, err := r.getFreqs( // @TODO: cache res slice
-		r.dbAuthors, strings.ToLower(string(char)),
+		r.dbAuthors, strings.ToLower(prefix),
 	)
 	if err != nil {
 		return nil, err

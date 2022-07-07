@@ -1,0 +1,18 @@
+{% if series %}
+<div class="row block-series-list-simple">
+  <div class="col-12">
+    <div class="card">
+      {% if block_title %}
+      <div class="card-header">{{block_title}}:</div>
+      {% endif %}
+      <div class="card-body">
+        {% for item in series %}
+        <a class="btn btn-outline-light" href="/books/seq/{{item.Val|safe|striptags|urlencode}}/">
+          {{item.Val}}{% if item.Freq %} ({{item.Freq}}){% endif %}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}

@@ -20,6 +20,49 @@
     margin-bottom: 0;
 }
 
+.page-book-info-descr img {
+    float: left;
+    margin: 0 15px 20px 0;
+    max-width: 100%;
+}
+
+.page-book-controls > div {
+    text-align: center;
+}
+
+.page-book-controls .btn {
+    min-width: 140px;
+}
+
+.page-book-tags {
+    margin-top:15px;
+}
+
+.page-book-tags .page-book-tag {
+    display: inline-block;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+.block-books-list-simple-item {
+    text-align: center;
+}
+
+.block-books-list-simple-item img {
+    max-height: 300px;
+}
+
+.block-series-list-simple .btn,
+.block-authors-list-simple .btn,
+.block-genres-list .btn {
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+.block-alphabet .card {
+    text-align: center;
+}
+
 @media screen and (max-width: 767px) {
     .books-list-item .book-cover {
         margin-right: 0;
@@ -40,5 +83,10 @@
   
     .pagination-block li.paginate_button {
         display: none;
+    }
+
+    .page-book-controls .btn {
+        width: 80%;
+        margin-bottom: 10px;
     }
 }

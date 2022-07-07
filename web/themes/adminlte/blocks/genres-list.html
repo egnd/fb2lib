@@ -1,20 +1,7 @@
-{% if pager.GetTotal() > pager.GetPageSize() %}
-<br>
-<div class="row genres-list-head">
-    <div class="col-10 col-8-xsmall books-detailed-head-title">
-        {% if pager.HasNext() %}
-        <h4>Жанры {{pager.GetOffset()+1}}-{{pager.GetOffset()+pager.GetPageSize()}} из {{pager.GetTotal()}}</h4>
-        {% else %}
-        <h4>Жанры {{pager.GetOffset()+1}}-{{pager.GetTotal()}} из {{pager.GetTotal()}}</h4>
-        {% endif %}
-    </div>
+<div class="block-genres-list">
+  {% for item in genres %}
+  <a class="btn btn-outline-light" href="/books/genre/{{item.Val|urlencode}}/">
+    {{item.Val}}{% if item.Freq %} ({{item.Freq}}){% endif %}
+  </a>
+  {% endfor %}
 </div>
-{% endif %}
-
-<div class="row genres-list"><div class="col-12">
-    {% if genres %}
-    {% for item in genres %}<a class="button" href="/books/genre/{{item.Name|urlencode}}/">{{item.Name}} ({{item.Cnt}})</a>{% endfor %}
-    {% else %}
-    <span>Жанры не найдены</span>
-    {% endif %}
-</div></div>

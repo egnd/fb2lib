@@ -26,7 +26,7 @@ func BookDetailsHandler(
 		}
 
 		var seriesBooks, authorsBooks []entities.Book
-		var series map[string]int
+		var series entities.FreqsItems
 
 		if seriesBooks, err = repoBooks.GetSeriesBooks(100, book.Series(), book); err != nil {
 			c.NoContent(http.StatusInternalServerError)
@@ -49,11 +49,12 @@ func BookDetailsHandler(
 
 		return c.Render(http.StatusOK, "pages/book.html", pongo2.Context{
 			"page_title":     "Книга " + book.Info.Title,
-			"page_h1":        "Книга " + book.Info.Title,
+			"page_h1":        book.Info.Title,
 			"book":           book,
 			"series_books":   seriesBooks,
 			"authors_books":  authorsBooks,
 			"authors_series": series,
+			"breadcrumbs":    (entities.BreadCrumbs{}).Push("Книги", "/books/").Push(book.Info.Title, ""),
 		})
 	}
 }

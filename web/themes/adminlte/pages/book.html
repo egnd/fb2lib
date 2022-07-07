@@ -2,98 +2,108 @@
 
 {% block content %}
 
-{% macro bookTags(title, values, tag) %}
-    {% if values %}
-    <div class="col-12-xsmall">
-        <span class="button" style="box-shadow: none;padding: 0;color: black !important;">{{title}}:</span>
-        {% for value in values %}
-            {% if tag %} 
-            <a class="button" href="/books/{{tag}}/{{value|striptags|split:"("|first|trimspace|urlencode}}/">{{value}}</a>
-            {% else %}
-            <a class="button" title="{{title}}" href="/books/?q={{value|striptags|split:"("|first|trimspace|urlencode}}">{{value}}</a>
-            {% endif %}
-        {% endfor %}
-    </div>
-    {% endif %}
+{% macro renderTag(value, tag, atURL) %}
+{% if tag && atURL %}
+<a class="btn btn-outline-light" href="/books/{{tag|trimspace|urlencode}}/{{value|striptags|split:"("|first|trimspace|urlencode}}/">{{value}}</a>
+{% elif tag %}
+<a class="btn btn-outline-light" href="/books/?q=+{{tag|trimspace|urlencode}}:{{"\""+value|striptags|split:"("|first+"\""|urlencode}}">{{value}}</a>
+{% else %}
+<a class="btn btn-outline-light" href="/books/?q={{value|striptags|split:"("|first|urlencode}}">{{value}}</a>
+{% endif %}
 {% endmacro %}
 
-{% macro bookTag(title, value, tag) %}
-    {% if value|trimspace %}
-    <div class="col-12-xsmall">
-        <span class="button" style="box-shadow: none;padding: 0;color: black !important;">{{title}}:</span>
-        {% if tag %} 
-        <a class="button" href="/books/{{tag}}/{{value|striptags|split:"("|first|trimspace|urlencode}}/">{{value}}</a>
-        {% else %}
-        <a class="button" title="{{title}}" href="/books/?q={{value|striptags|split:"("|first|trimspace|urlencode}}">{{value}}</a>
-        {% endif %}
-    </div>
-    {% endif %}
-{% endmacro %}
-
-{% macro showInfo(info) %}
-<div class="book-info">
-    {% if info.Annotation || info.Cover %}
-    <div class="row book-description">
-        <div class="col-12">
-            {% if info.Cover %}<img src="data:{{info.Cover.Type}};base64,{{info.Cover.Data}}"/>{% endif %}
-            {{info.Annotation|safe}}
-        </div>
-    </div>
-    {% endif %}
-    <div class="row book-tags">
-    {{ bookTag("Язык", info.Lang) }}
-    {{ bookTag("Язык оригинала", info.SrcLang) }}
-    {{ bookTag("Дата", info.Date) }}
-    {{ bookTags("Жанры", info.Genres) }}
-    {{ bookTags("Авторы", info.Authors) }}
-    {{ bookTags("Пеерводчики", info.Translators) }}
-    {{ bookTags("Серии", info.Sequences) }}
-    </div>
+{% macro showTag(title, value, tag, atURL) %}
+{% if value|trimspace %}
+<!-- <div class="callout callout-info"> -->
+<div class="page-book-tag">
+  <span>{{title}}:</span> {{renderTag(value, tag, atURL)}}
 </div>
+{% endif %}
 {% endmacro %}
 
-{% macro showPubl(items) %}
-<div class="book-publishers">
-    {% for item in items %}
-    <div class="row">
-        {{ bookTag("Название", item.Title) }}
-        {{ bookTag("Издатель", item.Publisher) }}
-        {{ bookTag("Дата", item.Year) }}
-        {{ bookTag("ISBN", item.ISBN) }}
-        {{ bookTags("Авторы", item.Authors) }}
-        {{ bookTags("Серии", item.Sequences) }}
-    </div>
-    {% endfor %}
+{% macro showTags(title, values, tag, atURL) %}
+{% if values %}
+<div class="page-book-tag">
+  <span>{{title}}:</span>
+  {% for value in values %}{{renderTag(value, tag, atURL)}}{% endfor %}
 </div>
+{% endif %}
 {% endmacro %}
 
-<div class="row book-details book-controls">
+{% macro showInfo(info, title) %}
+{% if info %}
+<div class="col-12 page-book-info">
+  <div class="card">
+    <div class="card-header">{{title}}:</div>
+    <div class="card-body">
+      <div class="page-book-info-descr">
+        {% if info.Cover %}<img src="data:{{info.Cover.Type}};base64,{{info.Cover.Data}}"/>{% endif %}
+        {{info.Annotation|safe}}
+      </div>
+      <div class="page-book-tags">
+        {{ showTag("Название", info.Title) }}
+        {{ showTag("Язык", info.Lang, "lng", true) }}
+        {{ showTag("Язык оригинала", info.SrcLang, "lng", true) }}
+        {{ showTag("Дата", info.Date) }}
+        {{ showTags("Жанры", info.Genres, "genre", true) }}
+        {{ showTags("Авторы", info.Authors, "auth", true) }}
+        {{ showTags("Переводчики", info.Translators, "transl", true) }}        
+        {{ bookTags("Серии", info.Sequences, "seq", true) }}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro showPubl(items, title) %}
+{% if items %}
+{% for item in items %}
+<div class="col-12 page-book-publisher">
+  <div class="card">
+    <div class="card-header">{{title}} {{item.Publisher}}:</div>
+    <div class="card-body">
+      <div class="page-book-tags">
+        {{ showTag("Название", item.Title) }}
+        {{ showTag("Издатель", item.Publisher, "publ", true) }}
+        {{ showTag("Дата", item.Year) }}
+        {{ showTag("ISBN", item.ISBN, "isbn") }}
+        {{ showTags("Авторы", item.Authors, "auth", true) }}
+        {{ showTags("Серии", item.Sequences, "seq", true) }}
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endmacro %}
+
+<div class="container-fluid">
+  <div class="row">
     <div class="col-12">
-        <a href="/download/{{book.ID}}.fb2" class="button primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{book.Size|filesize}})</a>
-        <a href="/download/{{book.ID}}.epub" class="button primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
-        <a class="button" title="Коллекция" href="/books/lib/{{book.Lib|urlencode}}/">{{book.Lib}}</a>
-        <a href="/book/{{book.ID}}/remove" class="button primary"><span class="fa fa-trash"></span></a>
-    </div>
+      <div class="card">
+        <div class="card-body row page-book-controls">
+          <div class="col-md-3">
+            <a href="/download/{{book.ID}}.fb2" class="btn btn-primary"><span class="fa fa-download"></span>&nbsp;.fb2 ({{book.Size|filesize}})</a>
+          </div>
+          <div class="col-md-3">
+            <a href="/download/{{book.ID}}.epub" class="btn btn-primary"><span class="fa fa-download"></span>&nbsp;.epub</a>
+          </div>
+          <div class="col-md-3">
+            <a href="/books/lib/{{book.Lib|urlencode}}/" class="btn btn-outline-light" title="Коллекция">{{book.Lib}}</a>
+          </div>
+          <div class="col-md-3">
+            <a href="/book/{{book.ID}}/remove" class="btn btn-danger"><span class="fa fa-trash"></span></a>
+          </div>          
+        </div>
+      </div>
+    </div>    
+    {{ showInfo(book.Info, "Описание") }}
+    {{ showPubl(book.PublInfo, "Издательство") }}
+    {{ showInfo(book.OrigInfo, "Оригинал") }}
+  </div>
+  {% include "blocks/books-list-simple.html" with books=series_books columns_cnt=3 block_title="Другие книги серии" %}
+  {% include "blocks/series-list-simple.html" with series=authors_series block_title="Другие серии автора" %}
+  {% include "blocks/books-list-simple.html" with books=authors_books columns_cnt=3 block_title="Другие книги автора" %}
 </div>
-
-<br>
-<h2>{{book.Info.Title}}</h2>
-{{ showInfo(book.Info) }}
-
-{% if book.PublInfo %}
-<br>
-<h2>Издания:</h2>
-{{ showPubl(book.PublInfo) }}
-{% endif %}
-
-{% if book.OrigInfo %}
-<br>
-<h2>Оригинал:</h2>
-{{ showInfo(book.OrigInfo) }}
-{% endif %}
-
-{% include "blocks/books-simple.html" with books=series_books columns_cnt=3 block_title="Другие книги серии" %}
-{% include "blocks/series-simple.html" with series=authors_series block_title="Другие серии автора" %}
-{% include "blocks/books-simple.html" with books=authors_books columns_cnt=3 block_title="Другие книги автора" %}
-
 {% endblock %}
