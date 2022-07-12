@@ -112,7 +112,18 @@
           {% for lib in libslist %}
           <li class="nav-item">
             <a href="/books/lib/{{lib.Val|urlencode}}/" class="nav-link">
-              <i class="fas fa-circle nav-icon"></i>
+              <i class="fas fa-stream nav-icon"></i>
+              <p>{{lib.Val}} <span class="badge badge-primary right">{{lib.Freq}}</span></p>
+            </a>
+          </li>
+          {% endfor %}
+          {% endif %}
+          {% if langslist %}
+          <li class="nav-header">Языки</li>
+          {% for lib in langslist %}
+          <li class="nav-item">
+            <a href="/books/lng/{{lib.Val|urlencode}}/" class="nav-link">
+              <i class="fas fa-language nav-icon"></i>
               <p>{{lib.Val}} <span class="badge badge-primary right">{{lib.Freq}}</span></p>
             </a>
           </li>

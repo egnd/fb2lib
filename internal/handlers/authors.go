@@ -7,14 +7,18 @@ import (
 
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/internal/repos"
+	"github.com/egnd/fb2lib/pkg/pagination"
 	"github.com/flosch/pongo2/v5"
 	"github.com/labstack/echo/v4"
+	"github.com/spf13/viper"
 )
 
-func AuthorsHandler(
+func AuthorsHandler(cfg *viper.Viper,
 	repoInfo *repos.BooksBadgerBleve,
 	repoBooks *repos.LibraryFs,
 ) echo.HandlerFunc {
+	defPageSize := cfg.GetInt("renderer.globals.authors_size")
+
 	return func(c echo.Context) error {
 		letter, err := url.QueryUnescape(c.Param("letter"))
 		if err != nil {
@@ -28,12 +32,14 @@ func AuthorsHandler(
 			return err
 		}
 
+		pager := pagination.NewPager(c.Request()).SetPageSize(defPageSize).ReadPageSize().ReadCurPage()
+
 		var title string
 		var books []entities.Book
 		var series entities.FreqsItems
 		var breadcrumbs entities.BreadCrumbs
 
-		authors, err := repoInfo.GetAuthorsByPrefix(letter)
+		authors, err := repoInfo.GetAuthorsByPrefix(letter, pager)
 		if err != nil {
 			c.NoContent(http.StatusInternalServerError)
 			return err
@@ -42,7 +48,7 @@ func AuthorsHandler(
 		if name != "" {
 			title = "Автор " + name
 
-			books, err = repoInfo.GetAuthorsBooks(10, []string{name}, nil)
+			books, err = repoInfo.GetAuthorsBooks(500, []string{name}, nil)
 			if err != nil {
 				c.NoContent(http.StatusInternalServerError)
 				return err
@@ -85,6 +91,7 @@ func AuthorsHandler(
 			"series":      series,
 			"books":       books,
 			"breadcrumbs": breadcrumbs,
+			"pager":       pager,
 		})
 	}
 }

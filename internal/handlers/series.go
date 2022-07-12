@@ -6,15 +6,20 @@ import (
 
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/internal/repos"
+	"github.com/egnd/fb2lib/pkg/pagination"
 	"github.com/flosch/pongo2/v5"
 	"github.com/labstack/echo/v4"
+	"github.com/spf13/viper"
 )
 
-func SeriesHandler(repo *repos.BooksBadgerBleve) echo.HandlerFunc {
+func SeriesHandler(cfg *viper.Viper, repo *repos.BooksBadgerBleve) echo.HandlerFunc {
+	defPageSize := cfg.GetInt("renderer.globals.series_size")
+
 	return func(c echo.Context) (err error) {
 		letter := c.Param("letter")
+		pager := pagination.NewPager(c.Request()).SetPageSize(defPageSize).ReadPageSize().ReadCurPage()
 
-		series, err := repo.GetSeriesByPrefix(letter)
+		series, err := repo.GetSeriesByPrefix(letter, pager)
 		if err != nil {
 			c.NoContent(http.StatusInternalServerError)
 			return
@@ -37,6 +42,7 @@ func SeriesHandler(repo *repos.BooksBadgerBleve) echo.HandlerFunc {
 			"cur_letter":  letter,
 			"series":      series,
 			"breadcrumbs": breadcrumbs,
+			"pager":       pager,
 		})
 	}
 }

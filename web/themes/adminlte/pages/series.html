@@ -3,6 +3,6 @@
 {% block content %}
 <div class="container-fluid page-series">
   {% include "blocks/alphabet.html" with cur_letter=cur_letter url_prefix="/series" %}
-  {% include "blocks/series-list-simple.html" with series=series %}
+  {% include "blocks/series-list-simple.html" with series=series pager=pager %}
 </div>
 {% endblock %}

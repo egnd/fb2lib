@@ -32,7 +32,7 @@ indexer:
   parse_threads: 0
   batch_size: 200
 renderer:
-  dir: web/themes/editorial
+  dir: web/themes/adminlte
   sidebar:
     genres_size: 10
   globals:
@@ -41,6 +41,8 @@ renderer:
     page_h1: Библиотека
     books_sizes: 21,45,150
     genres_size: 50
+    authors_size: 50
+    series_size: 50
     section_name: home
     alphabet_en: ABCDEFGHIJKLMNOPQRSTUWVXYZ
     alphabet_ru: АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ

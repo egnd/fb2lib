@@ -45,8 +45,8 @@
       {{ showTags("жанр", book.Info.Genres, "genre", true) }}
       {{ showTags("автор", book.Info.Authors, "auth", true) }}
       {{ showTags("переводчик", book.Info.Translators, "transl", true) }}        
-      {% for publ in book.PublInfo %}{{ bookTag("издательство", publ.Publisher, "publ", true) }}{% endfor %}        
-      {{ bookTags("серия", book.Info.Sequences, "seq", true) }}
+      {% for publ in book.PublInfo %}{{ showTag("издательство", publ.Publisher, "publ", true) }}{% endfor %}        
+      {{ showTags("серия", book.Info.Sequences, "seq", true) }}
       {% if debug && book.Match %}
       <a class="btn btn-outline-warning" data-toggle="collapse" href="#searchMatch{{book.ID}}" role="button">Match</a>
       <div class="collapse" id="searchMatch{{book.ID}}" style="clear: both;">

@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dgraph-io/badger/v3"
 	"github.com/egnd/go-pipeline"
 	"github.com/egnd/go-pipeline/pools"
 	jsoniter "github.com/json-iterator/go"
@@ -79,11 +80,14 @@ func main() {
 	}
 
 	repoBooks := repos.NewBooksBadgerBleve(cfg.GetInt("indexer.batch_size"),
-		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "books"),
-		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "authors"),
-		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "series"),
-		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "genres"),
-		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "libs"),
+		map[repos.BucketType]*badger.DB{
+			repos.BucketBooks:   factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "books"),
+			repos.BucketAuthors: factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "authors"),
+			repos.BucketSeries:  factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "series"),
+			repos.BucketGenres:  factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "genres"),
+			repos.BucketLibs:    factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "libs"),
+			repos.BucketLangs:   factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "langs"),
+		},
 		factories.NewBleveIndex(cfg.GetString("adapters.bleve.dir"), "books", entities.NewBookIndexMapping()),
 		jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
 		jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal,

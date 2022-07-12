@@ -29,21 +29,3 @@ func NewBleveIndex(dir, name string, mapping blevemapping.IndexMapping) bleve.In
 
 	return index
 }
-
-// func NewCompositeBleveIndex(dir string,
-// 	libs entities.Libraries, mapping blevemapping.IndexMapping,
-// ) bleve.Index {
-// 	indexes := make([]bleve.Index, 0, len(libs))
-// 	opened := map[string]struct{}{}
-
-// 	for _, lib := range libs {
-// 		if _, ok := opened[lib.Index]; ok || lib.Disabled {
-// 			continue
-// 		}
-
-// 		opened[lib.Index] = struct{}{}
-// 		indexes = append(indexes, NewBleveIndex(dir, lib.Index, mapping))
-// 	}
-
-// 	return bleve.NewIndexAlias(indexes...)
-// }

@@ -18,12 +18,17 @@ owner: ## Reset folder owner
 	sudo chown --changes -R $$(whoami) ./
 	@echo "Success"
 
-build: build-indexer build-server build-converter ## Build
+build: build-index build-summary build-server build-converter ## Build
 
-build-indexer: ## Build indexer
-	@mkdir -p bin/$(GOOS)-$(GOARCH) && rm -f bin/$(GOOS)-$(GOARCH)/indexer
-	CGO_ENABLED=0 go build -mod=vendor -ldflags "-X 'main.appVersion=$(BUILD_VERSION)-$(GOOS)-$(GOARCH)'" -o bin/$(GOOS)-$(GOARCH)/indexer cmd/indexer/*
-	@chmod +x bin/$(GOOS)-$(GOARCH)/indexer && ls -lah bin/$(GOOS)-$(GOARCH)/indexer
+build-index: ## Build index binary
+	@mkdir -p bin/$(GOOS)-$(GOARCH) && rm -f bin/$(GOOS)-$(GOARCH)/build_index
+	CGO_ENABLED=0 go build -mod=vendor -ldflags "-X 'main.appVersion=$(BUILD_VERSION)-$(GOOS)-$(GOARCH)'" -o bin/$(GOOS)-$(GOARCH)/build_index cmd/index/*
+	@chmod +x bin/$(GOOS)-$(GOARCH)/build_index && ls -lah bin/$(GOOS)-$(GOARCH)/build_index
+
+build-summary: ## Build summary binary
+	@mkdir -p bin/$(GOOS)-$(GOARCH) && rm -f bin/$(GOOS)-$(GOARCH)/build_summary
+	CGO_ENABLED=0 go build -mod=vendor -ldflags "-X 'main.appVersion=$(BUILD_VERSION)-$(GOOS)-$(GOARCH)'" -o bin/$(GOOS)-$(GOARCH)/build_summary cmd/summary/*
+	@chmod +x bin/$(GOOS)-$(GOARCH)/build_summary && ls -lah bin/$(GOOS)-$(GOARCH)/build_summary
 
 build-server: ## Build server
 	@mkdir -p bin/$(GOOS)-$(GOARCH) && rm -f bin/$(GOOS)-$(GOARCH)/server
@@ -43,9 +48,6 @@ compose: compose-stop ## Run app
 
 compose-stop: ## Stop app
 	docker-compose down --remove-orphans --volumes
-
-compose-index:
-	docker-compose exec server bin/indexer
 
 _pprof:
 	@mkdir -p var/pprof

@@ -9,6 +9,7 @@
 }
 
 .books-list-item .book-cover img {
+    max-width: 100%;
     max-height: 300px;
 }
 
@@ -23,7 +24,7 @@
 .page-book-info-descr img {
     float: left;
     margin: 0 15px 20px 0;
-    max-width: 100%;
+    max-width: 600px;
 }
 
 .page-book-controls > div {
@@ -31,7 +32,7 @@
 }
 
 .page-book-controls .btn {
-    min-width: 140px;
+    min-width: 80%;
 }
 
 .page-book-tags {
@@ -49,6 +50,7 @@
 }
 
 .block-books-list-simple-item img {
+    max-width: 100%;
     max-height: 300px;
 }
 

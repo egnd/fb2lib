@@ -49,11 +49,11 @@ func NewEchoServer(version string, libs entities.Libraries, cfg *viper.Viper, lo
 	server.GET("/book/:id", handlers.BookDetailsHandler(repoInfo, repoBooks))
 	server.GET("/book/:id/remove", handlers.RemoveBookHandler(repoInfo))
 	server.GET("/genres/", handlers.GenresHandler(cfg, repoInfo))
-	server.GET("/series/", handlers.SeriesHandler(repoInfo))
-	server.GET("/series/:letter/", handlers.SeriesHandler(repoInfo))
-	server.GET("/authors/", handlers.AuthorsHandler(repoInfo, repoBooks))
-	server.GET("/authors/:letter/", handlers.AuthorsHandler(repoInfo, repoBooks))
-	server.GET("/authors/:letter/:name", handlers.AuthorsHandler(repoInfo, repoBooks))
+	server.GET("/series/", handlers.SeriesHandler(cfg, repoInfo))
+	server.GET("/series/:letter/", handlers.SeriesHandler(cfg, repoInfo))
+	server.GET("/authors/", handlers.AuthorsHandler(cfg, repoInfo, repoBooks))
+	server.GET("/authors/:letter/", handlers.AuthorsHandler(cfg, repoInfo, repoBooks))
+	server.GET("/authors/:letter/:name", handlers.AuthorsHandler(cfg, repoInfo, repoBooks))
 
 	return server, nil
 }
@@ -61,10 +61,10 @@ func NewEchoServer(version string, libs entities.Libraries, cfg *viper.Viper, lo
 func NewEchoRender(version string, cfg *viper.Viper,
 	server *echo.Echo, repo *repos.BooksBadgerBleve, logger zerolog.Logger,
 ) (echo.Renderer, error) {
-	books, _ := repo.GetBooksCnt()
-	genres, _ := repo.GetGenresCnt()
-	authors, _ := repo.GetAuthorsCnt()
-	series, _ := repo.GetSeriesCnt()
+	books, _ := repo.GetCnt(repos.BucketBooks)
+	genres, _ := repo.GetCnt(repos.BucketGenres)
+	authors, _ := repo.GetCnt(repos.BucketAuthors)
+	series, _ := repo.GetCnt(repos.BucketSeries)
 
 	globals := cfg.GetStringMap("renderer.globals")
 	globals["sidebar_stats"] = map[string]uint64{
@@ -74,6 +74,7 @@ func NewEchoRender(version string, cfg *viper.Viper,
 		"series":  series,
 	}
 	globals["libslist"], _ = repo.GetLibs()
+	globals["langslist"], _ = repo.GetLangs()
 	globals["app_version"] = version
 	globals["debug"] = server.Debug
 

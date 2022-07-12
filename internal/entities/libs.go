@@ -61,13 +61,12 @@ func (l *Libraries) GetItems() (res []LibItem, err error) {
 }
 
 type Library struct {
-	Disabled bool `mapstructure:"disabled"`
-	Order    int  `mapstructure:"order"`
 	Name     string
+	Disabled bool          `mapstructure:"disabled"`
+	Order    int           `mapstructure:"order"`
 	Dir      string        `mapstructure:"dir"`
-	Index    string        `mapstructure:"index"`
-	Types    []string      `mapstructure:"types"`
 	Encoder  LibEncodeType `mapstructure:"encoder"`
+	Types    []string      `mapstructure:"types"`
 }
 
 func NewLibraries(cfgKey string, cfg *viper.Viper) (Libraries, error) {
@@ -79,10 +78,6 @@ func NewLibraries(cfgKey string, cfg *viper.Viper) (Libraries, error) {
 
 	for name, lib := range libs {
 		lib.Name = name
-		if lib.Index == "" {
-			lib.Index = lib.Name
-		}
-
 		libs[name] = lib
 	}
 
@@ -90,6 +85,7 @@ func NewLibraries(cfgKey string, cfg *viper.Viper) (Libraries, error) {
 }
 
 func (l *Library) GetItems() (res []string, err error) {
+	os.MkdirAll(l.Dir, 0755)
 	err = filepath.Walk(l.Dir, func(pathStr string, info os.FileInfo, err error) error {
 		if err != nil {
 			return errors.Wrapf(err, "walk %s/%s error", l.Dir, pathStr)

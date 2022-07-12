@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/dgraph-io/badger/v3"
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/egnd/fb2lib/internal/entities"
@@ -39,11 +40,14 @@ func main() {
 
 	repoLibrary := repos.NewLibraryFs(libs, pools.NewSemaphore(20, nil), logger)
 	repoBooks := repos.NewBooksBadgerBleve(0,
-		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "books"),
-		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "authors"),
-		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "series"),
-		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "genres"),
-		factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "libs"),
+		map[repos.BucketType]*badger.DB{
+			repos.BucketBooks:   factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "books"),
+			repos.BucketAuthors: factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "authors"),
+			repos.BucketSeries:  factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "series"),
+			repos.BucketGenres:  factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "genres"),
+			repos.BucketLibs:    factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "libs"),
+			repos.BucketLangs:   factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "langs"),
+		},
 		factories.NewBleveIndex(cfg.GetString("adapters.bleve.dir"), "books", entities.NewBookIndexMapping()),
 		jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
 		jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal,

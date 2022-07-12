@@ -48,7 +48,7 @@
         {{ showTags("Жанры", info.Genres, "genre", true) }}
         {{ showTags("Авторы", info.Authors, "auth", true) }}
         {{ showTags("Переводчики", info.Translators, "transl", true) }}        
-        {{ bookTags("Серии", info.Sequences, "seq", true) }}
+        {{ showTags("Серии", info.Sequences, "seq", true) }}
       </div>
     </div>
   </div>
@@ -57,8 +57,8 @@
 {% endmacro %}
 
 {% macro showPubl(items, title) %}
-{% if items %}
 {% for item in items %}
+{% if item.Publisher %}
 <div class="col-12 page-book-publisher">
   <div class="card">
     <div class="card-header">{{title}} {{item.Publisher}}:</div>
@@ -74,8 +74,8 @@
     </div>
   </div>
 </div>
-{% endfor %}
 {% endif %}
+{% endfor %}
 {% endmacro %}
 
 <div class="container-fluid">

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -18,17 +17,24 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type BucketType string
+
+const (
+	BucketAuthors BucketType = "authors"
+	BucketBooks   BucketType = "books"
+	BucketSeries  BucketType = "series"
+	BucketGenres  BucketType = "genres"
+	BucketLibs    BucketType = "libs"
+	BucketLangs   BucketType = "langs"
+)
+
 type BooksBadgerBleve struct {
-	batching  bool
-	dbBooks   *badger.DB
-	dbAuthors *badger.DB
-	dbSeries  *badger.DB
-	dbGenres  *badger.DB
-	dbLibs    *badger.DB
-	index     bleve.Index
-	encode    entities.IMarshal
-	decode    entities.IUnmarshal
-	logger    zerolog.Logger
+	batching bool
+	buckets  map[BucketType]*badger.DB
+	index    bleve.Index
+	encode   entities.IMarshal
+	decode   entities.IUnmarshal
+	logger   zerolog.Logger
 	// cache    *cache.Cache @TODO:
 	wg        sync.WaitGroup
 	batchPipe chan *entities.Book
@@ -36,27 +42,19 @@ type BooksBadgerBleve struct {
 }
 
 func NewBooksBadgerBleve(batchSize int,
-	dbBooks *badger.DB,
-	dbAuthors *badger.DB,
-	dbSeries *badger.DB,
-	dbGenres *badger.DB,
-	dbLibs *badger.DB,
+	buckets map[BucketType]*badger.DB,
 	index bleve.Index,
 	encode entities.IMarshal,
 	decode entities.IUnmarshal,
 	logger zerolog.Logger,
 ) *BooksBadgerBleve {
 	repo := &BooksBadgerBleve{
-		batching:  batchSize > 0,
-		dbBooks:   dbBooks,
-		dbAuthors: dbAuthors,
-		dbSeries:  dbSeries,
-		dbGenres:  dbGenres,
-		dbLibs:    dbLibs,
-		index:     index,
-		encode:    encode,
-		decode:    decode,
-		logger:    logger,
+		batching: batchSize > 0,
+		buckets:  buckets,
+		index:    index,
+		encode:   encode,
+		decode:   decode,
+		logger:   logger,
 	}
 
 	if repo.batching {
@@ -71,7 +69,7 @@ func NewBooksBadgerBleve(batchSize int,
 
 func (r *BooksBadgerBleve) getBooks(booksIDs []string) ([]entities.Book, error) {
 	res := make([]entities.Book, 0, len(booksIDs))
-	err := r.dbBooks.View(func(tx *badger.Txn) error {
+	err := r.buckets[BucketBooks].View(func(tx *badger.Txn) error {
 		var book entities.Book
 		for _, itemID := range booksIDs {
 			item, err := tx.Get([]byte(itemID))
@@ -115,10 +113,18 @@ func (r *BooksBadgerBleve) FindBooks(queryStr string,
 	var searchQ query.Query
 	var sortField *search.SortField
 	switch {
+	case idxField != entities.IdxFUndefined && idxFieldVal != "":
+		searchQ = bleve.NewQueryStringQuery(
+			fmt.Sprintf(`+%s:"%s" %s`, idxField, idxFieldVal, queryStr),
+		)
+		sortField = &search.SortField{Desc: true,
+			Field:   string(entities.IdxFYear),
+			Type:    search.SortFieldAsNumber,
+			Missing: search.SortFieldMissingLast,
+		}
 	case queryStr == "" || queryStr == "*":
 		searchQ = bleve.NewMatchAllQuery()
-		sortField = &search.SortField{
-			Desc:    true,
+		sortField = &search.SortField{Desc: true,
 			Field:   string(entities.IdxFYear),
 			Type:    search.SortFieldAsNumber,
 			Missing: search.SortFieldMissingLast,
@@ -134,12 +140,6 @@ func (r *BooksBadgerBleve) FindBooks(queryStr string,
 			Type:    search.SortFieldAsString,
 			Missing: search.SortFieldMissingLast,
 		}
-	}
-
-	if idxField != entities.IdxFUndefined && idxFieldVal != "" {
-		searchQ = bleve.NewConjunctionQuery(searchQ,
-			bleve.NewQueryStringQuery(fmt.Sprintf(`+%s:"%s"`, idxField, idxFieldVal)),
-		)
 	}
 
 	req := bleve.NewSearchRequestOptions(searchQ, pager.GetPageSize(), pager.GetOffset(), false)
@@ -181,7 +181,7 @@ func (r *BooksBadgerBleve) Remove(bookID string) error { //@TODO: remove book fi
 		return err
 	}
 
-	return r.dbBooks.Update(func(tx *badger.Txn) error {
+	return r.buckets[BucketBooks].Update(func(tx *badger.Txn) error {
 		return tx.Delete([]byte(bookID))
 	})
 }
@@ -226,7 +226,7 @@ func (r *BooksBadgerBleve) GetSeriesBooks(limit int, series []string, except *en
 
 	if except != nil {
 		searchQ = bleve.NewConjunctionQuery(searchQ,
-			bleve.NewQueryStringQuery(fmt.Sprintf(`-%s:%s`, entities.IdxFID, except.ID)),
+			bleve.NewQueryStringQuery(fmt.Sprintf(`-%s:%s`, entities.IdxFTitle, except.Info.Title)),
 		)
 	}
 
@@ -299,7 +299,7 @@ func (r *BooksBadgerBleve) GetAuthorsSeries(authors []string, except []string) (
 	// @TODO: cache res map
 
 	for _, item := range except {
-		delete(index, item)
+		delete(index, strings.ToLower(item))
 	}
 
 	res := make(entities.FreqsItems, 0, len(index))
@@ -310,9 +310,9 @@ func (r *BooksBadgerBleve) GetAuthorsSeries(authors []string, except []string) (
 	return res, nil
 }
 
-func (r *BooksBadgerBleve) getCnt(db *badger.DB) (uint64, error) {
+func (r *BooksBadgerBleve) GetCnt(bucket BucketType) (uint64, error) {
 	var res uint64
-	err := db.View(func(txn *badger.Txn) error {
+	err := r.buckets[bucket].View(func(txn *badger.Txn) error {
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 
@@ -326,41 +326,20 @@ func (r *BooksBadgerBleve) getCnt(db *badger.DB) (uint64, error) {
 	return res, err
 }
 
-func (r *BooksBadgerBleve) GetBooksCnt() (uint64, error) {
-	return r.getCnt(r.dbBooks)
-}
-
-func (r *BooksBadgerBleve) GetAuthorsCnt() (uint64, error) {
-	return r.getCnt(r.dbAuthors)
-}
-
-func (r *BooksBadgerBleve) GetGenresCnt() (uint64, error) {
-	return r.getCnt(r.dbGenres)
-}
-
-func (r *BooksBadgerBleve) GetSeriesCnt() (uint64, error) {
-	return r.getCnt(r.dbSeries)
-}
-
-func (r *BooksBadgerBleve) getFreqs(db *badger.DB, prefixes ...string) (entities.FreqsItems, error) {
+func (r *BooksBadgerBleve) getFreqs(bucket BucketType, prefixes ...string) (entities.FreqsItems, error) {
 	res := make(entities.FreqsItems, 0, 500)
-	err := db.View(func(txn *badger.Txn) error {
+	err := r.buckets[bucket].View(func(txn *badger.Txn) error {
 		it := txn.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 
 		if len(prefixes) == 0 {
 			for it.Rewind(); it.Valid(); it.Next() {
 				if err := it.Item().Value(func(val []byte) error {
-					freq, err := strconv.Atoi(string(val))
-					if err != nil {
+					var freqItem entities.ItemFreq
+					if err := r.decode(val, &freqItem); err != nil {
 						return nil
 					}
-
-					res = append(res, entities.ItemFreq{
-						Freq: freq,
-						Val:  string(it.Item().Key()),
-					})
-
+					res = append(res, freqItem)
 					return nil
 				}); err != nil {
 					return err
@@ -371,16 +350,11 @@ func (r *BooksBadgerBleve) getFreqs(db *badger.DB, prefixes ...string) (entities
 				pref := []byte(prefix)
 				for it.Seek(pref); it.ValidForPrefix(pref); it.Next() {
 					if err := it.Item().Value(func(val []byte) error {
-						freq, err := strconv.Atoi(string(val))
-						if err != nil {
+						var freqItem entities.ItemFreq
+						if err := r.decode(val, &freqItem); err != nil {
 							return nil
 						}
-
-						res = append(res, entities.ItemFreq{
-							Freq: freq,
-							Val:  string(it.Item().Key()),
-						})
-
+						res = append(res, freqItem)
 						return nil
 					}); err != nil {
 						return err
@@ -396,7 +370,7 @@ func (r *BooksBadgerBleve) getFreqs(db *badger.DB, prefixes ...string) (entities
 }
 
 func (r *BooksBadgerBleve) GetGenres(pager pagination.IPager) (entities.FreqsItems, error) {
-	res, err := r.getFreqs(r.dbGenres) // @TODO: cache res slice
+	res, err := r.getFreqs(BucketGenres) // @TODO: cache res slice
 	if err != nil {
 		return nil, err
 	}
@@ -417,7 +391,7 @@ func (r *BooksBadgerBleve) GetGenres(pager pagination.IPager) (entities.FreqsIte
 }
 
 func (r *BooksBadgerBleve) GetLibs() (entities.FreqsItems, error) {
-	res, err := r.getFreqs(r.dbLibs) // @TODO: cache res slice
+	res, err := r.getFreqs(BucketLibs) // @TODO: cache res slice
 	if err != nil {
 		return nil, err
 	}
@@ -427,14 +401,8 @@ func (r *BooksBadgerBleve) GetLibs() (entities.FreqsItems, error) {
 	return res, nil
 }
 
-func (r *BooksBadgerBleve) GetSeriesByPrefix(prefix string) (entities.FreqsItems, error) {
-	if prefix == "" {
-		return nil, nil
-	}
-
-	res, err := r.getFreqs( // @TODO: cache res slice
-		r.dbSeries, strings.ToLower(prefix),
-	)
+func (r *BooksBadgerBleve) GetLangs() (entities.FreqsItems, error) {
+	res, err := r.getFreqs(BucketLangs) // @TODO: cache res slice
 	if err != nil {
 		return nil, err
 	}
@@ -444,13 +412,13 @@ func (r *BooksBadgerBleve) GetSeriesByPrefix(prefix string) (entities.FreqsItems
 	return res, nil
 }
 
-func (r *BooksBadgerBleve) GetAuthorsByPrefix(prefix string) (entities.FreqsItems, error) {
+func (r *BooksBadgerBleve) GetSeriesByPrefix(prefix string, pager pagination.IPager) (entities.FreqsItems, error) {
 	if prefix == "" {
 		return nil, nil
 	}
 
 	res, err := r.getFreqs( // @TODO: cache res slice
-		r.dbAuthors, strings.ToLower(prefix),
+		BucketSeries, strings.ToLower(prefix), strings.ToUpper(prefix),
 	)
 	if err != nil {
 		return nil, err
@@ -458,7 +426,44 @@ func (r *BooksBadgerBleve) GetAuthorsByPrefix(prefix string) (entities.FreqsItem
 
 	sort.Slice(res, func(i, j int) bool { return res[i].Val < res[j].Val })
 
-	return res, nil
+	if pager == nil {
+		return res, nil
+	}
+
+	pager.SetTotal(len(res))
+
+	if len(res) < pager.GetOffset()+pager.GetPageSize() {
+		return res[pager.GetOffset():], nil
+	}
+
+	return res[pager.GetOffset() : pager.GetOffset()+pager.GetPageSize()], nil
+}
+
+func (r *BooksBadgerBleve) GetAuthorsByPrefix(prefix string, pager pagination.IPager) (entities.FreqsItems, error) {
+	if prefix == "" {
+		return nil, nil
+	}
+
+	res, err := r.getFreqs( // @TODO: cache res slice
+		BucketAuthors, strings.ToLower(prefix), strings.ToUpper(prefix),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	sort.Slice(res, func(i, j int) bool { return res[i].Val < res[j].Val })
+
+	if pager == nil {
+		return res, nil
+	}
+
+	pager.SetTotal(len(res))
+
+	if len(res) < pager.GetOffset()+pager.GetPageSize() {
+		return res[pager.GetOffset():], nil
+	}
+
+	return res[pager.GetOffset() : pager.GetOffset()+pager.GetPageSize()], nil
 }
 
 func (r *BooksBadgerBleve) SaveBook(book *entities.Book) (err error) {
@@ -481,23 +486,23 @@ func (r *BooksBadgerBleve) Close() error {
 		close(r.batchPipe)
 	}
 
-	if err := r.dbBooks.Close(); err != nil {
+	if err := r.buckets[BucketBooks].Close(); err != nil {
 		return err
 	}
 
-	if err := r.dbAuthors.Close(); err != nil {
+	if err := r.buckets[BucketAuthors].Close(); err != nil {
 		return err
 	}
 
-	if err := r.dbSeries.Close(); err != nil {
+	if err := r.buckets[BucketSeries].Close(); err != nil {
 		return err
 	}
 
-	if err := r.dbGenres.Close(); err != nil {
+	if err := r.buckets[BucketGenres].Close(); err != nil {
 		return err
 	}
 
-	if err := r.dbLibs.Close(); err != nil {
+	if err := r.buckets[BucketLibs].Close(); err != nil {
 		return err
 	}
 
@@ -541,14 +546,8 @@ func (r *BooksBadgerBleve) saveBatch(batch []*entities.Book, indexBatch *bleve.B
 	}
 
 	logger := r.logger.With().Int("len", len(batch)).Logger()
-	summary := map[*badger.DB]map[string]int{
-		r.dbAuthors: make(map[string]int, 500),
-		r.dbSeries:  make(map[string]int, 500),
-		r.dbGenres:  make(map[string]int, 500),
-		r.dbLibs:    make(map[string]int, 10),
-	}
 
-	if err := r.dbBooks.Update(func(txn *badger.Txn) (err error) {
+	if err := r.buckets[BucketBooks].Update(func(txn *badger.Txn) (err error) {
 		var itemData []byte
 		for _, item := range batch {
 			logger := logger.With().Str("lib", item.Lib).Str("item", item.Src).Logger()
@@ -563,19 +562,6 @@ func (r *BooksBadgerBleve) saveBatch(batch []*entities.Book, indexBatch *bleve.B
 				continue
 			}
 
-			for _, str := range r.clearSeqs(item.Authors()) {
-				summary[r.dbAuthors][str]++
-			}
-			for _, str := range r.clearSeqs(item.Series()) {
-				summary[r.dbSeries][str]++
-			}
-			for _, str := range r.clearSeqs(item.Genres()) {
-				summary[r.dbGenres][str]++
-			}
-			if item.Lib != "" {
-				summary[r.dbLibs][item.Lib]++
-			}
-
 			if err = indexBatch.Index(item.ID, item.Index()); err != nil {
 				logger.Error().Err(err).Msg("batch err: index item")
 			}
@@ -587,7 +573,7 @@ func (r *BooksBadgerBleve) saveBatch(batch []*entities.Book, indexBatch *bleve.B
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(5)
+	wg.Add(1)
 
 	go func() {
 		defer wg.Done()
@@ -598,28 +584,70 @@ func (r *BooksBadgerBleve) saveBatch(batch []*entities.Book, indexBatch *bleve.B
 		}
 	}()
 
-	for db, items := range summary {
-		go func(db *badger.DB, items map[string]int) {
-			defer wg.Done()
-			db.Update(func(txn *badger.Txn) error {
-				for val, cnt := range items {
-					if item, err := txn.Get([]byte(val)); err == nil {
-						item.Value(func(val []byte) error {
-							oldCnt, _ := strconv.Atoi(string(val))
-							cnt += oldCnt
-							return nil
-						})
-					}
-
-					if err := txn.Set([]byte(val), []byte(strconv.Itoa(cnt))); err != nil {
-						logger.Error().Err(err).Str("val", val).Msg("batch err: save summary item")
-					}
-				}
-				return nil
-			})
-		}(db, items)
-	}
-
 	wg.Wait()
 	logger.Debug().Msg("batch saved")
+}
+
+func (r *BooksBadgerBleve) GetTotal() uint64 {
+	total, err := r.index.DocCount()
+	if err != nil {
+		panic(err)
+	}
+
+	return total
+}
+
+func (r *BooksBadgerBleve) IterateOver(handlers ...func(*entities.Book) error) error {
+	return r.buckets[BucketBooks].View(func(txn *badger.Txn) error {
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+
+		for it.Rewind(); it.Valid(); it.Next() {
+			it.Item().Value(func(val []byte) error {
+				var book entities.Book
+
+				if err := r.decode(val, &book); err != nil {
+					r.logger.Warn().Err(err).Str("id", string(it.Item().Key())).Msg("decode book")
+					return nil
+				}
+
+				for _, handler := range handlers {
+					if err := handler(&book); err != nil {
+						r.logger.Warn().Err(err).Str("id", string(it.Item().Key())).Msg("handle book")
+					}
+				}
+
+				return nil
+			})
+		}
+
+		return nil
+	})
+}
+
+func (r *BooksBadgerBleve) AppendFreqs(bucket BucketType, items entities.ItemFreqMap) error {
+	return r.buckets[bucket].Update(func(txn *badger.Txn) error {
+		for k, item := range items {
+			if oldItem, err := txn.Get([]byte(k)); err == nil {
+				oldItem.Value(func(val []byte) error {
+					var oldItem entities.ItemFreq
+					r.decode(val, &oldItem)
+					item.Freq += oldItem.Freq
+					return nil
+				})
+			}
+
+			data, err := r.encode(item)
+			if err != nil {
+				r.logger.Warn().Err(err).Str("k", item.Val).Int("v", item.Freq).Msg("encode freq")
+				continue
+			}
+
+			if err := txn.Set([]byte(k), data); err != nil {
+				r.logger.Warn().Err(err).Str("k", item.Val).Int("v", item.Freq).Msg("append freq")
+			}
+		}
+
+		return nil
+	})
 }
