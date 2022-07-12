@@ -98,6 +98,11 @@ func main() {
 	repoMarks := repos.NewLibMarks(factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "marks"))
 	defer repoMarks.Close()
 
+	rules, err := entities.NewIndexRules("indexer.rules", cfg)
+	if err != nil {
+		panic(err)
+	}
+
 	pipe := pools.NewSemaphore(cfg.GetInt("indexer.threads_cnt"), &wg, func(next pipeline.TaskExecutor) pipeline.TaskExecutor {
 		return func(task pipeline.Task) error {
 			logger.Debug().Str("task", task.ID()).Msg("iterate")
@@ -137,7 +142,12 @@ func main() {
 				logger.Debug().Str("task", task.ID()).Msg("parse")
 
 				if err := next(task); err != nil {
-					logger.Error().Str("task", task.ID()).Err(err).Msg("parse")
+					var skipRule *tasks.ErrSkipRule
+					if errors.As(err, &skipRule) {
+						logger.Warn().Str("task", task.ID()).Msg(err.Error())
+					} else {
+						logger.Error().Str("task", task.ID()).Err(err).Msg("parse")
+					}
 				} else {
 					cntIndexed.Inc(1)
 				}
@@ -162,7 +172,7 @@ func main() {
 		readerTaskFactory := func(reader io.ReadCloser, book entities.Book) error {
 			cntTotal.Inc(1)
 			return readingPool.Push(tasks.NewReadTask(book.Src, book.Lib, reader, func(data io.Reader) error {
-				return parsingPool.Push(tasks.NewParseFB2Task(data, book, lib.Encoder, repoBooks, barTotal))
+				return parsingPool.Push(tasks.NewParseFB2Task(data, book, rules, lib.Encoder, repoBooks, barTotal))
 			}))
 		}
 		pipe.Push(tasks.NewDefineItemTask(itemPath, lib, repoMarks, readerTaskFactory, func(finfo fs.FileInfo) error {

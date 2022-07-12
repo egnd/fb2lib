@@ -258,7 +258,9 @@ type BookMeta struct {
 
 func NewBookMeta(data []fb2.TitleInfo, bin []fb2.Binary) (res BookMeta) {
 	for _, item := range data {
-		res.Genres = append(res.Genres, item.Genre...)
+		for _, genre := range item.Genre {
+			res.Genres = append(res.Genres, strings.Split(strings.ReplaceAll(genre, "/", ","), ",")...)
+		}
 
 		if res.Annotation == "" {
 			for _, annot := range item.Annotation {

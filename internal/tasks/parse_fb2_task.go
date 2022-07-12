@@ -11,6 +11,15 @@ import (
 	"github.com/egnd/fb2lib/internal/repos"
 )
 
+type ErrSkipRule struct {
+	book string
+	err  error
+}
+
+func (e ErrSkipRule) Error() string {
+	return fmt.Sprintf("skip: %s - %s", e.err, e.book)
+}
+
 type PushParseTask func(io.Reader) error
 
 type ParseFB2Task struct {
@@ -20,11 +29,13 @@ type ParseFB2Task struct {
 	encoder entities.LibEncodeType
 	repo    *repos.BooksBadgerBleve
 	bar     *mpb.Bar
+	rules   entities.IndexRules
 }
 
 func NewParseFB2Task(
 	data io.Reader,
 	book entities.Book,
+	rules entities.IndexRules,
 	encoder entities.LibEncodeType,
 	repo *repos.BooksBadgerBleve,
 	bar *mpb.Bar,
@@ -36,6 +47,7 @@ func NewParseFB2Task(
 		encoder: encoder,
 		repo:    repo,
 		bar:     bar,
+		rules:   rules,
 	}
 }
 
@@ -59,6 +71,10 @@ func (t *ParseFB2Task) Do() error {
 	}
 
 	t.book.ReadFB2(&fb2File)
+
+	if err := t.rules.Check(&t.book); err != nil {
+		return &ErrSkipRule{t.book.Info.Title, err}
+	}
 
 	if err = t.repo.SaveBook(&t.book); err != nil {
 		return errors.Wrap(err, "index fb2 error")

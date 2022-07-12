@@ -47,3 +47,14 @@ renderer:
     alphabet_en: ABCDEFGHIJKLMNOPQRSTUWVXYZ
     alphabet_ru: АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ
     app_version: v0.0.0
+  rules:
+    only:
+      langs: []
+      genres: []
+      authors: []
+      titles: []
+    except:
+      langs: []
+      genres: []
+      authors: []
+      titles: []
