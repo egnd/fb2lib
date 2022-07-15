@@ -9,6 +9,7 @@ import (
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/internal/repos"
 	"github.com/pkg/errors"
+	"github.com/vbauerster/mpb/v7"
 )
 
 type ErrAlreadyIndexed struct{}
@@ -22,6 +23,7 @@ type DefineItemTask struct {
 	item      string
 	lib       entities.Library
 	repoMarks *repos.LibMarks
+	bar       *mpb.Bar
 	doFB2Task PushReadTask
 	doZIPTask DoReadZipTask
 }
@@ -30,6 +32,7 @@ func NewDefineItemTask(
 	item string,
 	lib entities.Library,
 	repoMarks *repos.LibMarks,
+	bar *mpb.Bar,
 	doFB2Task PushReadTask,
 	doZIPTask DoReadZipTask,
 ) *DefineItemTask {
@@ -38,6 +41,7 @@ func NewDefineItemTask(
 		item:      item,
 		lib:       lib,
 		repoMarks: repoMarks,
+		bar:       bar,
 		doFB2Task: doFB2Task,
 		doZIPTask: doZIPTask,
 	}
@@ -54,6 +58,10 @@ func (t *DefineItemTask) Do() error {
 	}
 
 	if t.repoMarks.MarkExists(t.item) {
+		if t.bar != nil {
+			t.bar.IncrInt64(finfo.Size())
+		}
+
 		return &ErrAlreadyIndexed{}
 	}
 

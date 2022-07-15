@@ -81,12 +81,7 @@ func main() {
 
 	repoBooks := repos.NewBooksBadgerBleve(cfg.GetInt("indexer.batch_size"),
 		map[repos.BucketType]*badger.DB{
-			repos.BucketBooks:   factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "books"),
-			repos.BucketAuthors: factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "authors"),
-			repos.BucketSeries:  factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "series"),
-			repos.BucketGenres:  factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "genres"),
-			repos.BucketLibs:    factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "libs"),
-			repos.BucketLangs:   factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "langs"),
+			repos.BucketBooks: factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "books"),
 		},
 		factories.NewBleveIndex(cfg.GetString("adapters.bleve.dir"), "books", entities.NewBookIndexMapping()),
 		jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
@@ -175,7 +170,7 @@ func main() {
 				return parsingPool.Push(tasks.NewParseFB2Task(data, book, rules, lib.Encoder, repoBooks, barTotal))
 			}))
 		}
-		pipe.Push(tasks.NewDefineItemTask(itemPath, lib, repoMarks, readerTaskFactory, func(finfo fs.FileInfo) error {
+		pipe.Push(tasks.NewDefineItemTask(itemPath, lib, repoMarks, barTotal, readerTaskFactory, func(finfo fs.FileInfo) error {
 			return tasks.NewReadZipTask(num, total, itemPath, finfo, lib, bars, readerTaskFactory).Do()
 		}))
 	}

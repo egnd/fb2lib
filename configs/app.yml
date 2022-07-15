@@ -48,13 +48,12 @@ renderer:
     alphabet_ru: АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ
     app_version: v0.0.0
   rules:
-    only:
-      langs: []
-      genres: []
-      authors: []
-      titles: []
-    except:
-      langs: []
-      genres: []
-      authors: []
-      titles: []
+    lng: []
+    genre: []
+    isbn: []
+    auth: []
+    transl: []
+    seq: []
+    date: []
+    publ: []
+    title: []

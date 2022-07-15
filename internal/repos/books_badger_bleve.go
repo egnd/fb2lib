@@ -486,24 +486,12 @@ func (r *BooksBadgerBleve) Close() error {
 		close(r.batchPipe)
 	}
 
-	if err := r.buckets[BucketBooks].Close(); err != nil {
-		return err
-	}
-
-	if err := r.buckets[BucketAuthors].Close(); err != nil {
-		return err
-	}
-
-	if err := r.buckets[BucketSeries].Close(); err != nil {
-		return err
-	}
-
-	if err := r.buckets[BucketGenres].Close(); err != nil {
-		return err
-	}
-
-	if err := r.buckets[BucketLibs].Close(); err != nil {
-		return err
+	for _, bucketName := range []BucketType{BucketBooks, BucketAuthors, BucketSeries, BucketGenres, BucketLibs} {
+		if bucket, ok := r.buckets[bucketName]; ok && bucket != nil {
+			if err := bucket.Close(); err != nil {
+				r.logger.Error().Err(err).Str("bucket", string(bucketName)).Msg("close bucket")
+			}
+		}
 	}
 
 	if err := r.index.Close(); err != nil {
