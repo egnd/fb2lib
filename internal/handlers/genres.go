@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func GenresHandler(cfg *viper.Viper, repo *repos.BooksBadgerBleve) echo.HandlerFunc {
+func GenresHandler(cfg *viper.Viper, repo *repos.BooksLevelBleve) echo.HandlerFunc {
 	defPageSize := cfg.GetInt("renderer.globals.genres_size")
 
 	return func(c echo.Context) (err error) {

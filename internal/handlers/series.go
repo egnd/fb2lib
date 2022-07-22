@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func SeriesHandler(cfg *viper.Viper, repo *repos.BooksBadgerBleve) echo.HandlerFunc {
+func SeriesHandler(cfg *viper.Viper, repo *repos.BooksLevelBleve) echo.HandlerFunc {
 	defPageSize := cfg.GetInt("renderer.globals.series_size")
 
 	return func(c echo.Context) (err error) {

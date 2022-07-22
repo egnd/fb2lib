@@ -11,7 +11,7 @@ github.com/acarl005/stripansi
 # github.com/bits-and-blooms/bitset v1.2.0
 ## explicit; go 1.14
 github.com/bits-and-blooms/bitset
-# github.com/blevesearch/bleve/v2 v2.3.2
+# github.com/blevesearch/bleve/v2 v2.3.3
 ## explicit; go 1.13
 github.com/blevesearch/bleve/v2
 github.com/blevesearch/bleve/v2/analysis
@@ -47,16 +47,20 @@ github.com/blevesearch/bleve/v2/search/query
 github.com/blevesearch/bleve/v2/search/scorer
 github.com/blevesearch/bleve/v2/search/searcher
 github.com/blevesearch/bleve/v2/size
-# github.com/blevesearch/bleve_index_api v1.0.1
+# github.com/blevesearch/bleve_index_api v1.0.2
 ## explicit; go 1.13
 github.com/blevesearch/bleve_index_api
+# github.com/blevesearch/geo v0.1.12-0.20220606102651-aab42add3121
+## explicit; go 1.12
+github.com/blevesearch/geo/geojson
+github.com/blevesearch/geo/s2
 # github.com/blevesearch/go-porterstemmer v1.0.3
 ## explicit; go 1.13
 github.com/blevesearch/go-porterstemmer
 # github.com/blevesearch/gtreap v0.1.1
 ## explicit; go 1.13
 github.com/blevesearch/gtreap
-# github.com/blevesearch/mmap-go v1.0.3
+# github.com/blevesearch/mmap-go v1.0.4
 ## explicit; go 1.13
 github.com/blevesearch/mmap-go
 # github.com/blevesearch/scorch_segment_api/v2 v2.1.0
@@ -72,48 +76,27 @@ github.com/blevesearch/snowballstem/english
 # github.com/blevesearch/upsidedown_store_api v1.0.1
 ## explicit; go 1.13
 github.com/blevesearch/upsidedown_store_api
-# github.com/blevesearch/vellum v1.0.7
+# github.com/blevesearch/vellum v1.0.8
 ## explicit; go 1.13
 github.com/blevesearch/vellum
 github.com/blevesearch/vellum/levenshtein
 github.com/blevesearch/vellum/regexp
 github.com/blevesearch/vellum/utf8
-# github.com/blevesearch/zapx/v11 v11.3.3
-## explicit; go 1.13
+# github.com/blevesearch/zapx/v11 v11.3.4
+## explicit; go 1.17
 github.com/blevesearch/zapx/v11
-# github.com/blevesearch/zapx/v12 v12.3.3
-## explicit; go 1.13
+# github.com/blevesearch/zapx/v12 v12.3.4
+## explicit; go 1.17
 github.com/blevesearch/zapx/v12
-# github.com/blevesearch/zapx/v13 v13.3.3
-## explicit; go 1.13
+# github.com/blevesearch/zapx/v13 v13.3.4
+## explicit; go 1.17
 github.com/blevesearch/zapx/v13
-# github.com/blevesearch/zapx/v14 v14.3.3
-## explicit; go 1.13
+# github.com/blevesearch/zapx/v14 v14.3.4
+## explicit; go 1.17
 github.com/blevesearch/zapx/v14
-# github.com/blevesearch/zapx/v15 v15.3.3
-## explicit; go 1.13
+# github.com/blevesearch/zapx/v15 v15.3.4
+## explicit; go 1.17
 github.com/blevesearch/zapx/v15
-# github.com/cespare/xxhash v1.1.0
-## explicit
-github.com/cespare/xxhash
-# github.com/cespare/xxhash/v2 v2.1.1
-## explicit; go 1.11
-github.com/cespare/xxhash/v2
-# github.com/dgraph-io/badger/v3 v3.2103.2
-## explicit; go 1.12
-github.com/dgraph-io/badger/v3
-github.com/dgraph-io/badger/v3/fb
-github.com/dgraph-io/badger/v3/options
-github.com/dgraph-io/badger/v3/pb
-github.com/dgraph-io/badger/v3/skl
-github.com/dgraph-io/badger/v3/table
-github.com/dgraph-io/badger/v3/trie
-github.com/dgraph-io/badger/v3/y
-# github.com/dgraph-io/ristretto v0.1.0
-## explicit; go 1.12
-github.com/dgraph-io/ristretto
-github.com/dgraph-io/ristretto/z
-github.com/dgraph-io/ristretto/z/simd
 # github.com/dustin/go-humanize v1.0.0
 ## explicit
 github.com/dustin/go-humanize
@@ -136,27 +119,21 @@ github.com/flosch/pongo2/v5
 # github.com/fsnotify/fsnotify v1.5.4
 ## explicit; go 1.16
 github.com/fsnotify/fsnotify
-# github.com/gogo/protobuf v1.3.2
-## explicit; go 1.15
-github.com/gogo/protobuf/proto
 # github.com/golang-jwt/jwt v3.2.2+incompatible
 ## explicit
 github.com/golang-jwt/jwt
-# github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
-## explicit
-github.com/golang/glog
-# github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
-## explicit
-github.com/golang/groupcache/lru
+# github.com/golang/geo v0.0.0-20210211234256-740aa86cb551
+## explicit; go 1.12
+github.com/golang/geo/r1
+github.com/golang/geo/r2
+github.com/golang/geo/r3
+github.com/golang/geo/s1
 # github.com/golang/protobuf v1.5.2
 ## explicit; go 1.9
 github.com/golang/protobuf/proto
-# github.com/golang/snappy v0.0.3
+# github.com/golang/snappy v0.0.1
 ## explicit
 github.com/golang/snappy
-# github.com/google/flatbuffers v1.12.1
-## explicit
-github.com/google/flatbuffers/go
 # github.com/hashicorp/hcl v1.0.0
 ## explicit
 github.com/hashicorp/hcl
@@ -172,12 +149,6 @@ github.com/hashicorp/hcl/json/token
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.12.3
-## explicit; go 1.13
-github.com/klauspost/compress/fse
-github.com/klauspost/compress/huff0
-github.com/klauspost/compress/zstd
-github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/labstack/echo/v4 v4.7.2
 ## explicit; go 1.17
 github.com/labstack/echo/v4
@@ -263,6 +234,20 @@ github.com/spf13/viper/internal/encoding/yaml
 # github.com/subosito/gotenv v1.3.0
 ## explicit; go 1.18
 github.com/subosito/gotenv
+# github.com/syndtr/goleveldb v1.0.0
+## explicit
+github.com/syndtr/goleveldb/leveldb
+github.com/syndtr/goleveldb/leveldb/cache
+github.com/syndtr/goleveldb/leveldb/comparer
+github.com/syndtr/goleveldb/leveldb/errors
+github.com/syndtr/goleveldb/leveldb/filter
+github.com/syndtr/goleveldb/leveldb/iterator
+github.com/syndtr/goleveldb/leveldb/journal
+github.com/syndtr/goleveldb/leveldb/memdb
+github.com/syndtr/goleveldb/leveldb/opt
+github.com/syndtr/goleveldb/leveldb/storage
+github.com/syndtr/goleveldb/leveldb/table
+github.com/syndtr/goleveldb/leveldb/util
 # github.com/valyala/bytebufferpool v1.0.0
 ## explicit
 github.com/valyala/bytebufferpool
@@ -275,16 +260,9 @@ github.com/vbauerster/mpb/v7
 github.com/vbauerster/mpb/v7/cwriter
 github.com/vbauerster/mpb/v7/decor
 github.com/vbauerster/mpb/v7/internal
-# go.etcd.io/bbolt v1.3.6
+# go.etcd.io/bbolt v1.3.5
 ## explicit; go 1.12
 go.etcd.io/bbolt
-# go.opencensus.io v0.23.0
-## explicit; go 1.13
-go.opencensus.io
-go.opencensus.io/internal
-go.opencensus.io/trace
-go.opencensus.io/trace/internal
-go.opencensus.io/trace/tracestate
 # golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 ## explicit; go 1.17
 golang.org/x/crypto/acme
@@ -299,8 +277,6 @@ golang.org/x/net/http2
 golang.org/x/net/http2/h2c
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
-golang.org/x/net/internal/timeseries
-golang.org/x/net/trace
 # golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
 ## explicit; go 1.17
 golang.org/x/sys/internal/unsafeheader

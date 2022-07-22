@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dgraph-io/badger/v3"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/syndtr/goleveldb/leveldb"
 
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/internal/factories"
@@ -39,14 +39,14 @@ func main() {
 	}
 
 	repoLibrary := repos.NewLibraryFs(libs, pools.NewSemaphore(20, nil), logger)
-	repoBooks := repos.NewBooksBadgerBleve(0,
-		map[repos.BucketType]*badger.DB{
-			repos.BucketBooks:   factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "books"),
-			repos.BucketAuthors: factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "authors"),
-			repos.BucketSeries:  factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "series"),
-			repos.BucketGenres:  factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "genres"),
-			repos.BucketLibs:    factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "libs"),
-			repos.BucketLangs:   factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "langs"),
+	repoBooks := repos.NewBooksLevelBleve(0,
+		map[repos.BucketType]*leveldb.DB{
+			repos.BucketBooks:   factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "books"),
+			repos.BucketAuthors: factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "authors"),
+			repos.BucketSeries:  factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "series"),
+			repos.BucketGenres:  factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "genres"),
+			repos.BucketLibs:    factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "libs"),
+			repos.BucketLangs:   factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "langs"),
 		},
 		factories.NewBleveIndex(cfg.GetString("adapters.bleve.dir"), "books", entities.NewBookIndexMapping()),
 		jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,

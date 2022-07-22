@@ -16,7 +16,7 @@ import (
 )
 
 func DownloadHandler(libs entities.Libraries,
-	repo *repos.BooksBadgerBleve, cfg *viper.Viper, logger zerolog.Logger,
+	repo *repos.BooksLevelBleve, cfg *viper.Viper, logger zerolog.Logger,
 ) echo.HandlerFunc {
 	converterDir := cfg.GetString("converter.dir")
 	if err := os.MkdirAll(converterDir, 0755); err != nil {

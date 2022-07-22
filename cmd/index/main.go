@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dgraph-io/badger/v3"
 	"github.com/egnd/go-pipeline"
 	"github.com/egnd/go-pipeline/pools"
 	jsoniter "github.com/json-iterator/go"
@@ -19,6 +18,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/vbauerster/mpb/v7"
 	"github.com/vbauerster/mpb/v7/decor"
 
@@ -79,9 +79,9 @@ func main() {
 		barTotal = GetProgressBar(bars, libs, cfg, &logger)
 	}
 
-	repoBooks := repos.NewBooksBadgerBleve(cfg.GetInt("indexer.batch_size"),
-		map[repos.BucketType]*badger.DB{
-			repos.BucketBooks: factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "books"),
+	repoBooks := repos.NewBooksLevelBleve(cfg.GetInt("indexer.batch_size"),
+		map[repos.BucketType]*leveldb.DB{
+			repos.BucketBooks: factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "books"),
 		},
 		factories.NewBleveIndex(cfg.GetString("adapters.bleve.dir"), "books", entities.NewBookIndexMapping()),
 		jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
@@ -90,7 +90,7 @@ func main() {
 	)
 	defer repoBooks.Close()
 
-	repoMarks := repos.NewLibMarks(factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "marks"))
+	repoMarks := repos.NewLibMarks(factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "marks"))
 	defer repoMarks.Close()
 
 	rules, err := entities.NewIndexRules("indexer.rules", cfg)

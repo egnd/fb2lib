@@ -27,7 +27,7 @@ type ParseFB2Task struct {
 	data    io.Reader
 	book    entities.Book
 	encoder entities.LibEncodeType
-	repo    *repos.BooksBadgerBleve
+	repo    *repos.BooksLevelBleve
 	bar     *mpb.Bar
 	rules   entities.IndexRules
 }
@@ -37,7 +37,7 @@ func NewParseFB2Task(
 	book entities.Book,
 	rules entities.IndexRules,
 	encoder entities.LibEncodeType,
-	repo *repos.BooksBadgerBleve,
+	repo *repos.BooksLevelBleve,
 	bar *mpb.Bar,
 ) *ParseFB2Task {
 	return &ParseFB2Task{

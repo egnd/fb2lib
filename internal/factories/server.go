@@ -17,7 +17,7 @@ import (
 )
 
 func NewEchoServer(version string, libs entities.Libraries, cfg *viper.Viper, logger zerolog.Logger,
-	repoInfo *repos.BooksBadgerBleve, repoBooks *repos.LibraryFs,
+	repoInfo *repos.BooksLevelBleve, repoBooks *repos.LibraryFs,
 ) (*echo.Echo, error) {
 	var err error
 	server := echo.New()
@@ -59,7 +59,7 @@ func NewEchoServer(version string, libs entities.Libraries, cfg *viper.Viper, lo
 }
 
 func NewEchoRender(version string, cfg *viper.Viper,
-	server *echo.Echo, repo *repos.BooksBadgerBleve, logger zerolog.Logger,
+	server *echo.Echo, repo *repos.BooksLevelBleve, logger zerolog.Logger,
 ) (echo.Renderer, error) {
 	books, _ := repo.GetCnt(repos.BucketBooks)
 	genres, _ := repo.GetCnt(repos.BucketGenres)

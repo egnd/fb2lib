@@ -14,7 +14,7 @@ import (
 )
 
 func AuthorsHandler(cfg *viper.Viper,
-	repoInfo *repos.BooksBadgerBleve,
+	repoInfo *repos.BooksLevelBleve,
 	repoBooks *repos.LibraryFs,
 ) echo.HandlerFunc {
 	defPageSize := cfg.GetInt("renderer.globals.authors_size")

@@ -17,7 +17,7 @@ import (
 )
 
 func BooksHandler(cfg *viper.Viper, libs entities.Libraries,
-	repoInfo *repos.BooksBadgerBleve,
+	repoInfo *repos.BooksLevelBleve,
 	repoBooks *repos.LibraryFs,
 	logger zerolog.Logger,
 ) echo.HandlerFunc {

@@ -10,7 +10,7 @@ import (
 )
 
 func BookDetailsHandler(
-	repoBooks *repos.BooksBadgerBleve,
+	repoBooks *repos.BooksLevelBleve,
 	repoLib *repos.LibraryFs,
 ) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {

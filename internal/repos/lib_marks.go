@@ -1,43 +1,30 @@
 package repos
 
 import (
-	"github.com/dgraph-io/badger/v3"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type LibMarks struct {
-	db *badger.DB
+	db *leveldb.DB
 }
 
-func NewLibMarks(db *badger.DB) *LibMarks {
+func NewLibMarks(db *leveldb.DB) *LibMarks {
 	return &LibMarks{
 		db: db,
 	}
 }
 
-func (r *LibMarks) MarkExists(mark string) (res bool) {
-	if err := r.db.View(func(tx *badger.Txn) (txErr error) {
-		item, err := tx.Get([]byte(mark))
-		if err != nil {
-			return err
-		}
-
-		item.Value(func(val []byte) error {
-			res = string(val) == "true"
-			return nil
-		})
-
-		return nil
-	}); err != nil {
-		res = false
+func (r *LibMarks) MarkExists(mark string) bool {
+	data, err := r.db.Get([]byte(mark), nil)
+	if err != nil {
+		return false
 	}
 
-	return
+	return string(data) == "true"
 }
 
 func (r *LibMarks) AddMark(mark string) error {
-	return r.db.Update(func(tx *badger.Txn) (txErr error) {
-		return tx.Set([]byte(mark), []byte("true"))
-	})
+	return r.db.Put([]byte(mark), []byte("true"), nil)
 }
 
 func (r *LibMarks) Close() error {

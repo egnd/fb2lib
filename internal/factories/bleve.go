@@ -19,13 +19,13 @@ func NewBleveIndex(dir, name string, mapping blevemapping.IndexMapping) bleve.In
 
 	dir = path.Join(dir, name)
 
-	index, err := bleve.Open(dir)
+	db, err := bleve.Open(dir)
 	if err != nil {
-		index, err = bleve.New(dir, mapping)
+		db, err = bleve.New(dir, mapping)
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	return index
+	return db
 }

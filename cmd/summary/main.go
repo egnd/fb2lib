@@ -7,12 +7,12 @@ import (
 	"path"
 	"time"
 
-	"github.com/dgraph-io/badger/v3"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/profile"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/vbauerster/mpb/v7"
 	"github.com/vbauerster/mpb/v7/decor"
 
@@ -76,14 +76,14 @@ func main() {
 	os.RemoveAll(path.Join(cfg.GetString("adapters.badger.dir"), "libs"))
 	os.RemoveAll(path.Join(cfg.GetString("adapters.badger.dir"), "langs"))
 
-	repoBooks := repos.NewBooksBadgerBleve(0,
-		map[repos.BucketType]*badger.DB{
-			repos.BucketBooks:   factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "books"),
-			repos.BucketAuthors: factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "authors"),
-			repos.BucketSeries:  factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "series"),
-			repos.BucketGenres:  factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "genres"),
-			repos.BucketLibs:    factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "libs"),
-			repos.BucketLangs:   factories.NewBadgerDB(cfg.GetString("adapters.badger.dir"), "langs"),
+	repoBooks := repos.NewBooksLevelBleve(0,
+		map[repos.BucketType]*leveldb.DB{
+			repos.BucketBooks:   factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "books"),
+			repos.BucketAuthors: factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "authors"),
+			repos.BucketSeries:  factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "series"),
+			repos.BucketGenres:  factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "genres"),
+			repos.BucketLibs:    factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "libs"),
+			repos.BucketLangs:   factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "langs"),
 		},
 		factories.NewBleveIndex(cfg.GetString("adapters.bleve.dir"), "books", entities.NewBookIndexMapping()),
 		jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
@@ -198,7 +198,7 @@ func RunProfiler(profType string, cfg *viper.Viper) interface{ Stop() } {
 	return profile.Start(pprofopts...)
 }
 
-func GetProgressBar(bars *mpb.Progress, cfg *viper.Viper, logger *zerolog.Logger, repo *repos.BooksBadgerBleve) *mpb.Bar {
+func GetProgressBar(bars *mpb.Progress, cfg *viper.Viper, logger *zerolog.Logger, repo *repos.BooksLevelBleve) *mpb.Bar {
 	if err := os.MkdirAll(cfg.GetString("logs.dir"), 0644); err != nil {
 		panic(err)
 	}

@@ -8,7 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func RemoveBookHandler(repo *repos.BooksBadgerBleve) echo.HandlerFunc {
+func RemoveBookHandler(repo *repos.BooksLevelBleve) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		if err = repo.Remove(c.Param("id")); err != nil {
 			c.NoContent(http.StatusBadRequest)

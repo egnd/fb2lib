@@ -11,7 +11,7 @@ logs:
 adapters:
   bleve:
     dir: var/index
-  badger:
+  leveldb:
     dir: var/db
 converter:
   dir: var/converter
