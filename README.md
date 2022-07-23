@@ -25,7 +25,6 @@ docker run --rm -t --entrypoint=build_index \
 ```bash
 docker run --rm -t --entrypoint=build_summary \
   -v $(pwd)/cfg.yml:/configs/app.override.yml:ro \
-  -v $(pwd)/index:/var/index:rw \
   -v $(pwd)/db:/var/db:rw \
   -v $(pwd)/logs:/var/logs:rw \
   egnd/fb2lib
