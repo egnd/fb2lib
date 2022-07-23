@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container-fluid page-series">
+  {% include "blocks/alphabet.html" with cur_letter=cur_letter url_prefix="/authors" %}
+  {% include "blocks/authors-list-simple.html" with authors=authors url_prefix="/authors/"+cur_letter cur_name=cur_name pager=pager %}
+  {% include "blocks/series-list-simple.html" with series=series block_title="Cерии автора" pager=nil %}
+  {% include "blocks/books-list-simple.html" with books=books columns_cnt=3 block_title="Книги автора" %}
+</div>
+{% endblock %}

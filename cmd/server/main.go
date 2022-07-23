@@ -4,19 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
-	"time"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/patrickmn/go-cache"
-	"github.com/rs/zerolog"
-	"github.com/spf13/viper"
+	"github.com/syndtr/goleveldb/leveldb"
 
 	"github.com/egnd/fb2lib/internal/entities"
 	"github.com/egnd/fb2lib/internal/factories"
 	"github.com/egnd/fb2lib/internal/repos"
-	"github.com/egnd/fb2lib/pkg/pagination"
+	"github.com/egnd/go-pipeline/pools"
 )
 
 var (
@@ -24,7 +19,7 @@ var (
 
 	showVersion = flag.Bool("version", false, "Show app version.")
 	cfgPath     = flag.String("config", "configs/app.yml", "Configuration file path.")
-	cfgPrefix   = flag.String("env-prefix", "BS", "Prefix for env variables.")
+	cfgPrefix   = flag.String("env-prefix", "FBL", "Prefix for env variables.")
 )
 
 func main() {
@@ -43,28 +38,32 @@ func main() {
 		panic(err)
 	}
 
-	index := factories.NewCompositeBleveIndex(cfg.GetString("bleve.path"), libs, entities.NewBookIndexMapping())
-	defer index.Close()
-
-	storage := factories.NewBoltDB(cfg.GetString("boltdb.path"))
-	defer storage.Close()
-
-	repoLibrary := repos.NewLibraryFiles(libs)
-	repoInfo := repos.NewBooksInfo(0, cfg.GetBool("bleve.highlight"), storage, index, logger,
+	repoLibrary := repos.NewLibraryFs(libs, pools.NewSemaphore(20, nil), logger)
+	repoBooks := repos.NewBooksLevelBleve(0,
+		map[repos.BucketType]*leveldb.DB{
+			repos.BucketBooks:   factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "books"),
+			repos.BucketAuthors: factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "authors"),
+			repos.BucketSeries:  factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "series"),
+			repos.BucketGenres:  factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "genres"),
+			repos.BucketLibs:    factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "libs"),
+			repos.BucketLangs:   factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "langs"),
+		},
+		factories.NewBleveIndex(cfg.GetString("adapters.bleve.dir"), "books", entities.NewBookIndexMapping()),
 		jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
 		jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal,
-		cache.New(time.Hour, 30*time.Minute), repoLibrary, libs,
+		logger,
 	)
+	defer repoBooks.Close()
 
-	server, err := factories.NewEchoServer(libs, cfg, logger, repoInfo, repoLibrary)
+	server, err := factories.NewEchoServer(appVersion, libs, cfg, logger, repoBooks, repoLibrary)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("init http server")
 	}
 
-	logger.Info().Msg("warmup cache...")
-	if err := cacheWarmup(logger, cfg, repoInfo); err != nil {
-		panic(err)
-	}
+	// logger.Info().Msg("warmup cache...")
+	// if err := cacheWarmup(logger, cfg, repoBooks); err != nil {
+	// 	panic(err)
+	// }
 
 	logger.Info().
 		Int("port", cfg.GetInt("server.port")).
@@ -78,25 +77,25 @@ func main() {
 	logger.Info().Msg("server stopped")
 }
 
-func cacheWarmup(logger zerolog.Logger, cfg *viper.Viper,
-	repoInfo entities.IBooksInfoRepo,
-) error {
-	defPageSize, err := strconv.Atoi(strings.Split(cfg.GetString("renderer.globals.books_sizes"), ",")[0])
-	if err != nil {
-		return err
-	}
+// func cacheWarmup(logger zerolog.Logger, cfg *viper.Viper,
+// 	repoInfo entities.IBooksInfoRepo,
+// ) error {
+// 	defPageSize, err := strconv.Atoi(strings.Split(cfg.GetString("renderer.globals.books_sizes"), ",")[0])
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if _, err := repoInfo.FindBooks("", "", "", pagination.NewPager(nil).SetPageSize(defPageSize)); err != nil {
-		return err
-	}
+// 	if _, err := repoInfo.FindBooks("", "", "", pagination.NewPager(nil).SetPageSize(defPageSize)); err != nil {
+// 		return err
+// 	}
 
-	if _, err := repoInfo.GetStats(); err != nil {
-		return err
-	}
+// 	if _, err := repoInfo.GetStats(); err != nil {
+// 		return err
+// 	}
 
-	if _, err := repoInfo.GetGenres(nil); err != nil {
-		return err
-	}
+// 	if _, err := repoInfo.GetGenres(nil); err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }

@@ -7,14 +7,23 @@ import (
 	"strings"
 
 	"github.com/egnd/fb2lib/internal/entities"
+	"github.com/egnd/fb2lib/internal/repos"
 	"github.com/pkg/errors"
+	"github.com/vbauerster/mpb/v7"
 )
+
+type ErrAlreadyIndexed struct{}
+
+func (e ErrAlreadyIndexed) Error() string {
+	return "already indexed"
+}
 
 type DefineItemTask struct {
 	id        string
 	item      string
 	lib       entities.Library
-	repoMarks entities.ILibMarksRepo
+	repoMarks *repos.LibMarks
+	bar       *mpb.Bar
 	doFB2Task PushReadTask
 	doZIPTask DoReadZipTask
 }
@@ -22,7 +31,8 @@ type DefineItemTask struct {
 func NewDefineItemTask(
 	item string,
 	lib entities.Library,
-	repoMarks entities.ILibMarksRepo,
+	repoMarks *repos.LibMarks,
+	bar *mpb.Bar,
 	doFB2Task PushReadTask,
 	doZIPTask DoReadZipTask,
 ) *DefineItemTask {
@@ -31,6 +41,7 @@ func NewDefineItemTask(
 		item:      item,
 		lib:       lib,
 		repoMarks: repoMarks,
+		bar:       bar,
 		doFB2Task: doFB2Task,
 		doZIPTask: doZIPTask,
 	}
@@ -47,7 +58,11 @@ func (t *DefineItemTask) Do() error {
 	}
 
 	if t.repoMarks.MarkExists(t.item) {
-		return fmt.Errorf("%s already indexed", t.item)
+		if t.bar != nil {
+			t.bar.IncrInt64(finfo.Size())
+		}
+
+		return &ErrAlreadyIndexed{}
 	}
 
 	switch path.Ext(t.item) {
@@ -57,7 +72,7 @@ func (t *DefineItemTask) Do() error {
 		}
 
 		if err := t.repoMarks.AddMark(t.item); err != nil {
-			return errors.Wrap(err, "memorize zip error")
+			return errors.Wrap(err, "memorize item error")
 		}
 	case ".fb2":
 		reader, err := os.Open(t.item)
@@ -65,12 +80,16 @@ func (t *DefineItemTask) Do() error {
 			return errors.Wrap(err, "open fb2 error")
 		}
 
-		if err := t.doFB2Task(reader, entities.BookInfo{
-			LibName: t.lib.Name,
-			Size:    uint64(finfo.Size()),
-			Src:     strings.TrimPrefix(t.item, t.lib.Dir),
+		if err := t.doFB2Task(reader, entities.Book{
+			Lib:  t.lib.Name,
+			Size: uint64(finfo.Size()),
+			Src:  strings.TrimPrefix(t.item, t.lib.Dir),
 		}); err != nil {
 			return errors.Wrap(err, "do fb2 error")
+		}
+
+		if err := t.repoMarks.AddMark(t.item); err != nil {
+			return errors.Wrap(err, "memorize item error")
 		}
 	default:
 		return fmt.Errorf("type error: unhandled type %s", path.Ext(t.item))

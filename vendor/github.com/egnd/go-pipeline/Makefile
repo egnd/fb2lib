@@ -1,7 +1,6 @@
 #!make
 
 MAKEFLAGS += --always-make
-CALL_PARAM=$(filter-out $@,$(MAKECMDGOALS))
 
 .PHONY: help
 
@@ -41,7 +40,7 @@ tests: ## Run unit tests
 	CGO_ENABLED=1 go test -mod=vendor -race -cover -covermode=atomic -coverprofile=profiles/cover.out.tmp ./...
 
 benchmarks: ## Run benchmarks
-	go test -mod=vendor -benchmem -bench . ./...
+	go test -mod=vendor -benchmem -bench . benchmarks_test.go
 
 coverage: tests ## Check code coveragem
 	@cat profiles/cover.out.tmp | grep -v "mock_" > profiles/cover.out
@@ -53,7 +52,7 @@ lint: ## Lint source code
 
 profiles:
 	@mkdir -p profiles
-	go test -cpuprofile profiles/cpu.out -memprofile profiles/mem.out -bench . $(CALL_PARAM)/benchmarks_test.go
+	go test -cpuprofile profiles/cpu.out -memprofile profiles/mem.out -bench . benchmarks_test.go
 	go tool pprof -svg go-pipeline.test profiles/cpu.out > profiles/cpu.svg
 	go tool pprof -svg -alloc_space go-pipeline.test profiles/mem.out > profiles/mem.svg
 	go tool pprof -svg -alloc_objects go-pipeline.test profiles/mem.out > profiles/obj.svg

@@ -14,9 +14,9 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func FB2FromLocalZip(book entities.BookInfo, libs entities.Libraries, server echo.Context) error {
+func FB2FromLocalZip(book *entities.Book, libs entities.Libraries, server echo.Context) error {
 	zipFilePath := strings.Split(book.Src, ".zip")[0] + ".zip"
-	if lib, ok := libs[book.LibName]; ok {
+	if lib, ok := libs[book.Lib]; ok {
 		zipFilePath = path.Join(lib.Dir, zipFilePath)
 	} else {
 		server.NoContent(http.StatusInternalServerError)
@@ -33,7 +33,7 @@ func FB2FromLocalZip(book entities.BookInfo, libs entities.Libraries, server ech
 	defer reader.Close()
 
 	server.Response().Header().Set(echo.HeaderContentDisposition,
-		fmt.Sprintf(`attachment; filename="%s.fb2"`, entities.BuildBookName(book.Index)),
+		fmt.Sprintf(`attachment; filename="%s.fb2"`, entities.BuildBookName(book)),
 	)
 
 	return server.Stream(http.StatusOK, "application/fb2", reader)

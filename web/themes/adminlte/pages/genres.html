@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container-fluid page-genres">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        {% if pager.GetTotal() > pager.GetPageSize() %}
+        <div class="card-header d-flex p-0">
+          {% if pager.HasNext() %}
+          <h3 class="card-title p-3">Жанры {{pager.GetOffset()+1}}-{{pager.GetOffset()+pager.GetPageSize()}} из {{pager.GetTotal()}}</h3>
+          {% else %}
+          <h3 class="card-title p-3">Жанры {{pager.GetOffset()+1}}-{{pager.GetTotal()}} из {{pager.GetTotal()}}</h3>
+          {% endif %}
+        </div>
+        {% endif %}
+        <div class="card-body">{% include "blocks/genres-list.html" with genres=genres %}</div>
+      </div>
+    </div>
+    {% include "blocks/pagination.html" with pager=pager %}
+  </div>
+</div>
+{% endblock %}

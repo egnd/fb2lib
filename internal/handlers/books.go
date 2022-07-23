@@ -8,15 +8,18 @@ import (
 	"strings"
 
 	"github.com/egnd/fb2lib/internal/entities"
+	"github.com/egnd/fb2lib/internal/repos"
 	"github.com/egnd/fb2lib/pkg/pagination"
 	"github.com/flosch/pongo2/v5"
 	"github.com/labstack/echo/v4"
+	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
 func BooksHandler(cfg *viper.Viper, libs entities.Libraries,
-	repoInfo entities.IBooksInfoRepo,
-	repoBooks entities.IBooksLibraryRepo,
+	repoInfo *repos.BooksLevelBleve,
+	repoBooks *repos.LibraryFs,
+	logger zerolog.Logger,
 ) echo.HandlerFunc {
 	defPageSize, err := strconv.Atoi(strings.Split(cfg.GetString("renderer.globals.books_sizes"), ",")[0])
 	if err != nil {
@@ -37,32 +40,40 @@ func BooksHandler(cfg *viper.Viper, libs entities.Libraries,
 		}
 
 		searchQuery := c.QueryParam("q")
-		pager := pagination.NewPager(c.Request()).SetPageSize(defPageSize).
-			ReadPageSize().ReadCurPage()
+		pager := pagination.NewPager(c.Request()).SetPageSize(defPageSize).ReadPageSize().ReadCurPage()
+		title := "Поиск по книгам"
 
-		var books []entities.BookInfo
-		if books, err = repoInfo.FindBooks(searchQuery, tag, tagValue, pager); err != nil {
-			c.NoContent(http.StatusBadRequest)
+		var breadcrumbs entities.BreadCrumbs
+		if tagValue != "" {
+			breadcrumbs = breadcrumbs.Push("Книги", "/books/").Push(tagValue, "")
+		} else {
+			breadcrumbs = breadcrumbs.Push("Книги", "")
+		}
+
+		switch entities.IndexField(tag) {
+		case entities.IdxFAuthor:
+			title += fmt.Sprintf(` автора "%s"`, tagValue)
+		case entities.IdxFTranslator:
+			title += fmt.Sprintf(` в переводе "%s"`, tagValue)
+		case entities.IdxFSerie:
+			title += fmt.Sprintf(` серии "%s"`, tagValue)
+		case entities.IdxFGenre:
+			title += fmt.Sprintf(` в жанре "%s"`, tagValue)
+		case entities.IdxFPublisher:
+			title += fmt.Sprintf(` издателя "%s"`, tagValue)
+		case entities.IdxFLang:
+			title += fmt.Sprintf(` на языке %s`, tagValue)
+		case entities.IdxFLib:
+			title += fmt.Sprintf(` в коллекции "%s"`, tagValue)
+		}
+
+		var books []entities.Book
+		if books, err = repoInfo.FindBooks(searchQuery, entities.IndexField(tag), tagValue, pager); err != nil {
+			c.NoContent(http.StatusInternalServerError)
 			return
 		}
 
-		title := "Поиск по книгам"
-		switch tag {
-		case entities.IdxFieldAuthor:
-			title += fmt.Sprintf(` автора "%s"`, tagValue)
-		case entities.IdxFieldTranslator:
-			title += fmt.Sprintf(` в переводе "%s"`, tagValue)
-		case entities.IdxFieldSerie:
-			title += fmt.Sprintf(` серии "%s"`, tagValue)
-		case entities.IdxFieldGenre:
-			title += fmt.Sprintf(` в жанре "%s"`, tagValue)
-		case entities.IdxFieldPublisher:
-			title += fmt.Sprintf(` издателя "%s"`, tagValue)
-		case entities.IdxFieldLang:
-			title += fmt.Sprintf(` на языке %s`, tagValue)
-		case entities.IdxFieldLib:
-			title += fmt.Sprintf(` в коллекции "%s"`, tagValue)
-		}
+		repoBooks.AppendFB2Books(books)
 
 		return c.Render(http.StatusOK, "pages/books.html", pongo2.Context{
 			"section_name": "books",
@@ -74,6 +85,7 @@ func BooksHandler(cfg *viper.Viper, libs entities.Libraries,
 			"cur_tag_val":  tagValue,
 			"books":        books,
 			"pager":        pager,
+			"breadcrumbs":  breadcrumbs,
 			"libs": func() (res []string) {
 				for _, lib := range libs {
 					if !lib.Disabled {

@@ -10,12 +10,22 @@ This is a server for indexing and searching fb2-books at zip archives.
 ### Quick start:
 1. Put your archives with books into ```books``` folder
 
-2. Create index:
+2. Build books index:
 ```bash
-docker run --rm -t --entrypoint=indexer \
+docker run --rm -t --entrypoint=build_index \
+  -v $(pwd)/cfg.yml:/configs/app.override.yml:ro \
   -v $(pwd)/books:/var/libs/default:ro \
-  -v $(pwd)/index:/var/index/default:rw \
-  -v $(pwd)/storage:/var/storage:rw \
+  -v $(pwd)/index:/var/index:rw \
+  -v $(pwd)/db:/var/db:rw \
+  -v $(pwd)/logs:/var/logs:rw \
+  egnd/fb2lib
+```
+
+3. Build books summary:
+```bash
+docker run --rm -t --entrypoint=build_summary \
+  -v $(pwd)/cfg.yml:/configs/app.override.yml:ro \
+  -v $(pwd)/db:/var/db:rw \
   -v $(pwd)/logs:/var/logs:rw \
   egnd/fb2lib
 ```
@@ -32,7 +42,7 @@ services:
       - ./cfg.yml:/configs/app.override.yml:ro
       - ./libs/default:/var/libs/default:ro
       - ./index:/var/index:rw
-      - ./storage:/var/storage:rw
+      - ./db:/var/db:rw
 ```
 
 4. Run server with:

@@ -1,42 +1,32 @@
 package repos
 
 import (
-	"go.etcd.io/bbolt"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type LibMarks struct {
-	bucketName string
-	storage    *bbolt.DB
+	db *leveldb.DB
 }
 
-func NewLibMarks(bucketName string, storage *bbolt.DB) *LibMarks {
-	if err := storage.Update(func(tx *bbolt.Tx) (txErr error) {
-		_, err := tx.CreateBucketIfNotExists([]byte(bucketName))
-		return err
-	}); err != nil {
-		panic(err)
-	}
-
+func NewLibMarks(db *leveldb.DB) *LibMarks {
 	return &LibMarks{
-		bucketName: bucketName,
-		storage:    storage,
+		db: db,
 	}
 }
 
-func (r *LibMarks) MarkExists(mark string) (res bool) {
-	if err := r.storage.View(func(tx *bbolt.Tx) (txErr error) {
-		res = string(tx.Bucket([]byte(r.bucketName)).Get([]byte(mark))) == "1"
-
-		return nil
-	}); err != nil {
-		res = false
+func (r *LibMarks) MarkExists(mark string) bool {
+	data, err := r.db.Get([]byte(mark), nil)
+	if err != nil {
+		return false
 	}
 
-	return
+	return string(data) == "true"
 }
 
 func (r *LibMarks) AddMark(mark string) error {
-	return r.storage.Update(func(tx *bbolt.Tx) (txErr error) {
-		return tx.Bucket([]byte(r.bucketName)).Put([]byte(mark), []byte("1"))
-	})
+	return r.db.Put([]byte(mark), []byte("true"), nil)
+}
+
+func (r *LibMarks) Close() error {
+	return r.db.Close()
 }

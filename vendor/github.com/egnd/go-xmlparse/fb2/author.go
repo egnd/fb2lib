@@ -1,6 +1,7 @@
 package fb2
 
 import (
+	"bytes"
 	"encoding/xml"
 
 	"github.com/egnd/go-xmlparse"
@@ -16,6 +17,39 @@ type Author struct {
 	HomePage   []string `xml:"home-page"`
 	Email      []string `xml:"email"`
 	ID         []string `xml:"id"`
+}
+
+func (a Author) String() string {
+	var buf bytes.Buffer
+
+	var strVal string
+
+	if strVal = xmlparse.GetStrFrom(a.LastName); strVal != "" {
+		buf.WriteString(strVal)
+		buf.WriteRune(' ')
+	}
+
+	if strVal = xmlparse.GetStrFrom(a.FirstName); strVal != "" {
+		buf.WriteString(strVal)
+		buf.WriteRune(' ')
+	}
+
+	if strVal = xmlparse.GetStrFrom(a.MiddleName); strVal != "" {
+		buf.WriteString(strVal)
+		buf.WriteRune(' ')
+	}
+
+	if strVal = xmlparse.GetStrFrom(a.Nickname); strVal != "" {
+		if buf.Len() > 0 {
+			buf.WriteString("(")
+			buf.WriteString(strVal)
+			buf.WriteString(")")
+		} else {
+			buf.WriteString(strVal)
+		}
+	}
+
+	return string(bytes.TrimSpace(buf.Bytes()))
 }
 
 // NewAuthor factory for Author.

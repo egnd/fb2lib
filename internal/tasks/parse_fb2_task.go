@@ -8,33 +8,46 @@ import (
 	"github.com/vbauerster/mpb/v7"
 
 	"github.com/egnd/fb2lib/internal/entities"
+	"github.com/egnd/fb2lib/internal/repos"
 )
+
+type ErrSkipRule struct {
+	book string
+	err  error
+}
+
+func (e ErrSkipRule) Error() string {
+	return fmt.Sprintf("skip: %s - %s", e.err, e.book)
+}
 
 type PushParseTask func(io.Reader) error
 
 type ParseFB2Task struct {
 	id      string
 	data    io.Reader
-	book    entities.BookInfo
+	book    entities.Book
 	encoder entities.LibEncodeType
-	repo    entities.IBooksInfoRepo
+	repo    *repos.BooksLevelBleve
 	bar     *mpb.Bar
+	rules   entities.IndexRules
 }
 
 func NewParseFB2Task(
 	data io.Reader,
-	book entities.BookInfo,
+	book entities.Book,
+	rules entities.IndexRules,
 	encoder entities.LibEncodeType,
-	repo entities.IBooksInfoRepo,
+	repo *repos.BooksLevelBleve,
 	bar *mpb.Bar,
 ) *ParseFB2Task {
 	return &ParseFB2Task{
-		id:      fmt.Sprintf("parse [%s] %s", book.LibName, book.Src),
+		id:      fmt.Sprintf("parse [%s] %s", book.Lib, book.Src),
 		data:    data,
 		book:    book,
 		encoder: encoder,
 		repo:    repo,
 		bar:     bar,
+		rules:   rules,
 	}
 }
 
@@ -51,16 +64,19 @@ func (t *ParseFB2Task) Do() error {
 		}
 	}
 
-	fb2File, err := entities.ParseFB2(t.data, t.encoder, SkipFB2Binaries, SkipFB2DocInfo, SkipFB2CustomInfo, SkipFB2Cover)
+	fb2File, err := entities.ParseFB2(t.data, t.encoder, SkipFB2DocInfo, SkipFB2CustomInfo, SkipFB2Binaries)
 
 	if err != nil {
 		return errors.Wrap(err, "parse fb2 error")
 	}
 
-	t.book.Index = entities.NewFB2Index(&fb2File)
-	t.book.Index.Lib = t.book.LibName
+	t.book.ReadFB2(&fb2File)
 
-	if err = t.repo.SaveBook(t.book); err != nil {
+	if err := t.rules.Check(&t.book); err != nil {
+		return &ErrSkipRule{t.book.Info.Title, err}
+	}
+
+	if err = t.repo.SaveBook(&t.book); err != nil {
 		return errors.Wrap(err, "index fb2 error")
 	}
 

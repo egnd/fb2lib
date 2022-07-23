@@ -1,0 +1,20 @@
+{% if authors %}
+<div class="row block-authors-list-simple">
+  <div class="col-12">
+    <div class="card">
+      {% if block_title %}
+      <div class="card-header">{{block_title}}:</div>
+      {% endif %}
+      <div class="card-body">
+        {% for item in authors %}
+        <a class="btn {% if cur_name == item.Val %}btn-primary{% else %}btn-outline-light{% endif %}" 
+           href="{{url_prefix}}/{{item.Val|safe|striptags|urlencode}}{% if pager.GetCurPage() > 1 %}?page={{pager.GetCurPage()}}{% endif %}">
+          {{item.Val}}{% if item.Freq %} ({{item.Freq}}){% endif %}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% include "blocks/pagination.html" with pager=pager %}
+</div>
+{% endif %}

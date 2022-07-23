@@ -4,12 +4,12 @@
 <div class="row books-simple">
     {% for item in books %}
     <div class="col-{{columns_cnt}} col-12-xsmall books-simple-item">
-        {% if item.Details.Images %}
-        {% with img=item.Details.Images|first %}<a href="/book/{{item.Index.ID}}"><img src="data:{{img.Type}};base64,{{img.Data}}"/></a>{% endwith %}
+        {% if item.Info.Cover %}
+        <img src="data:{{item.Info.Cover.Type}};base64,{{item.Info.Cover.Data}}"/>
         {% else %}
-        <a href="/book/{{item.Index.ID}}"><img src="/assets/images/noimg.png"/></a>
+        <img src="/assets/img/noimg.png"/>
         {% endif %}
-        <h4><a href="/book/{{item.Index.ID}}">{{item.Index.Title|split:"; "|first}}</a></h4>        
+        <h4><a href="/book/{{item.ID}}">{{item.Info.Title}}</a></h4>        
     </div>
     {% endfor %}
 </div>

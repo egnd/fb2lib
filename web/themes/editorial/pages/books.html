@@ -18,17 +18,6 @@
             <div class="col-2 col-12-xsmall"><input type="submit" value="Найти" class="primary fit"></div>
             {% endif %}
         </div>
-        
-        {% if libs %}
-        <br>
-        <div class="row">
-            <div class="col-12">
-                {% for lib in libs %}
-                <a class="button {% if cur_tag == "lib" && cur_tag_val == lib %}primary{% endif %}" href="/books/lib/{{lib}}/">{{lib}}</a>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
     </form>
 
     {% include "blocks/books-detailed.html" with books=books cur_tag=cur_tag pager=pager %}

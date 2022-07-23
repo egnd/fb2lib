@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/egnd/fb2lib/internal/entities"
+	"github.com/egnd/fb2lib/internal/repos"
 	"github.com/labstack/echo/v4"
 )
 
-func RemoveBookHandler(repo entities.IBooksInfoRepo) echo.HandlerFunc {
+func RemoveBookHandler(repo *repos.BooksLevelBleve) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		if err = repo.Remove(c.Param("id")); err != nil {
 			c.NoContent(http.StatusBadRequest)

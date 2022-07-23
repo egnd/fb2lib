@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type PushReadTask func(io.ReadCloser, entities.BookInfo) error
+type PushReadTask func(io.ReadCloser, entities.Book) error
 
 type ReadTask struct {
 	id          string

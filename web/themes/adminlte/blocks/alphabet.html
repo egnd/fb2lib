@@ -1,0 +1,15 @@
+<div class="row block-alphabet">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        {% for letter in alphabet_en|split %}
+        <a class="btn {% if letter == cur_letter %}btn-primary{% else %}btn-outline-light{% endif %}" href="{{url_prefix}}/{{letter|urlencode}}/">{{letter}}</a>
+        {% endfor %}
+        <hr>
+        {% for letter in alphabet_ru|split %}
+        <a class="btn {% if letter == cur_letter %}btn-primary{% else %}btn-outline-light{% endif %}" href="{{url_prefix}}/{{letter|urlencode}}/">{{letter}}</a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>

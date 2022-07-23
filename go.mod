@@ -3,21 +3,20 @@ module github.com/egnd/fb2lib
 go 1.18
 
 require (
-	github.com/blevesearch/bleve/v2 v2.3.2
+	github.com/blevesearch/bleve/v2 v2.3.3
 	github.com/dustin/go-humanize v1.0.0
-	github.com/egnd/go-pipeline v1.0.0
-	github.com/egnd/go-xmlparse v1.0.0
+	github.com/egnd/go-pipeline v1.2.0
+	github.com/egnd/go-xmlparse v1.1.1
 	github.com/essentialkaos/translit/v2 v2.0.4
 	github.com/flosch/pongo2/v5 v5.0.0
 	github.com/json-iterator/go v1.1.12
 	github.com/labstack/echo/v4 v4.7.2
-	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/profile v1.6.0
 	github.com/rs/zerolog v1.27.0
 	github.com/spf13/viper v1.12.0
+	github.com/syndtr/goleveldb v1.0.0
 	github.com/vbauerster/mpb/v7 v7.4.2
-	go.etcd.io/bbolt v1.3.6
 )
 
 require (
@@ -25,22 +24,24 @@ require (
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
-	github.com/blevesearch/bleve_index_api v1.0.1 // indirect
+	github.com/blevesearch/bleve_index_api v1.0.2 // indirect
+	github.com/blevesearch/geo v0.1.12-0.20220606102651-aab42add3121 // indirect
 	github.com/blevesearch/go-porterstemmer v1.0.3 // indirect
 	github.com/blevesearch/gtreap v0.1.1 // indirect
-	github.com/blevesearch/mmap-go v1.0.3 // indirect
+	github.com/blevesearch/mmap-go v1.0.4 // indirect
 	github.com/blevesearch/scorch_segment_api/v2 v2.1.0 // indirect
 	github.com/blevesearch/segment v0.9.0 // indirect
 	github.com/blevesearch/snowballstem v0.9.0 // indirect
 	github.com/blevesearch/upsidedown_store_api v1.0.1 // indirect
-	github.com/blevesearch/vellum v1.0.7 // indirect
-	github.com/blevesearch/zapx/v11 v11.3.3 // indirect
-	github.com/blevesearch/zapx/v12 v12.3.3 // indirect
-	github.com/blevesearch/zapx/v13 v13.3.3 // indirect
-	github.com/blevesearch/zapx/v14 v14.3.3 // indirect
-	github.com/blevesearch/zapx/v15 v15.3.3 // indirect
+	github.com/blevesearch/vellum v1.0.8 // indirect
+	github.com/blevesearch/zapx/v11 v11.3.4 // indirect
+	github.com/blevesearch/zapx/v12 v12.3.4 // indirect
+	github.com/blevesearch/zapx/v13 v13.3.4 // indirect
+	github.com/blevesearch/zapx/v14 v14.3.4 // indirect
+	github.com/blevesearch/zapx/v15 v15.3.4 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
+	github.com/golang/geo v0.0.0-20210211234256-740aa86cb551 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
@@ -63,6 +64,7 @@ require (
 	github.com/subosito/gotenv v1.3.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.1 // indirect
+	go.etcd.io/bbolt v1.3.5 // indirect
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4 // indirect
 	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect

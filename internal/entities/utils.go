@@ -2,12 +2,9 @@ package entities
 
 import (
 	"bytes"
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -45,24 +42,6 @@ func ParseYear(date string) (res uint16) {
 	return
 }
 
-func GenerateID(args ...[]string) string {
-	hasher := md5.New()
-
-	for _, vals := range args {
-		sort.Strings(vals)
-
-		for _, str := range vals {
-			str = strings.ToLower(strings.TrimSpace(str))
-
-			if str != "" {
-				hasher.Write([]byte(str))
-			}
-		}
-	}
-
-	return hex.EncodeToString(hasher.Sum(nil))
-}
-
 func SliceHasString(haystack []string, needle string) bool {
 	for _, v := range haystack {
 		if needle == v {
@@ -71,15 +50,6 @@ func SliceHasString(haystack []string, needle string) bool {
 	}
 
 	return false
-}
-func GetFirstStr(items []string) string {
-	for _, item := range items {
-		if item != "" {
-			return item
-		}
-	}
-
-	return ""
 }
 
 func ParseFB2(reader io.Reader, encoder LibEncodeType,
@@ -95,125 +65,6 @@ func ParseFB2(reader io.Reader, encoder LibEncodeType,
 	return
 }
 
-func appendUniqStr(current *string, items ...string) {
-	for _, item := range items {
-		if item == "" || strings.Contains(*current, item) {
-			continue
-		}
-
-		if *current == "" {
-			*current = item
-			continue
-		}
-
-		*current = fmt.Sprintf("%s%s%s", *current, IndexFieldSep, item)
-	}
-}
-
-func appendUniqFB2Author(current *string, items []fb2.Author) {
-	var buf bytes.Buffer
-	var strVal string
-
-	authors := make([]string, 0, len(items))
-
-	for _, item := range items {
-		if strVal = GetFirstStr(item.LastName); strVal != "" {
-			buf.WriteString(strVal)
-			buf.WriteRune(' ')
-		}
-
-		if strVal = GetFirstStr(item.FirstName); strVal != "" {
-			buf.WriteString(strVal)
-			buf.WriteRune(' ')
-		}
-
-		if strVal = GetFirstStr(item.MiddleName); strVal != "" {
-			buf.WriteString(strVal)
-			buf.WriteRune(' ')
-		}
-
-		if strVal = GetFirstStr(item.Nickname); strVal != "" {
-			if buf.Len() > 0 {
-				buf.WriteString("(")
-				buf.WriteString(strVal)
-				buf.WriteString(")")
-			} else {
-				buf.WriteString(strVal)
-			}
-		}
-
-		authors = append(authors, string(bytes.TrimSpace(buf.Bytes())))
-		buf.Reset()
-	}
-
-	appendUniqStr(current, authors...)
-}
-
-func appendUniqFB2Seq(current *string, items []fb2.Sequence) {
-	var buf bytes.Buffer
-
-	seqs := make([]string, 0, len(items))
-
-	for _, item := range items {
-		if item.Name == "" {
-			continue
-		}
-
-		var num string
-		if item.Number != "" && item.Number != "0" {
-			num = fmt.Sprintf("(%s)", item.Number)
-		}
-
-		for _, subitem := range strings.Split(item.Name, ",") {
-			if subitem = strings.TrimSpace(subitem); subitem == "" {
-				continue
-			}
-
-			buf.Reset()
-			buf.WriteString(subitem)
-
-			if num != "" {
-				buf.WriteRune(' ')
-				buf.WriteString(num)
-			}
-
-			seqs = append(seqs, buf.String())
-		}
-	}
-
-	appendUniqStr(current, seqs...)
-}
-
-func appendUniqFB2Publisher(current *string, items []fb2.Publisher) {
-	var buf bytes.Buffer
-	var strVal string
-
-	publ := make([]string, 0, len(items))
-
-	for _, item := range items {
-		if strVal = GetFirstStr(item.Publisher); strVal != "" {
-			buf.WriteString(strVal)
-		}
-
-		if strVal = GetFirstStr(item.City); strVal != "" {
-			buf.WriteRune(' ')
-
-			if buf.Len() > 0 {
-				buf.WriteRune('(')
-				buf.WriteString(strVal)
-				buf.WriteRune(')')
-			} else {
-				buf.WriteString(strVal)
-			}
-		}
-
-		publ = append(publ, buf.String())
-		buf.Reset()
-	}
-
-	appendUniqStr(current, publ...)
-}
-
 func BuildBookURL(path, urlPrefix, pathPrefix string) string {
 	return fmt.Sprintf("%s/%s",
 		strings.Trim(urlPrefix, "/"),
@@ -221,25 +72,25 @@ func BuildBookURL(path, urlPrefix, pathPrefix string) string {
 	)
 }
 
-func TransformStr(val string) string {
-	val = booksNamePattern.ReplaceAllString(
-		strings.ToLower(
-			translit.EncodeToICAO(strings.Split(val, IndexFieldSep)[0]),
-		),
-		"-",
-	)
+func TransformStr(vals ...string) string {
+	var buf bytes.Buffer
 
-	if len(val) > booksNamePartSize {
-		val = strings.Trim(val[0:booksNamePartSize], "-")
+	for _, item := range vals {
+		item = booksNamePattern.ReplaceAllString(strings.ToLower(translit.EncodeToICAO(item)), "-")
+		if len(item) > booksNamePartSize {
+			item = strings.Trim(item[0:booksNamePartSize], "-")
+		}
+
+		buf.WriteString(item)
 	}
 
-	return val
+	return buf.String()
 }
 
-func BuildBookName(book BookIndex) (res string) {
-	res = TransformStr(book.Title)
+func BuildBookName(book *Book) (res string) {
+	res = TransformStr(book.Info.Title)
 
-	if authors := TransformStr(book.Author); authors != "" {
+	if authors := TransformStr(book.Info.Authors...); authors != "" {
 		res += "." + authors
 	}
 

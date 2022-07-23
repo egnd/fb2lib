@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/egnd/fb2lib/internal/entities"
+	"github.com/egnd/fb2lib/internal/repos"
 	"github.com/egnd/fb2lib/internal/response"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
@@ -15,7 +16,7 @@ import (
 )
 
 func DownloadHandler(libs entities.Libraries,
-	repo entities.IBooksInfoRepo, cfg *viper.Viper, logger zerolog.Logger,
+	repo *repos.BooksLevelBleve, cfg *viper.Viper, logger zerolog.Logger,
 ) echo.HandlerFunc {
 	converterDir := cfg.GetString("converter.dir")
 	if err := os.MkdirAll(converterDir, 0755); err != nil {
@@ -33,8 +34,8 @@ func DownloadHandler(libs entities.Libraries,
 			return
 		}
 
-		var book entities.BookInfo
-		if book, err = repo.FindByID(bookID); err != nil {
+		var book *entities.Book
+		if book, err = repo.GetByID(bookID); err != nil {
 			c.NoContent(http.StatusNotFound)
 			return
 		}

@@ -63,7 +63,7 @@ func (t *ReadZipTask) Do() error {
 
 	itemReader, err := zip.OpenReader(t.path)
 	if err != nil {
-		return errors.Wrap(err, "read zip error")
+		return errors.Wrapf(err, "read %s error", t.path)
 	}
 	defer itemReader.Close()
 
@@ -84,11 +84,11 @@ func (t *ReadZipTask) Do() error {
 			return errors.Wrap(err, "open item error")
 		}
 
-		if err := t.doReaderTask(reader, entities.BookInfo{
+		if err := t.doReaderTask(reader, entities.Book{
 			Offset:         uint64(offset),
 			Size:           book.UncompressedSize64,
 			SizeCompressed: book.CompressedSize64,
-			LibName:        t.lib.Name,
+			Lib:            t.lib.Name,
 			Src:            path.Join(strings.TrimPrefix(t.path, t.lib.Dir), book.Name),
 		}); err != nil {
 			return errors.Wrap(err, "do item error")

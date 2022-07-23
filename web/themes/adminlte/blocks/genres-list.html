@@ -1,0 +1,7 @@
+<div class="block-genres-list">
+  {% for item in genres %}
+  <a class="btn btn-outline-light" href="/books/genre/{{item.Val|urlencode}}/">
+    {{item.Val}}{% if item.Freq %} ({{item.Freq}}){% endif %}
+  </a>
+  {% endfor %}
+</div>

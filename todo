@@ -1,6 +1,2 @@
-- adminLTE
-- indexer skip patterns
+- update editorial theme
 - update massively theme
-- logger skipper
-- ci jobs for units and linting
-- add rest api
