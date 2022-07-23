@@ -43,6 +43,9 @@ endif
 	unzip fb2c-$(GOOS)-$(GOARCH)-$(FB2C_VERSION).zip
 	mv fb2c bin/$(GOOS)-$(GOARCH)/fb2c && ls -lah bin/$(GOOS)-$(GOARCH)/fb2c
 
+build-image: ## Build app image
+	docker build --tag=fb2lib:debug --build-arg TARGETOS=linux --build-arg TARGETARCH=amd64 .
+
 compose: compose-stop ## Run app
 	docker-compose up --build --abort-on-container-exit --renew-anon-volumes
 

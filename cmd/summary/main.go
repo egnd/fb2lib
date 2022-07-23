@@ -70,20 +70,20 @@ func main() {
 		defer RunProfiler(*profiler, cfg).Stop()
 	}
 
-	os.RemoveAll(path.Join(cfg.GetString("adapters.badger.dir"), "authors"))
-	os.RemoveAll(path.Join(cfg.GetString("adapters.badger.dir"), "series"))
-	os.RemoveAll(path.Join(cfg.GetString("adapters.badger.dir"), "genres"))
-	os.RemoveAll(path.Join(cfg.GetString("adapters.badger.dir"), "libs"))
-	os.RemoveAll(path.Join(cfg.GetString("adapters.badger.dir"), "langs"))
+	os.RemoveAll(path.Join(cfg.GetString("adapters.leveldb.dir"), "authors"))
+	os.RemoveAll(path.Join(cfg.GetString("adapters.leveldb.dir"), "series"))
+	os.RemoveAll(path.Join(cfg.GetString("adapters.leveldb.dir"), "genres"))
+	os.RemoveAll(path.Join(cfg.GetString("adapters.leveldb.dir"), "libs"))
+	os.RemoveAll(path.Join(cfg.GetString("adapters.leveldb.dir"), "langs"))
 
 	repoBooks := repos.NewBooksLevelBleve(0,
 		map[repos.BucketType]*leveldb.DB{
-			repos.BucketBooks:   factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "books"),
-			repos.BucketAuthors: factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "authors"),
-			repos.BucketSeries:  factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "series"),
-			repos.BucketGenres:  factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "genres"),
-			repos.BucketLibs:    factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "libs"),
-			repos.BucketLangs:   factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "langs"),
+			repos.BucketBooks:   factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "books"),
+			repos.BucketAuthors: factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "authors"),
+			repos.BucketSeries:  factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "series"),
+			repos.BucketGenres:  factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "genres"),
+			repos.BucketLibs:    factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "libs"),
+			repos.BucketLangs:   factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "langs"),
 		},
 		factories.NewBleveIndex(cfg.GetString("adapters.bleve.dir"), "books", entities.NewBookIndexMapping()),
 		jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
@@ -214,11 +214,13 @@ func GetProgressBar(bars *mpb.Progress, cfg *viper.Viper, logger *zerolog.Logger
 
 	return bars.AddBar(int64(repo.GetTotal()),
 		mpb.PrependDecorators(
-			decor.Name("summary "),
+			decor.Name("summary: "),
+			decor.NewPercentage("%d"),
+			decor.Name(" ["), decor.CountersNoUnit("%d/%d"), decor.Name("] "),
 			decor.Elapsed(decor.ET_STYLE_GO),
 		),
 		mpb.AppendDecorators(
-			decor.AverageETA(decor.ET_STYLE_GO),
+			decor.OnComplete(decor.AverageETA(decor.ET_STYLE_GO), ""),
 		),
 	)
 }

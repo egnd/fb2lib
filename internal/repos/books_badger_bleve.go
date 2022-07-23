@@ -541,13 +541,19 @@ func (r *BooksLevelBleve) saveBatch(batch []*entities.Book, indexBatch *bleve.Ba
 	logger.Debug().Msg("batch saved")
 }
 
-func (r *BooksLevelBleve) GetTotal() uint64 {
-	total, err := r.index.DocCount()
-	if err != nil {
+func (r *BooksLevelBleve) GetTotal() (total uint64) {
+	iter := r.buckets[BucketBooks].NewIterator(nil, nil)
+	defer iter.Release()
+
+	for iter.Next() {
+		total++
+	}
+
+	if err := iter.Error(); err != nil {
 		panic(err)
 	}
 
-	return total
+	return
 }
 
 func (r *BooksLevelBleve) IterateOver(handlers ...func(*entities.Book) error) error {

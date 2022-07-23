@@ -250,14 +250,15 @@ func GetProgressBar(bars *mpb.Progress, libs entities.Libraries, cfg *viper.Vipe
 	*logger = logger.Output(zerolog.ConsoleWriter{Out: logOutput, NoColor: true})
 
 	return bars.AddBar(libs.GetSize(),
-		// mpb.BarStyle().Lbound("╢").Filler("▌").Tip("▌").Padding("░").Rbound("╟"),
 		mpb.PrependDecorators(
+			decor.Name("indexing: "),
+			decor.NewPercentage("%d"),
+			decor.Name(" ["), decor.CountersKibiByte("% .2f/% .2f"), decor.Name("] "),
 			decor.Elapsed(decor.ET_STYLE_GO),
 		),
 		mpb.AppendDecorators(
-			decor.CountersKibiByte("% .2f/% .2f"), decor.Name(", "),
-			decor.AverageSpeed(decor.UnitKB, "% .2f"), decor.Name(", "),
-			decor.AverageETA(decor.ET_STYLE_GO),
+			decor.OnComplete(decor.AverageSpeed(decor.UnitKB, "% .2f"), ""), decor.Name(" "),
+			decor.OnComplete(decor.AverageETA(decor.ET_STYLE_GO), ""),
 		),
 	)
 }

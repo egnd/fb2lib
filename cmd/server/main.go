@@ -41,12 +41,12 @@ func main() {
 	repoLibrary := repos.NewLibraryFs(libs, pools.NewSemaphore(20, nil), logger)
 	repoBooks := repos.NewBooksLevelBleve(0,
 		map[repos.BucketType]*leveldb.DB{
-			repos.BucketBooks:   factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "books"),
-			repos.BucketAuthors: factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "authors"),
-			repos.BucketSeries:  factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "series"),
-			repos.BucketGenres:  factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "genres"),
-			repos.BucketLibs:    factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "libs"),
-			repos.BucketLangs:   factories.NewLevelDB(cfg.GetString("adapters.badger.dir"), "langs"),
+			repos.BucketBooks:   factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "books"),
+			repos.BucketAuthors: factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "authors"),
+			repos.BucketSeries:  factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "series"),
+			repos.BucketGenres:  factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "genres"),
+			repos.BucketLibs:    factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "libs"),
+			repos.BucketLangs:   factories.NewLevelDB(cfg.GetString("adapters.leveldb.dir"), "langs"),
 		},
 		factories.NewBleveIndex(cfg.GetString("adapters.bleve.dir"), "books", entities.NewBookIndexMapping()),
 		jsoniter.ConfigCompatibleWithStandardLibrary.Marshal,
